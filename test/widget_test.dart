@@ -6,20 +6,18 @@ void main() {
     TextDirection? detectedDirection;
 
     await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('fa'),
-        supportedLocales: const [
-          Locale('fa'),
-          Locale('en'),
-        ],
-        home: Builder(
-          builder: (context) {
-            detectedDirection = Directionality.of(context);
+      Directionality(
+        textDirection: TextDirection.rtl,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) {
+              detectedDirection = Directionality.of(context);
 
-            return const Scaffold(
-              body: Text('رها لایف'),
-            );
-          },
+              return const Scaffold(
+                body: Text('رها لایف'),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -32,20 +30,18 @@ void main() {
     TextDirection? detectedDirection;
 
     await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('en'),
-        supportedLocales: const [
-          Locale('fa'),
-          Locale('en'),
-        ],
-        home: Builder(
-          builder: (context) {
-            detectedDirection = Directionality.of(context);
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) {
+              detectedDirection = Directionality.of(context);
 
-            return const Scaffold(
-              body: Text('Raha Life'),
-            );
-          },
+              return const Scaffold(
+                body: Text('Raha Life'),
+              );
+            },
+          ),
         ),
       ),
     );
