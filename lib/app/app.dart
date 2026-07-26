@@ -29,6 +29,16 @@ class RahaLifeApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) {
+        final locale = Localizations.localeOf(context);
+        final textDirection = locale.languageCode == 'fa'
+            ? TextDirection.rtl
+            : TextDirection.ltr;
+        return Directionality(
+          textDirection: textDirection,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       routerConfig: router,
     );
   }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 ThemeData buildLightTheme() => ThemeData(
       useMaterial3: true,
-      fontFamily: 'Vazirmatn',
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF536D5B),
         brightness: Brightness.light,
@@ -23,7 +22,6 @@ ThemeData buildLightTheme() => ThemeData(
 
 ThemeData buildDarkTheme() => ThemeData(
       useMaterial3: true,
-      fontFamily: 'Vazirmatn',
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color(0xFF8DA894),
         brightness: Brightness.dark,

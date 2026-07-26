@@ -39,3 +39,14 @@ Alternatively remove the font declaration temporarily.
 ## Current state
 
 This is the implementation foundation, not the final application. The database schema and service boundaries are established so feature modules can be completed without architecture rewrites.
+
+## GitHub build outputs
+
+The repository includes a GitHub Actions workflow that builds Android and Windows without requiring Android Studio on the contributor's computer.
+
+Open **Actions → Build Raha Life → Run workflow**. After completion, download:
+
+- `Raha-Life-Android`: universal APK, three split APKs, AAB, and checksums.
+- `Raha-Life-Windows`: portable Windows x64 ZIP and checksum.
+
+The generated platform folders are temporary in CI until native project settings are finalized and committed.

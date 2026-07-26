@@ -1,7 +1,7 @@
 name: raha_life
 description: Offline-first bilingual life planner with optional online AI assistants.
 publish_to: none
-version: 0.1.0+1
+version: 0.1.2+3
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -39,11 +39,3 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
-  assets:
-    - assets/fonts/
-  fonts:
-    - family: Vazirmatn
-      fonts:
-        - asset: assets/fonts/Vazirmatn-Regular.ttf
-        - asset: assets/fonts/Vazirmatn-Bold.ttf
-          weight: 700
