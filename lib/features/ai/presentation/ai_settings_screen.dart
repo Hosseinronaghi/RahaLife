@@ -29,7 +29,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
       appBar: AppBar(title: Text(l10n.aiAssistant)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         DropdownButtonFormField<AiProviderType>(
-          value: provider,
+          initialValue: provider,
           decoration: InputDecoration(labelText: l10n.aiAssistant),
           items: const [
             DropdownMenuItem(value: AiProviderType.rahaFree, child: Text('Raha Free AI')),
