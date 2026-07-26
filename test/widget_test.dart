@@ -8,16 +8,12 @@ void main() {
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.rtl,
-        child: MaterialApp(
-          home: Builder(
-            builder: (context) {
-              detectedDirection = Directionality.of(context);
+        child: Builder(
+          builder: (context) {
+            detectedDirection = Directionality.of(context);
 
-              return const Scaffold(
-                body: Text('رها لایف'),
-              );
-            },
-          ),
+            return const Text('رها لایف');
+          },
         ),
       ),
     );
@@ -32,16 +28,12 @@ void main() {
     await tester.pumpWidget(
       Directionality(
         textDirection: TextDirection.ltr,
-        child: MaterialApp(
-          home: Builder(
-            builder: (context) {
-              detectedDirection = Directionality.of(context);
+        child: Builder(
+          builder: (context) {
+            detectedDirection = Directionality.of(context);
 
-              return const Scaffold(
-                body: Text('Raha Life'),
-              );
-            },
-          ),
+            return const Text('Raha Life');
+          },
         ),
       ),
     );
