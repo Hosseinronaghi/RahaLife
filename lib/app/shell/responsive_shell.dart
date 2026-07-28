@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/home/presentation/quick_add_sheet.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 class ResponsiveShell extends StatelessWidget {
   const ResponsiveShell({required this.child, super.key});
+
   final Widget child;
 
   static const _paths = ['/today', '/calendar', '/lists', '/reports', '/more'];
@@ -20,107 +22,144 @@ class ResponsiveShell extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final index = _index(context);
     final destinations = [
-      NavigationDestination(icon: const Icon(Icons.today_outlined), selectedIcon: const Icon(Icons.today), label: l10n.today),
-      NavigationDestination(icon: const Icon(Icons.calendar_month_outlined), selectedIcon: const Icon(Icons.calendar_month), label: l10n.calendar),
-      NavigationDestination(icon: const Icon(Icons.checklist_outlined), selectedIcon: const Icon(Icons.checklist), label: l10n.lists),
-      NavigationDestination(icon: const Icon(Icons.insights_outlined), selectedIcon: const Icon(Icons.insights), label: l10n.reports),
-      NavigationDestination(icon: const Icon(Icons.more_horiz), selectedIcon: const Icon(Icons.more), label: l10n.more),
+      NavigationDestination(
+        icon: const Icon(Icons.home_outlined),
+        selectedIcon: const Icon(Icons.home_rounded),
+        label: l10n.home,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.calendar_month_outlined),
+        selectedIcon: const Icon(Icons.calendar_month_rounded),
+        label: l10n.calendar,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.grid_view_outlined),
+        selectedIcon: const Icon(Icons.grid_view_rounded),
+        label: l10n.lists,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.insights_outlined),
+        selectedIcon: const Icon(Icons.insights_rounded),
+        label: l10n.reports,
+      ),
+      NavigationDestination(
+        icon: const Icon(Icons.more_horiz_rounded),
+        selectedIcon: const Icon(Icons.more_rounded),
+        label: l10n.more,
+      ),
     ];
 
     void select(int value) => context.go(_paths[value]);
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final desktop = constraints.maxWidth >= 900;
-      if (!desktop) {
-        return Scaffold(
-          body: SafeArea(child: child),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: index,
-            onDestinationSelected: select,
-            destinations: destinations,
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showQuickAdd(context),
-            child: const Icon(Icons.add),
-          ),
-        );
-      }
-
-      return Scaffold(
-        body: Row(
-          children: [
-            NavigationRail(
-              extended: constraints.maxWidth >= 1180,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final desktop = constraints.maxWidth >= 920;
+        if (!desktop) {
+          return Scaffold(
+            extendBody: false,
+            body: SafeArea(bottom: false, child: child),
+            bottomNavigationBar: NavigationBar(
               selectedIndex: index,
               onDestinationSelected: select,
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: FloatingActionButton.small(
-                  onPressed: () => _showQuickAdd(context),
-                  child: const Icon(Icons.add),
-                ),
-              ),
-              destinations: destinations
-                  .map((d) => NavigationRailDestination(
-                        icon: d.icon,
-                        selectedIcon: d.selectedIcon,
-                        label: Text(d.label),
-                      ))
-                  .toList(),
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              destinations: destinations,
             ),
-            const VerticalDivider(width: 1),
-            Expanded(child: SafeArea(child: child)),
-          ],
-        ),
-      );
-    });
-  }
+          );
+        }
 
-  Future<void> _showQuickAdd(BuildContext context) => showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        builder: (context) => const _QuickAddSheet(),
-      );
-}
-
-class _QuickAddSheet extends StatelessWidget {
-  const _QuickAddSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final items = <(IconData, String)>[
-      (Icons.task_alt, l10n.tasks),
-      (Icons.medication_outlined, l10n.medications),
-      (Icons.event_available, l10n.appointments),
-      (Icons.note_add_outlined, l10n.notes),
-      (Icons.shopping_cart_outlined, l10n.shopping),
-      (Icons.payments_outlined, l10n.finance),
-    ];
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        child: GridView.count(
-          shrinkWrap: true,
-          crossAxisCount: 3,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          children: [
-            for (final item in items)
-              Card(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => Navigator.pop(context),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(item.$1),
-                    const SizedBox(height: 8),
-                    Text(item.$2, textAlign: TextAlign.center),
-                  ]),
+        return Scaffold(
+          body: Row(
+            children: [
+              NavigationRail(
+                extended: constraints.maxWidth >= 1220,
+                minExtendedWidth: 230,
+                selectedIndex: index,
+                onDestinationSelected: select,
+                leading: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 18, 12, 22),
+                  child: constraints.maxWidth >= 1220
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _BrandMark(onTap: () => context.go('/today')),
+                            const SizedBox(width: 11),
+                            Text(
+                              l10n.appName,
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ],
+                        )
+                      : _BrandMark(onTap: () => context.go('/today')),
+                ),
+                trailing: Padding(
+                  padding: const EdgeInsets.only(top: 18),
+                  child: constraints.maxWidth >= 1220
+                      ? FilledButton.icon(
+                          onPressed: () => showQuickAdd(context),
+                          icon: const Icon(Icons.add_rounded),
+                          label: Text(l10n.add),
+                        )
+                      : FloatingActionButton.small(
+                          onPressed: () => showQuickAdd(context),
+                          child: const Icon(Icons.add_rounded),
+                        ),
+                ),
+                destinations: destinations
+                    .map(
+                      (destination) => NavigationRailDestination(
+                        icon: destination.icon,
+                        selectedIcon: destination.selectedIcon,
+                        label: Text(destination.label),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+              const VerticalDivider(width: 1),
+              Expanded(
+                child: SafeArea(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1440),
+                      child: child,
+                    ),
+                  ),
                 ),
               ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
+}
+
+class _BrandMark extends StatelessWidget {
+  const _BrandMark({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Ink(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.tertiary,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(
+            Icons.eco_rounded,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
+        ),
+      );
 }

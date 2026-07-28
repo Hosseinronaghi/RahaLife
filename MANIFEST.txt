@@ -1,33 +1,54 @@
-.github/workflows/flutter-ci.yml
-README.md
-analysis_options.yaml
-assets/fonts/README.txt
-docs/ARCHITECTURE.md
-docs/DATA_RULES.md
-docs/IMPLEMENTATION_ROADMAP.md
-l10n.yaml
-lib/app/app.dart
-lib/app/router.dart
-lib/app/shell/responsive_shell.dart
-lib/app/theme.dart
-lib/core/database/app_database.dart
-lib/core/domain/medication_status.dart
-lib/core/domain/money.dart
-lib/core/settings/app_settings.dart
-lib/core/sync/sync_contract.dart
-lib/features/ai/data/ai_config.dart
-lib/features/ai/data/openai_compatible_provider.dart
-lib/features/ai/data/secure_ai_credentials.dart
-lib/features/ai/domain/ai_provider.dart
-lib/features/ai/presentation/ai_settings_screen.dart
-lib/features/calendar/presentation/calendar_screen.dart
-lib/features/dashboard/presentation/today_screen.dart
-lib/features/lists/presentation/lists_screen.dart
-lib/features/more/presentation/more_screen.dart
-lib/features/reports/presentation/reports_screen.dart
-lib/l10n/app_en.arb
-lib/l10n/app_fa.arb
-lib/main.dart
-pubspec.yaml
-test/money_test.dart
-tool/bootstrap.sh
+Raha Life 0.2.0+5
+
+Core application
+- lib/app/app.dart
+- lib/app/router.dart
+- lib/app/theme.dart
+- lib/app/shell/responsive_shell.dart
+
+UI and active features
+- lib/features/dashboard/presentation/today_screen.dart
+- lib/features/calendar/presentation/calendar_screen.dart
+- lib/features/lists/presentation/lists_screen.dart
+- lib/features/lists/presentation/module_entries_screen.dart
+- lib/features/reports/presentation/reports_screen.dart
+- lib/features/search/presentation/global_search_screen.dart
+- lib/features/settings/presentation/settings_screen.dart
+- lib/features/profile/presentation/profile_screen.dart
+- lib/features/more/presentation/more_screen.dart
+- lib/features/common/presentation/coming_soon_screen.dart
+
+Home data and interaction
+- lib/features/home/domain/home_entry.dart
+- lib/features/home/presentation/home_controller.dart
+- lib/features/home/presentation/home_entry_ui.dart
+- lib/features/home/presentation/quick_add_sheet.dart
+- lib/features/home/presentation/entry_details_sheet.dart
+
+Localization
+- lib/core/localization/locale_formatters.dart
+- lib/l10n/app_fa.arb
+- lib/l10n/app_en.arb
+
+Data and AI
+- lib/core/database/app_database.dart
+- lib/features/ai/presentation/ai_settings_screen.dart
+- lib/features/ai/data/*
+- lib/features/ai/domain/*
+
+Testing
+- test/money_test.dart
+- test/locale_formatters_test.dart
+- test/home_controller_test.dart
+
+Automation
+- .github/workflows/build-release.yml
+- .github/workflows/flutter-ci.yml
+
+Documentation
+- README.md
+- CHANGELOG.md
+- docs/UI_UX_SPECIFICATION.md
+- docs/DELIVERY_0.2.0.md
+
+- docs/VALIDATION_0.2.0.md — automated/static validation report and build caveat

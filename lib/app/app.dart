@@ -18,8 +18,14 @@ class RahaLifeApp extends ConsumerWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       onGenerateTitle: (context) => AppLocalizations.of(context).appName,
-      theme: buildLightTheme(),
-      darkTheme: buildDarkTheme(),
+      theme: buildLightTheme(
+        locale: settings.locale,
+        accent: settings.accentChoice,
+      ),
+      darkTheme: buildDarkTheme(
+        locale: settings.locale,
+        accent: settings.accentChoice,
+      ),
       themeMode: settings.themeMode,
       locale: settings.locale,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -31,12 +37,21 @@ class RahaLifeApp extends ConsumerWidget {
       ],
       builder: (context, child) {
         final locale = Localizations.localeOf(context);
-        final textDirection = locale.languageCode == 'fa'
-            ? TextDirection.rtl
-            : TextDirection.ltr;
+        final mediaQuery = MediaQuery.maybeOf(context);
+        Widget content = child ?? const SizedBox.shrink();
+        if (mediaQuery != null) {
+          content = MediaQuery(
+            data: mediaQuery.copyWith(
+              textScaler: TextScaler.linear(settings.textScale),
+            ),
+            child: content,
+          );
+        }
         return Directionality(
-          textDirection: textDirection,
-          child: child ?? const SizedBox.shrink(),
+          textDirection: locale.languageCode == 'fa'
+              ? TextDirection.rtl
+              : TextDirection.ltr,
+          child: content,
         );
       },
       routerConfig: router,

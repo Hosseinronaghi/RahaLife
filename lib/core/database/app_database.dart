@@ -99,6 +99,21 @@ class Appointments extends Table {
   @override Set<Column<Object>> get primaryKey => {id};
 }
 
+
+@DataClassName('BirthdayRow')
+class Birthdays extends Table {
+  TextColumn get id => text()();
+  TextColumn get personName => text()();
+  DateTimeColumn get birthDate => dateTime()();
+  TextColumn get calendarType => text().withDefault(const Constant('gregorian'))();
+  IntColumn get reminderDaysBefore => integer().withDefault(const Constant(1))();
+  TextColumn get note => text().nullable()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  @override Set<Column<Object>> get primaryKey => {id};
+}
+
 @DataClassName('NoteRow')
 class Notes extends Table {
   TextColumn get id => text()();
@@ -221,14 +236,14 @@ class SyncQueue extends Table {
 
 @DriftDatabase(tables: [
   Categories, Tasks, Medications, MedicationSchedules, MedicationLogs,
-  Appointments, Notes, ShoppingLists, ShoppingItems, Accounts, Transactions,
+  Appointments, Birthdays, Notes, ShoppingLists, ShoppingItems, Accounts, Transactions,
   Habits, HabitLogs, Goals, SyncQueue,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.executor);
 
-  @override int get schemaVersion => 1;
+  @override int get schemaVersion => 2;
 }
 
 LazyDatabase _openConnection() => LazyDatabase(() async {
