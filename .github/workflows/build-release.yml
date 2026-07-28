@@ -194,3 +194,56 @@ jobs:
           path: release/
           if-no-files-found: error
           retention-days: 30
+
+
+  web:
+    name: Web release package
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Web platform
+        run: flutter create --platforms=web --org com.raha --project-name raha_life .
+
+      - name: Remove generated default widget test
+        run: rm -f test/widget_test.dart
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Generate localization and database code
+        run: |
+          flutter gen-l10n
+          dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze and test
+        run: |
+          flutter analyze --fatal-infos
+          flutter test
+
+      - name: Build Web release
+        run: flutter build web --release
+
+      - name: Package Web release
+        run: |
+          mkdir -p release/web
+          cd build/web
+          zip -r ../../release/web/Raha-Life-Web-release.zip .
+          cd ../..
+          sha256sum release/web/Raha-Life-Web-release.zip > release/web/SHA256SUMS.txt
+
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Raha-Life-Web
+          path: release/web/
+          if-no-files-found: error
+          retention-days: 30
