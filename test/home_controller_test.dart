@@ -8,7 +8,7 @@ void main() {
     final date = DateTime(2026, 7, 26, 10);
 
     controller.add(
-      type: HomeEntryType.task,
+      type: HomeEntryType.affair,
       title: 'Call the doctor',
       dateTime: date,
       details: 'Confirm the appointment',

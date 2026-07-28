@@ -19,11 +19,40 @@ class Categories extends Table {
   @override Set<Column<Object>> get primaryKey => {id};
 }
 
-@DataClassName('TaskRow')
-class Tasks extends Table {
+
+@DataClassName('PersonRow')
+class People extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get relationship => text().nullable()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get email => text().nullable()();
+  DateTimeColumn get birthDate => dateTime().nullable()();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  @override Set<Column<Object>> get primaryKey => {id};
+}
+
+@DataClassName('UserProfileRow')
+class UserProfiles extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get email => text().unique()();
+  TextColumn get remoteUserId => text().nullable()();
+  BoolColumn get isLocalOnly => boolean().withDefault(const Constant(true))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  @override Set<Column<Object>> get primaryKey => {id};
+}
+
+@DataClassName('AffairRow')
+class Affairs extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
   TextColumn get description => text().nullable()();
+  TextColumn get affairType => text().withDefault(const Constant('personal'))();
+  TextColumn get personId => text().nullable().references(People, #id)();
   TextColumn get categoryId => text().nullable().references(Categories, #id)();
   DateTimeColumn get startsAt => dateTime().nullable()();
   DateTimeColumn get dueAt => dateTime().nullable()();
@@ -43,6 +72,7 @@ class Tasks extends Table {
 class Medications extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
+  TextColumn get medicationForm => text().withDefault(const Constant('tablet'))();
   TextColumn get dosage => text().nullable()();
   TextColumn get instructions => text().nullable()();
   DateTimeColumn get startsOn => dateTime().nullable()();
@@ -87,6 +117,8 @@ class Appointments extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
   TextColumn get description => text().nullable()();
+  TextColumn get appointmentType => text().withDefault(const Constant('meeting'))();
+  TextColumn get personId => text().nullable().references(People, #id)();
   TextColumn get contactName => text().nullable()();
   TextColumn get contactPhone => text().nullable()();
   TextColumn get location => text().nullable()();
@@ -222,6 +254,22 @@ class Goals extends Table {
   @override Set<Column<Object>> get primaryKey => {id};
 }
 
+
+@DataClassName('CycleLogRow')
+class CycleLogs extends Table {
+  TextColumn get id => text()();
+  DateTimeColumn get startsOn => dateTime()();
+  DateTimeColumn get endsOn => dateTime().nullable()();
+  TextColumn get flowIntensity => text()();
+  IntColumn get painLevel => integer().withDefault(const Constant(0))();
+  TextColumn get mood => text().nullable()();
+  TextColumn get symptomsJson => text().nullable()();
+  TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  @override Set<Column<Object>> get primaryKey => {id};
+}
+
 @DataClassName('SyncQueueRow')
 class SyncQueue extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -235,15 +283,15 @@ class SyncQueue extends Table {
 }
 
 @DriftDatabase(tables: [
-  Categories, Tasks, Medications, MedicationSchedules, MedicationLogs,
+  Categories, People, UserProfiles, Affairs, Medications, MedicationSchedules, MedicationLogs,
   Appointments, Birthdays, Notes, ShoppingLists, ShoppingItems, Accounts, Transactions,
-  Habits, HabitLogs, Goals, SyncQueue,
+  Habits, HabitLogs, Goals, CycleLogs, SyncQueue,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.executor);
 
-  @override int get schemaVersion => 2;
+  @override int get schemaVersion => 3;
 }
 
 LazyDatabase _openConnection() => LazyDatabase(() async {

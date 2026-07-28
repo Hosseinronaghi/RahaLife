@@ -54,6 +54,8 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
     required String title,
     required DateTime dateTime,
     String? details,
+    String? subtype,
+    String? personId,
     double? amount,
   }) {
     final entry = HomeEntry(
@@ -64,6 +66,8 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
           ? null
           : details.trim(),
       dateTime: dateTime,
+      subtype: subtype,
+      personId: personId,
       amount: amount,
     );
     state = [...state, entry]..sort((a, b) => a.dateTime.compareTo(b.dateTime));

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:persian_fonts/persian_fonts.dart';
 
 import '../core/settings/app_settings.dart';
 
@@ -41,7 +42,7 @@ ThemeData _buildTheme({
     colorScheme: colorScheme,
   );
   final textTheme = locale.languageCode == 'fa'
-      ? GoogleFonts.vazirmatnTextTheme(base.textTheme)
+      ? GoogleFonts.vazirmatnTextTheme(PersianFonts.vazirTextTheme)
       : GoogleFonts.interTextTheme(base.textTheme);
   final subtleBorder = colorScheme.outlineVariant.withValues(alpha: 0.55);
 

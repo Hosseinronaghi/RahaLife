@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/locale_formatters.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../people/domain/person.dart';
+import '../../people/presentation/people_controller.dart';
 import '../domain/home_entry.dart';
 import 'home_controller.dart';
 import 'home_entry_ui.dart';
@@ -25,6 +27,14 @@ class _EntryDetailsSheet extends ConsumerWidget {
     final locale = Localizations.localeOf(context);
     final scheme = Theme.of(context).colorScheme;
     final typeColor = homeEntryTypeColor(entry.type, scheme);
+    final people = ref.watch(peopleProvider);
+    Person? relatedPerson;
+    for (final person in people) {
+      if (person.id == entry.personId) {
+        relatedPerson = person;
+        break;
+      }
+    }
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -69,6 +79,24 @@ class _EntryDetailsSheet extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
+            if (homeEntrySubtypeLabel(l10n, entry) != null) ...[
+              _InfoRow(
+                icon: Icons.category_rounded,
+                title: entry.type == HomeEntryType.affair
+                    ? l10n.affairType
+                    : l10n.appointmentType,
+                value: homeEntrySubtypeLabel(l10n, entry)!,
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (relatedPerson != null) ...[
+              _InfoRow(
+                icon: Icons.person_rounded,
+                title: l10n.relatedPerson,
+                value: relatedPerson.name,
+              ),
+              const SizedBox(height: 12),
+            ],
             _InfoRow(
               icon: Icons.schedule_rounded,
               title: l10n.dateAndTime,

@@ -1,4 +1,4 @@
-Raha Life 0.2.0+5
+Raha Life 0.3.0+6
 
 Core application
 - lib/app/app.dart
@@ -6,40 +6,59 @@ Core application
 - lib/app/theme.dart
 - lib/app/shell/responsive_shell.dart
 
-UI and active features
-- lib/features/dashboard/presentation/today_screen.dart
-- lib/features/calendar/presentation/calendar_screen.dart
-- lib/features/lists/presentation/lists_screen.dart
-- lib/features/lists/presentation/module_entries_screen.dart
-- lib/features/reports/presentation/reports_screen.dart
-- lib/features/search/presentation/global_search_screen.dart
-- lib/features/settings/presentation/settings_screen.dart
-- lib/features/profile/presentation/profile_screen.dart
-- lib/features/more/presentation/more_screen.dart
-- lib/features/common/presentation/coming_soon_screen.dart
+Account
+- lib/features/auth/domain/local_account.dart
+- lib/features/auth/presentation/auth_controller.dart
+- lib/features/auth/presentation/account_screen.dart
 
-Home data and interaction
+People
+- lib/features/people/domain/person.dart
+- lib/features/people/presentation/people_controller.dart
+- lib/features/people/presentation/people_screen.dart
+
+Affairs and appointments
 - lib/features/home/domain/home_entry.dart
 - lib/features/home/presentation/home_controller.dart
 - lib/features/home/presentation/home_entry_ui.dart
 - lib/features/home/presentation/quick_add_sheet.dart
 - lib/features/home/presentation/entry_details_sheet.dart
 
-Localization
-- lib/core/localization/locale_formatters.dart
+Shopping
+- lib/features/shopping/domain/shopping_list.dart
+- lib/features/shopping/presentation/shopping_controller.dart
+- lib/features/shopping/presentation/shopping_screen.dart
+- lib/features/shopping/presentation/shopping_list_screen.dart
+
+Medicine
+- lib/features/medication/domain/medication_plan.dart
+- lib/features/medication/presentation/medication_controller.dart
+- lib/features/medication/presentation/medication_screen.dart
+
+Finance
+- lib/features/finance/domain/finance_models.dart
+- lib/features/finance/presentation/finance_controller.dart
+- lib/features/finance/presentation/finance_screen.dart
+
+Cycle
+- lib/features/cycle/domain/cycle_log.dart
+- lib/features/cycle/presentation/cycle_controller.dart
+- lib/features/cycle/presentation/cycle_screen.dart
+
+Localization and data
 - lib/l10n/app_fa.arb
 - lib/l10n/app_en.arb
-
-Data and AI
 - lib/core/database/app_database.dart
-- lib/features/ai/presentation/ai_settings_screen.dart
-- lib/features/ai/data/*
-- lib/features/ai/domain/*
+- lib/core/localization/locale_formatters.dart
 
 Testing
 - test/money_test.dart
 - test/locale_formatters_test.dart
 - test/home_controller_test.dart
+- test/people_controller_test.dart
+- test/shopping_controller_test.dart
+- test/medication_controller_test.dart
+- test/finance_controller_test.dart
+- test/cycle_controller_test.dart
 
 Automation
 - .github/workflows/build-release.yml
@@ -48,7 +67,7 @@ Automation
 Documentation
 - README.md
 - CHANGELOG.md
+- docs/DELIVERY_0.3.0.md
+- docs/VALIDATION_0.3.0.md
+- docs/IMPLEMENTATION_ROADMAP.md
 - docs/UI_UX_SPECIFICATION.md
-- docs/DELIVERY_0.2.0.md
-
-- docs/VALIDATION_0.2.0.md — automated/static validation report and build caveat

@@ -88,10 +88,14 @@ class ModuleEntriesScreen extends ConsumerWidget {
                       ),
                     ),
                     subtitle: Text(
-                      compactDualDate(
-                        entry.dateTime,
-                        Localizations.localeOf(context),
-                      ),
+                      [
+                        if (homeEntrySubtypeLabel(l10n, entry) != null)
+                          homeEntrySubtypeLabel(l10n, entry)!,
+                        compactDualDate(
+                          entry.dateTime,
+                          Localizations.localeOf(context),
+                        ),
+                      ].join(' • '),
                     ),
                     trailing: const Icon(Icons.chevron_right_rounded),
                     onTap: () => showEntryDetails(context, entry),

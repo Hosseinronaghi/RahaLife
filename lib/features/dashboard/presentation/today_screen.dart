@@ -4,11 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/locale_formatters.dart';
 import '../../../core/settings/app_settings.dart';
+import '../../../features/cycle/presentation/cycle_controller.dart';
+import '../../../features/finance/domain/finance_models.dart';
+import '../../../features/finance/presentation/finance_controller.dart';
 import '../../../features/home/domain/home_entry.dart';
 import '../../../features/home/presentation/entry_details_sheet.dart';
 import '../../../features/home/presentation/home_controller.dart';
 import '../../../features/home/presentation/home_entry_ui.dart';
 import '../../../features/home/presentation/quick_add_sheet.dart';
+import '../../../features/medication/presentation/medication_controller.dart';
+import '../../../features/shopping/presentation/shopping_controller.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 class TodayScreen extends ConsumerWidget {
@@ -29,6 +34,29 @@ class TodayScreen extends ConsumerWidget {
     for (final entry in visibleEntries) {
       grouped.putIfAbsent(entry.type, () => []).add(entry);
     }
+    final shoppingLists = ref.watch(shoppingProvider);
+    final uncheckedShopping = shoppingLists.fold<int>(
+      0,
+      (sum, list) => sum + list.items.where((item) => !item.checked).length,
+    );
+    final activeMedications = ref.watch(medicationProvider).where((item) => item.active).length;
+    final financeState = ref.watch(financeProvider);
+    final todayTransactions = financeState.transactions.where((item) =>
+        item.dateTime.year == now.year &&
+        item.dateTime.month == now.month &&
+        item.dateTime.day == now.day).toList();
+    final cycleLogs = ref.watch(cycleProvider);
+    final predictedCycle = cycleLogs.isEmpty
+        ? null
+        : ref.read(cycleProvider.notifier).predictedNextStart;
+    final cycleIsToday = predictedCycle != null &&
+        predictedCycle.year == now.year &&
+        predictedCycle.month == now.month &&
+        predictedCycle.day == now.day;
+    final hasSpecializedData = uncheckedShopping > 0 ||
+        activeMedications > 0 ||
+        todayTransactions.isNotEmpty ||
+        cycleIsToday;
 
     return Scaffold(
       appBar: AppBar(
@@ -57,11 +85,55 @@ class TodayScreen extends ConsumerWidget {
               children: [
                 _DateHeader(date: now, locale: locale),
                 const SizedBox(height: 18),
-                if (visibleEntries.isEmpty)
+                if (visibleEntries.isEmpty && !hasSpecializedData)
                   _EmptyTodayState(onAdd: () => showQuickAdd(context))
                 else ...[
-                  _TodaySummary(entries: visibleEntries),
-                  const SizedBox(height: 18),
+                  if (visibleEntries.isNotEmpty) ...[
+                    _TodaySummary(entries: visibleEntries),
+                    const SizedBox(height: 18),
+                  ],
+                  if (hasSpecializedData) ...[
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        if (uncheckedShopping > 0)
+                          _ModuleSummaryCard(
+                            icon: Icons.shopping_basket_rounded,
+                            title: l10n.shopping,
+                            value: '${localizedNumber(uncheckedShopping, locale)} ${l10n.items}',
+                            onTap: () => context.push('/shopping'),
+                          ),
+                        if (activeMedications > 0)
+                          _ModuleSummaryCard(
+                            icon: Icons.medication_rounded,
+                            title: l10n.medications,
+                            value: localizedNumber(activeMedications, locale),
+                            onTap: () => context.push('/medication'),
+                          ),
+                        if (todayTransactions.isNotEmpty)
+                          _ModuleSummaryCard(
+                            icon: Icons.account_balance_wallet_rounded,
+                            title: l10n.finance,
+                            value: localizedNumber(
+                              todayTransactions.fold<double>(0, (sum, item) =>
+                                sum + (item.type == FinanceTransactionType.expense || item.type == FinanceTransactionType.debt ? -item.amount : item.amount)),
+                              locale,
+                            ),
+                            onTap: () => context.push('/finance'),
+                          ),
+                        if (cycleIsToday)
+                          _ModuleSummaryCard(
+                            icon: Icons.water_drop_rounded,
+                            title: l10n.cycle,
+                            value: l10n.estimatedNextCycle,
+                            onTap: () => context.push('/cycle'),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                  ],
+                  if (visibleEntries.isNotEmpty)
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final twoColumns = constraints.maxWidth >= 760;
@@ -131,6 +203,38 @@ class TodayScreen extends ConsumerWidget {
             ],
           );
         },
+      );
+}
+
+class _ModuleSummaryCard extends StatelessWidget {
+  const _ModuleSummaryCard({required this.icon, required this.title, required this.value, required this.onTap});
+  final IconData icon;
+  final String title;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 230,
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(children: [
+                CircleAvatar(child: Icon(icon)),
+                const SizedBox(width: 12),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  Text(value, style: Theme.of(context).textTheme.bodyMedium),
+                ])),
+                const Icon(Icons.chevron_right_rounded),
+              ]),
+            ),
+          ),
+        ),
       );
 }
 
@@ -447,7 +551,12 @@ class _TodaySection extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${localizedTime(entry.dateTime, Localizations.localeOf(context))} · ${l10n.tapForDetails}',
+                                  [
+                                    if (homeEntrySubtypeLabel(l10n, entry) != null)
+                                      homeEntrySubtypeLabel(l10n, entry)!,
+                                    localizedTime(entry.dateTime, Localizations.localeOf(context)),
+                                    l10n.tapForDetails,
+                                  ].join(' · '),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context)

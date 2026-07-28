@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/locale_formatters.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../finance/presentation/finance_controller.dart';
 import '../../home/domain/home_entry.dart';
+import '../../medication/presentation/medication_controller.dart';
+import '../../people/presentation/people_controller.dart';
+import '../../shopping/presentation/shopping_controller.dart';
 import '../../home/presentation/home_controller.dart';
 import '../../home/presentation/home_entry_ui.dart';
 
@@ -18,9 +22,11 @@ class ReportsScreen extends ConsumerWidget {
     final completed = entries.where((item) => item.completed).length;
     final pending = entries.length - completed;
     final progress = entries.isEmpty ? 0.0 : completed / entries.length;
-    final financialTotal = entries
-        .where((item) => item.type == HomeEntryType.finance)
-        .fold<double>(0, (sum, item) => sum + (item.amount ?? 0));
+    final finance = ref.watch(financeProvider);
+    final peopleCount = ref.watch(peopleProvider).length;
+    final medicationCount = ref.watch(medicationProvider).length;
+    final shoppingCount = ref.watch(shoppingProvider)
+        .fold<int>(0, (sum, list) => sum + list.items.where((item) => !item.checked).length);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.statistics)),
@@ -53,7 +59,22 @@ class ReportsScreen extends ConsumerWidget {
               _MetricCard(
                 icon: Icons.payments_rounded,
                 label: l10n.balance,
-                value: localizedNumber(financialTotal, locale),
+                value: localizedNumber(finance.balance, locale),
+              ),
+              _MetricCard(
+                icon: Icons.people_alt_rounded,
+                label: l10n.people,
+                value: localizedNumber(peopleCount, locale),
+              ),
+              _MetricCard(
+                icon: Icons.medication_rounded,
+                label: l10n.medications,
+                value: localizedNumber(medicationCount, locale),
+              ),
+              _MetricCard(
+                icon: Icons.shopping_basket_rounded,
+                label: l10n.shopping,
+                value: localizedNumber(shoppingCount, locale),
               ),
             ],
           ),

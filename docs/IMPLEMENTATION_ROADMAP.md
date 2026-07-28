@@ -1,43 +1,82 @@
 # Implementation roadmap
 
-## Milestone 1 — Foundation (this archive)
+## Completed foundation — v0.1 to v0.3
 
-- Project architecture
-- Responsive shell
-- Localization
-- Database schema
-- AI provider contracts
-- Secure credential storage
+- Flutter responsive application shell
+- Persian/English localization and RTL/LTR
+- Material 3 themes and personalization
+- Today dashboard, calendar, global search, and basic reports
+- Affairs, appointments, notes, habits, birthdays
+- Dedicated People, Shopping, Medicine, Finance, and Cycle modules
+- Functional local account and session
+- Optional online AI provider settings
+- Android, Windows, and Web GitHub build workflows
 
-## Milestone 2 — Functional offline MVP
+## Next milestone — server account and synchronization
 
-- CRUD for categories, tasks, appointments, notes and shopping
-- Daily/weekly/monthly calendar views
-- Medication schedules and notifications
-- Finance accounts and transactions
-- Search, filters and archive
-- Local encrypted backup
+### Account backend
 
-## Milestone 3 — Planning and analytics
+- Server-backed registration and login
+- Email verification
+- Password reset
+- Refresh-token/session lifecycle
+- Device list and remote sign-out
+- Account deletion and data export
 
-- Habits and progress
-- Goals and review workflows
-- Budgets and savings goals
-- Year view and dashboards
-- Excel/CSV/PDF exports
+### Cross-device sync
 
-## Milestone 4 — Cloud integrations
+- Android, Windows, and Web synchronization
+- Per-entity change queue
+- Soft-delete tombstones
+- Server revision and client revision
+- Offline writes and retry policy
+- Conflict-resolution screen
+- Last-sync status and failure details
+- Selective module sync
 
-- Google Drive backup
-- Google Sheets export
-- Optional cross-device sync gateway
-- Conflict-resolution UI
+### Collaborative shopping
 
-## Milestone 5 — Online AI
+- Invite a person to a shopping list
+- Owner, editor, and viewer roles
+- Real-time or near-real-time item updates
+- Show who added or checked an item
+- Activity history and notifications
 
-- Raha quota gateway
-- OpenAI and Gemini providers
-- Custom OpenAI-compatible endpoint
-- Natural-language quick add
-- Note summarization and action extraction
-- Receipt extraction with explicit user consent
+## Finance milestone
+
+- Destination account for transfers
+- Account types and currencies
+- Categories and subcategories
+- Recurring transactions
+- Debt/receivable counterparties linked to People
+- Budgets and category limits
+- Saving goals
+- Receipt images and attachments
+- Monthly/yearly charts and exports
+
+## Medicine and reminder milestone
+
+- Multiple schedules per medicine
+- Recurrence rules and date ranges
+- Taken, late, skipped, missed, and postponed logs
+- Actionable notifications
+- Stock decrement and refill warnings
+- Expiration warnings
+- Doctor/report export
+
+## Cycle milestone
+
+- Symptom selection and daily logs
+- Calendar visualization
+- Reminder privacy controls
+- Optional fertility features, disabled by default
+- Encrypted/private-module controls
+- Backup inclusion toggle
+
+## Later collaboration
+
+- Shared Affairs
+- Shared calendar
+- Shared notes
+- Messaging
+- Email sharing

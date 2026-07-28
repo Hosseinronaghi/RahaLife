@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/locale_formatters.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../auth/presentation/auth_controller.dart';
 
-class MoreScreen extends StatelessWidget {
+class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final account = ref.watch(authProvider).user;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.more)),
       body: ListView(
@@ -20,7 +23,7 @@ class MoreScreen extends StatelessWidget {
               _MoreTile(
                 icon: Icons.person_rounded,
                 title: l10n.profile,
-                subtitle: l10n.guestMode,
+                subtitle: account?.name ?? l10n.guestMode,
                 onTap: () => context.push('/profile'),
               ),
               _MoreTile(
@@ -49,11 +52,8 @@ class MoreScreen extends StatelessWidget {
               _MoreTile(
                 icon: Icons.cloud_sync_rounded,
                 title: l10n.accountAndSync,
-                subtitle: l10n.comingSoon,
-                onTap: () => context.push(
-                  '/coming-soon',
-                  extra: l10n.accountAndSync,
-                ),
+                subtitle: account == null ? l10n.createAccount : account.email,
+                onTap: () => context.push('/account'),
               ),
               _MoreTile(
                 icon: Icons.forum_rounded,
@@ -81,12 +81,12 @@ class MoreScreen extends StatelessWidget {
               _MoreTile(
                 icon: Icons.info_outline_rounded,
                 title: l10n.about,
-                subtitle: '${l10n.version} ${localizeDigits('0.2.0', Localizations.localeOf(context))}',
+                subtitle: '${l10n.version} ${localizeDigits('0.3.0', Localizations.localeOf(context))}',
                 onTap: () => showAboutDialog(
                   context: context,
                   applicationName: l10n.appName,
                   applicationVersion: localizeDigits(
-                    '0.2.0',
+                    '0.3.0',
                     Localizations.localeOf(context),
                   ),
                   applicationIcon: Icon(
