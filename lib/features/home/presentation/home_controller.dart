@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/notifications/reminder_models.dart';
+import '../../../core/notifications/reminder_service.dart';
 import '../domain/home_entry.dart';
 
 class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
@@ -49,7 +51,7 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
     }
   }
 
-  void add({
+  HomeEntry add({
     required HomeEntryType type,
     required String title,
     required DateTime dateTime,
@@ -57,6 +59,10 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
     String? subtype,
     String? personId,
     double? amount,
+    String? location,
+    String? address,
+    String? linkedShoppingListId,
+    ReminderPlan reminder = const ReminderPlan(),
   }) {
     final entry = HomeEntry(
       id: _uuid.v4(),
@@ -69,9 +75,18 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
       subtype: subtype,
       personId: personId,
       amount: amount,
+      location: location == null || location.trim().isEmpty
+          ? null
+          : location.trim(),
+      address: address == null || address.trim().isEmpty
+          ? null
+          : address.trim(),
+      linkedShoppingListId: linkedShoppingListId,
+      reminder: reminder,
     );
     state = [...state, entry]..sort((a, b) => a.dateTime.compareTo(b.dateTime));
     unawaited(_persist());
+    return entry;
   }
 
   void toggle(String id) {
@@ -84,6 +99,7 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
 
   void delete(String id) {
     state = state.where((item) => item.id != id).toList(growable: false);
+    unawaited(ReminderService.instance.cancel('home:$id'));
     unawaited(_persist());
   }
 

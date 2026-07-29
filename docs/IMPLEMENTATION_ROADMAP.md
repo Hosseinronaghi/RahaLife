@@ -1,6 +1,6 @@
 # Implementation roadmap
 
-## Completed foundation — v0.1 to v0.3
+## Completed foundation — v0.1 to v0.4
 
 - Flutter responsive application shell
 - Persian/English localization and RTL/LTR
@@ -11,6 +11,12 @@
 - Functional local account and session
 - Optional online AI provider settings
 - Android, Windows, and Web GitHub build workflows
+- Cross-platform notification/alarm foundation with repeat rules
+- Scheduled Shopping linked to Affairs
+- Bill reminders and full default expense categories
+- User-customizable module order and visibility
+- Location/address fields for Affairs, Appointments, and Shopping
+- Daily Medicine reminders and estimated Cycle reminders
 
 ## Next milestone — server account and synchronization
 

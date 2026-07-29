@@ -1,20 +1,21 @@
-Raha Life 0.3.0+6
+Raha Life 0.4.0+7
 
-Core application
+Core application and design
+- lib/main.dart
 - lib/app/app.dart
 - lib/app/router.dart
 - lib/app/theme.dart
 - lib/app/shell/responsive_shell.dart
 
-Account
-- lib/features/auth/domain/local_account.dart
-- lib/features/auth/presentation/auth_controller.dart
-- lib/features/auth/presentation/account_screen.dart
+Settings and module layout
+- lib/core/settings/app_settings.dart
+- lib/core/settings/app_module.dart
+- lib/features/settings/presentation/settings_screen.dart
+- lib/features/lists/presentation/lists_screen.dart
 
-People
-- lib/features/people/domain/person.dart
-- lib/features/people/presentation/people_controller.dart
-- lib/features/people/presentation/people_screen.dart
+Notifications and alarms
+- lib/core/notifications/reminder_models.dart
+- lib/core/notifications/reminder_service.dart
 
 Affairs and appointments
 - lib/features/home/domain/home_entry.dart
@@ -34,7 +35,7 @@ Medicine
 - lib/features/medication/presentation/medication_controller.dart
 - lib/features/medication/presentation/medication_screen.dart
 
-Finance
+Finance and bill reminders
 - lib/features/finance/domain/finance_models.dart
 - lib/features/finance/presentation/finance_controller.dart
 - lib/features/finance/presentation/finance_screen.dart
@@ -44,11 +45,13 @@ Cycle
 - lib/features/cycle/presentation/cycle_controller.dart
 - lib/features/cycle/presentation/cycle_screen.dart
 
-Localization and data
+Calendar and dashboard
+- lib/features/calendar/presentation/calendar_screen.dart
+- lib/features/dashboard/presentation/today_screen.dart
+
+Localization
 - lib/l10n/app_fa.arb
 - lib/l10n/app_en.arb
-- lib/core/database/app_database.dart
-- lib/core/localization/locale_formatters.dart
 
 Testing
 - test/money_test.dart
@@ -56,9 +59,12 @@ Testing
 - test/home_controller_test.dart
 - test/people_controller_test.dart
 - test/shopping_controller_test.dart
+- test/scheduled_shopping_test.dart
 - test/medication_controller_test.dart
 - test/finance_controller_test.dart
+- test/finance_bill_test.dart
 - test/cycle_controller_test.dart
+- test/reminder_models_test.dart
 
 Automation
 - .github/workflows/build-release.yml
@@ -67,7 +73,7 @@ Automation
 Documentation
 - README.md
 - CHANGELOG.md
-- docs/DELIVERY_0.3.0.md
-- docs/VALIDATION_0.3.0.md
+- docs/DELIVERY_0.4.0.md
+- docs/VALIDATION_0.4.0.md
 - docs/IMPLEMENTATION_ROADMAP.md
 - docs/UI_UX_SPECIFICATION.md

@@ -1,76 +1,110 @@
-# Raha Life — v0.3.0
+# Raha Life — v0.4.0
 
-Raha Life is a bilingual, offline-first personal organizer for affairs, appointments, shopping, medicine, people, birthdays, notes, habits, finance, calendars, and personal cycle tracking.
+Raha Life is a bilingual, offline-first personal organizer for Affairs, Appointments, Shopping, Medicine, Cycle tracking, People, Birthdays, Notes, Habits, and personal Finance.
 
-## What is working in v0.3.0
+## What changed in v0.4.0
 
-### Account and profile
+### Readable colors and Persian typography
 
-- Create one local account on the current device
-- Sign in and sign out
-- Salted SHA-256 password hash stored in secure storage
-- Persistent local session
-- Guest mode remains available
-- Clear in-app notice that multi-device sync is planned for the next milestone
+- Rebuilt Material 3 light/dark color handling for Android and Windows.
+- Explicit foreground colors for cards, navigation, forms, dialogs, date/time pickers, chips, and buttons.
+- Vazirmatn remains the preferred Persian font.
+- Bundled Vazir from `persian_fonts` is used as an offline fallback when runtime Vazirmatn is not yet available.
+- Desktop calendar width and day-cell proportions are constrained so selected dates do not become oversized.
 
-> The current account is local. It is not yet a server account and does not sync between devices.
+### Notifications and alarms
 
-### People
+Two reminder modes are available:
 
-- Dedicated People module
-- Name, relationship, phone, email, birthday, and notes
-- Optional birthday entry creation
-- Link a person to an affair or appointment
-- Show the related person in entry details
+- Standard notification
+- Prominent alarm with maximum importance, vibration, sound, and Android full-screen intent
 
-### Affairs and appointments
+Supported repeat rules:
 
-- “Tasks” is renamed to “Affairs” (`امور`)
-- Medical, laboratory, administrative, follow-up, payment, work, study, personal, and custom categories belong to Affairs
-- Appointments only describe the interaction format: meeting, cafe, gathering, in-person session, phone call, online session, party, or custom
+- Once
+- Daily
+- Weekly
+- Monthly
+- Yearly
 
-### Shopping
+Reminder taps open the relevant screen for Shopping, Bills, Medicine, and Cycle. General Affairs and Appointments return to the daily dashboard.
 
-- Multiple independent shopping lists
-- Bulk item entry, one item per line
-- Add more items later
-- Check/uncheck items
-- Purchased items move to the bottom
-- Share the list as text through the platform share sheet
-- Clipboard fallback when sharing is unavailable
+### Location
+
+Location and address can be recorded for:
+
+- Affairs
+- Appointments
+- Shopping lists
+
+These values are also shown in item details.
+
+### Scheduled Shopping linked to Affairs
+
+A Shopping list can include:
+
+- Purchase date
+- Purchase time
+- Store/location
+- Address
+- Notification or alarm
+- Reminder offset
+- Repeat schedule
+
+When **Link Shopping to Affair** is enabled, Raha Life creates an Affair of type Shopping and links both records. The reminder opens the actual Shopping list so items can be checked.
+
+### Bills and Finance categories
+
+Bill records now support:
+
+- Bill type
+- Amount
+- Account
+- Due date and time
+- Bill identifier
+- Payment identifier
+- Notification or alarm
+- Reminder offset and recurrence
+- Paid/unpaid state
+
+Unpaid bills are not counted as completed expenses until they are marked paid.
+
+Default expense categories include bills, rent/housing, groceries, restaurant/cafe, transport, fuel, health, medicine, daily shopping, education, entertainment, travel, clothing, internet/phone, insurance, tax, loans/installments, subscriptions, repairs, gifts, family, pets, charity, and other.
 
 ### Medicine
 
-- Dedicated medication plans instead of generic task cards
-- Medicine form: tablet, capsule, syrup, drops, injection, cream, inhaler, or other
-- Dose, daily time, instructions, stock, active/inactive state
-- Quick “taken” feedback and plan deletion
-
-### Finance
-
-- Multiple financial accounts
-- Opening balances
-- Income, expense, transfer, debt, receivable, and saving transaction types
-- Category, note, date, and account
-- Filters and basic income/expense/balance summaries
+Medication plans now include an optional daily notification or alarm at the selected time. Disabling or deleting a medicine cancels its reminder.
 
 ### Cycle
 
-- Private cycle records with start/end dates
-- Flow intensity, pain level, mood, and notes
-- Approximate next-cycle estimate based on recorded intervals
-- Privacy notice and explicit estimate-only wording
+Cycle appears before People in the default module order. A cycle record can optionally schedule a reminder before the estimated next cycle date. The estimate remains explicitly non-diagnostic and approximate.
 
-### Interface and localization
+### Personalized module order
 
-- Singular Persian module names: امور، قرار، خرید، دارو، افراد، تولد، یادداشت، عادت، مالی
-- Shopping and Medicine appear before Birthday
-- Material Design 3 responsive interface
-- Persian RTL and English LTR
-- Persian digits and dual Persian/Gregorian date display
-- Light, dark, and system themes
-- Bundled Vazir fallback for Persian plus Vazirmatn runtime loading
-- Android internet permission is generated for online AI and font loading
+From **Settings → Module order**, the user can:
+
+- Reorder modules using drag and drop
+- Hide or show each module
+- Restore the default order
+
+Default order:
+
+```text
+Affairs
+Appointment
+Shopping
+Medicine
+Cycle
+People
+Birthday
+Note
+Habit
+Finance
+```
+
+## Account and synchronization status
+
+The local account from v0.3.0 remains available. It is not yet a server account. Android, Windows, Web, and other-device synchronization is the next cloud milestone and is not claimed as complete in this release.
 
 ## GitHub Actions outputs
 
@@ -92,21 +126,11 @@ Open **Actions → Build Raha Life → Run workflow**. The workflow creates:
 
 - `Raha-Life-Web-release.zip`
 
-Each artifact package includes SHA-256 checksums.
+Scheduled local notifications are currently enabled for native targets; the Web build does not schedule local reminders in this milestone.
 
 ## Repository setup
 
-Upload the contents of this folder to the repository root. These paths must be visible directly in the repository:
-
-```text
-pubspec.yaml
-lib/
-test/
-.github/
-docs/
-```
-
-Platform projects are generated in GitHub Actions. Local setup is optional:
+Extract the complete source and upload its contents to the repository root. `pubspec.yaml` must be directly visible in the repository.
 
 ```bash
 flutter create --platforms=android,ios,windows,macos,linux,web --org com.raha --project-name raha_life .
@@ -117,14 +141,10 @@ flutter analyze --fatal-infos
 flutter test
 ```
 
-## Important scope note
-
-The account in this release is deliberately local because the cloud sync backend is the next milestone. Android, Windows, and Web synchronization, cloud recovery, conflict resolution, and collaborative shopping lists are not claimed as complete in v0.3.0.
-
 ## Delivery documents
 
-- [v0.3.0 delivery report](docs/DELIVERY_0.3.0.md)
-- [v0.3.0 validation report](docs/VALIDATION_0.3.0.md)
+- [v0.4.0 delivery report](docs/DELIVERY_0.4.0.md)
+- [v0.4.0 validation report](docs/VALIDATION_0.4.0.md)
 - [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
 - [UI/UX specification](docs/UI_UX_SPECIFICATION.md)
 - [Changelog](CHANGELOG.md)

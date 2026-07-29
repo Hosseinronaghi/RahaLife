@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/notifications/reminder_models.dart';
+import '../../../core/notifications/reminder_service.dart';
 import '../domain/cycle_log.dart';
 
 class CycleNotifier extends StateNotifier<List<CycleLog>> {
@@ -34,14 +36,36 @@ class CycleNotifier extends StateNotifier<List<CycleLog>> {
     await prefs.setString(_key, jsonEncode(state.map((item) => item.toJson()).toList()));
   }
 
-  void add({required DateTime startDate, DateTime? endDate, required FlowIntensity flow, required int painLevel, required CycleMood mood, String? notes}) {
-    state = [...state, CycleLog(id: _uuid.v4(), startDate: startDate, endDate: endDate, flow: flow, painLevel: painLevel, mood: mood, notes: notes?.trim())]
+  CycleLog add({
+    required DateTime startDate,
+    DateTime? endDate,
+    required FlowIntensity flow,
+    required int painLevel,
+    required CycleMood mood,
+    String? notes,
+    ReminderPlan predictionReminder = const ReminderPlan(),
+    String predictionReminderTime = '09:00',
+  }) {
+    final log = CycleLog(
+      id: _uuid.v4(),
+      startDate: startDate,
+      endDate: endDate,
+      flow: flow,
+      painLevel: painLevel,
+      mood: mood,
+      notes: notes?.trim(),
+      predictionReminder: predictionReminder,
+      predictionReminderTime: predictionReminderTime,
+    );
+    state = [...state, log]
       ..sort((a, b) => b.startDate.compareTo(a.startDate));
     unawaited(_persist());
+    return log;
   }
 
   void delete(String id) {
     state = state.where((item) => item.id != id).toList();
+    unawaited(ReminderService.instance.cancel('cycle:$id'));
     unawaited(_persist());
   }
 

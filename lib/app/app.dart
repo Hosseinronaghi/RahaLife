@@ -2,16 +2,56 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/notifications/reminder_service.dart';
 import '../core/settings/app_settings.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'router.dart';
 import 'theme.dart';
 
-class RahaLifeApp extends ConsumerWidget {
+class RahaLifeApp extends ConsumerStatefulWidget {
   const RahaLifeApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RahaLifeApp> createState() => _RahaLifeAppState();
+}
+
+class _RahaLifeAppState extends ConsumerState<RahaLifeApp> {
+  @override
+  void initState() {
+    super.initState();
+    ReminderService.instance.selectedPayload.addListener(_handleReminderTap);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _handleReminderTap());
+  }
+
+  @override
+  void dispose() {
+    ReminderService.instance.selectedPayload.removeListener(_handleReminderTap);
+    super.dispose();
+  }
+
+  void _handleReminderTap() {
+    final payload = ReminderService.instance.consumeSelectedPayload();
+    if (payload == null || !mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final router = ref.read(routerProvider);
+      if (payload.startsWith('shopping:')) {
+        final id = payload.substring('shopping:'.length);
+        router.go('/shopping/$id');
+      } else if (payload.startsWith('bill:')) {
+        router.go('/finance');
+      } else if (payload.startsWith('cycle:')) {
+        router.go('/cycle');
+      } else if (payload.startsWith('medication:')) {
+        router.go('/medication');
+      } else {
+        router.go('/today');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(appSettingsProvider);
     final router = ref.watch(routerProvider);
 

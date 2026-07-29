@@ -66,6 +66,8 @@ String affairKindLabel(AppLocalizations l10n, AffairKind kind) => switch (kind) 
       AffairKind.medical => l10n.affairMedical,
       AffairKind.laboratory => l10n.affairLaboratory,
       AffairKind.payment => l10n.affairPayment,
+      AffairKind.shopping => l10n.affairShopping,
+      AffairKind.bill => l10n.affairBill,
       AffairKind.study => l10n.affairStudy,
       AffairKind.custom => l10n.affairCustom,
     };

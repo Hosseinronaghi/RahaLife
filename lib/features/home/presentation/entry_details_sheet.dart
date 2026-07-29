@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/locale_formatters.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -109,6 +110,37 @@ class _EntryDetailsSheet extends ConsumerWidget {
               title: l10n.description,
               value: entry.details ?? l10n.noDescription,
             ),
+            if (entry.location?.isNotEmpty ?? false) ...[
+              const SizedBox(height: 12),
+              _InfoRow(
+                icon: Icons.location_on_outlined,
+                title: l10n.location,
+                value: [entry.location!, if (entry.address?.isNotEmpty ?? false) entry.address!].join(' · '),
+              ),
+            ],
+            if (entry.reminder.enabled) ...[
+              const SizedBox(height: 12),
+              _InfoRow(
+                icon: entry.reminder.kind.name == 'alarm'
+                    ? Icons.alarm_rounded
+                    : Icons.notifications_active_outlined,
+                title: l10n.reminder,
+                value: entry.reminder.kind.name == 'alarm'
+                    ? l10n.alarmMode
+                    : l10n.notificationMode,
+              ),
+            ],
+            if (entry.linkedShoppingListId != null) ...[
+              const SizedBox(height: 12),
+              FilledButton.tonalIcon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.push('/shopping/${entry.linkedShoppingListId}');
+                },
+                icon: const Icon(Icons.shopping_basket_outlined),
+                label: Text(l10n.openLinkedShoppingList),
+              ),
+            ],
             if (entry.amount != null) ...[
               const SizedBox(height: 12),
               _InfoRow(

@@ -1,3 +1,5 @@
+import '../../../core/notifications/reminder_models.dart';
+
 enum HomeEntryType {
   affair,
   appointment,
@@ -17,6 +19,8 @@ enum AffairKind {
   medical,
   laboratory,
   payment,
+  shopping,
+  bill,
   study,
   custom,
 }
@@ -43,6 +47,10 @@ class HomeEntry {
     this.subtype,
     this.personId,
     this.amount,
+    this.location,
+    this.address,
+    this.linkedShoppingListId,
+    this.reminder = const ReminderPlan(),
   });
 
   factory HomeEntry.fromJson(Map<String, Object?> json) {
@@ -63,6 +71,14 @@ class HomeEntry {
       subtype: json['subtype'] as String?,
       personId: json['personId'] as String?,
       amount: (json['amount'] as num?)?.toDouble(),
+      location: json['location'] as String?,
+      address: json['address'] as String?,
+      linkedShoppingListId: json['linkedShoppingListId'] as String?,
+      reminder: ReminderPlan.fromJson(
+        json['reminder'] is Map
+            ? Map<String, Object?>.from(json['reminder']! as Map)
+            : null,
+      ),
     );
   }
 
@@ -75,6 +91,10 @@ class HomeEntry {
   final String? subtype;
   final String? personId;
   final double? amount;
+  final String? location;
+  final String? address;
+  final String? linkedShoppingListId;
+  final ReminderPlan reminder;
 
   Map<String, Object?> toJson() => {
         'id': id,
@@ -86,6 +106,10 @@ class HomeEntry {
         'subtype': subtype,
         'personId': personId,
         'amount': amount,
+        'location': location,
+        'address': address,
+        'linkedShoppingListId': linkedShoppingListId,
+        'reminder': reminder.toJson(),
       };
 
   HomeEntry copyWith({
@@ -96,6 +120,10 @@ class HomeEntry {
     String? subtype,
     String? personId,
     double? amount,
+    String? location,
+    String? address,
+    String? linkedShoppingListId,
+    ReminderPlan? reminder,
   }) =>
       HomeEntry(
         id: id,
@@ -107,6 +135,11 @@ class HomeEntry {
         subtype: subtype ?? this.subtype,
         personId: personId ?? this.personId,
         amount: amount ?? this.amount,
+        location: location ?? this.location,
+        address: address ?? this.address,
+        linkedShoppingListId:
+            linkedShoppingListId ?? this.linkedShoppingListId,
+        reminder: reminder ?? this.reminder,
       );
 
   bool occursOn(DateTime date) {

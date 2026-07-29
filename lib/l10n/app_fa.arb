@@ -237,5 +237,123 @@
   "appointmentParty": "مهمانی",
   "appointmentCustom": "سفارشی",
   "relatedPerson": "فرد مرتبط",
-  "noRelatedPerson": "بدون فرد مرتبط"
+  "noRelatedPerson": "بدون فرد مرتبط",
+  "affairShopping": "خرید",
+  "affairBill": "قبض و پرداخت",
+  "location": "مکان",
+  "address": "نشانی",
+  "reminder": "یادآوری",
+  "reminderHint": "در زمان تعیین‌شده اعلان یا آلارم نمایش داده شود.",
+  "reminderMode": "نوع یادآوری",
+  "notificationMode": "اعلان سبک",
+  "alarmMode": "آلارم صدادار",
+  "remindBefore": "زمان یادآوری",
+  "atEventTime": "در زمان مورد",
+  "oneDayBefore": "یک روز قبل",
+  "repeat": "دوره تکرار",
+  "repeatOnce": "یک‌بار",
+  "repeatDaily": "روزانه",
+  "repeatWeekly": "هفتگی",
+  "repeatMonthly": "ماهانه",
+  "repeatYearly": "سالانه",
+  "reminderDue": "زمان انجام این مورد رسیده است.",
+  "customizeModuleOrder": "چیدمان بخش‌ها",
+  "dragToReorderModules": "بخش‌ها را بکشید و جابه‌جا کنید؛ هر بخش را نیز می‌توانید مخفی کنید.",
+  "restoreDefaultOrder": "بازیابی ترتیب پیش‌فرض",
+  "noVisibleModules": "همه بخش‌ها مخفی شده‌اند.",
+  "notificationsAndAlarms": "اعلان و آلارم",
+  "notificationsPermissionHint": "برای دریافت یادآوری‌ها، مجوز اعلان را فعال کنید.",
+  "notificationPermissionGranted": "مجوز اعلان فعال شد.",
+  "notificationPermissionDenied": "مجوز اعلان داده نشد.",
+  "enableNotifications": "فعال‌کردن اعلان‌ها",
+  "testNotification": "آزمایش اعلان",
+  "testAlarm": "آزمایش آلارم",
+  "testReminderTitle": "یادآوری آزمایشی رها لایف",
+  "testReminderBody": "اعلان‌ها به‌درستی فعال هستند.",
+  "testAlarmTitle": "آلارم آزمایشی رها لایف",
+  "testAlarmBody": "صدای آلارم و ویبره را بررسی کنید.",
+  "storeOrLocation": "فروشگاه یا مکان",
+  "linkShoppingToAffair": "ساخت امر خرید",
+  "linkShoppingToAffairHint": "فهرست خرید به یک امر زمان‌دار متصل شود تا در موعد مقرر یادآوری کند.",
+  "shoppingAffairDescription": "امر مرتبط با فهرست خرید",
+  "purchaseDate": "تاریخ خرید",
+  "openLinkedAffair": "بازکردن امر مرتبط",
+  "bill": "قبض",
+  "billType": "نوع قبض",
+  "billIdentifier": "شناسه قبض",
+  "paymentIdentifier": "شناسه پرداخت",
+  "dueDate": "تاریخ سررسید",
+  "paid": "پرداخت‌شده",
+  "unpaid": "پرداخت‌نشده",
+  "markPaid": "ثبت به‌عنوان پرداخت‌شده",
+  "markUnpaid": "بازگرداندن به پرداخت‌نشده",
+  "unpaidBills": "قبض‌های پرداخت‌نشده",
+  "billReminderBody": "مهلت پرداخت قبض نزدیک است.",
+  "categoryBills": "قبوض",
+  "categoryRentHousing": "اجاره و مسکن",
+  "categoryGroceries": "خوراک و مواد غذایی",
+  "categoryRestaurantCafe": "رستوران و کافه",
+  "categoryTransportation": "حمل‌ونقل",
+  "categoryFuel": "سوخت",
+  "categoryHealthcare": "سلامت و درمان",
+  "categoryMedicine": "دارو",
+  "categoryDailyShopping": "خرید روزمره",
+  "categoryEducation": "آموزش",
+  "categoryEntertainment": "تفریح",
+  "categoryTravel": "سفر",
+  "categoryClothing": "پوشاک",
+  "categoryInternetPhone": "اینترنت و تلفن",
+  "categoryInsurance": "بیمه",
+  "categoryTax": "مالیات",
+  "categoryLoanInstallment": "قسط و وام",
+  "categorySubscriptions": "اشتراک‌ها",
+  "categoryRepairs": "تعمیرات",
+  "categoryGift": "هدیه",
+  "categoryFamily": "خانواده",
+  "categoryPets": "حیوانات خانگی",
+  "categoryCharity": "خیریه",
+  "billElectricity": "برق",
+  "billWater": "آب",
+  "billGas": "گاز",
+  "billTelephone": "تلفن",
+  "billInternet": "اینترنت",
+  "billBuildingCharge": "شارژ ساختمان",
+  "minutesBefore": "{count} دقیقه قبل",
+  "@minutesBefore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursBefore": "{count} ساعت قبل",
+  "@hoursBefore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "daysBefore": "{count} روز قبل",
+  "@daysBefore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shoppingReminderBody": "{count} قلم در فهرست خرید دارید.",
+  "@shoppingReminderBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openLinkedShoppingList": "بازکردن فهرست خرید مرتبط",
+  "medicationReminderBody": "زمان مصرف دارو فرا رسیده است.",
+  "dailyMedicationReminder": "یادآوری هر روز در ساعت انتخاب‌شده",
+  "nextCycleReminder": "یادآوری چرخه بعدی",
+  "nextCycleReminderHint": "بر اساس تاریخ تقریبی پیش‌بینی‌شده یادآوری کن",
+  "cycleReminderBody": "زمان تقریبی چرخه بعدی نزدیک است. این تاریخ فقط تخمینی است."
 }

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/notifications/reminder_models.dart';
+import '../../../core/notifications/reminder_service.dart';
 import '../domain/medication_plan.dart';
 
 class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
@@ -33,18 +35,52 @@ class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
     await prefs.setString(_key, jsonEncode(state.map((item) => item.toJson()).toList()));
   }
 
-  void add({required String name, required MedicationForm form, required String dosage, required String time, String? instructions, double? stock}) {
-    state = [...state, MedicationPlan(id: _uuid.v4(), name: name.trim(), form: form, dosage: dosage.trim(), time: time, instructions: instructions?.trim(), stock: stock)];
+  MedicationPlan add({
+    required String name,
+    required MedicationForm form,
+    required String dosage,
+    required String time,
+    String? instructions,
+    double? stock,
+    ReminderPlan reminder = const ReminderPlan(
+      enabled: true,
+      repeat: ReminderRepeat.daily,
+    ),
+  }) {
+    final plan = MedicationPlan(
+      id: _uuid.v4(),
+      name: name.trim(),
+      form: form,
+      dosage: dosage.trim(),
+      time: time,
+      instructions: instructions?.trim(),
+      stock: stock,
+      reminder: reminder,
+    );
+    state = [...state, plan];
     unawaited(_persist());
+    return plan;
   }
 
-  void toggleActive(String id) {
-    state = [for (final item in state) if (item.id == id) item.copyWith(active: !item.active) else item];
+  MedicationPlan? toggleActive(String id) {
+    MedicationPlan? updated;
+    state = [
+      for (final item in state)
+        if (item.id == id)
+          updated = item.copyWith(active: !item.active)
+        else
+          item,
+    ];
     unawaited(_persist());
+    if (updated != null && !updated!.active) {
+      unawaited(ReminderService.instance.cancel('medication:$id'));
+    }
+    return updated;
   }
 
   void delete(String id) {
     state = state.where((item) => item.id != id).toList();
+    unawaited(ReminderService.instance.cancel('medication:$id'));
     unawaited(_persist());
   }
 }

@@ -1,0 +1,51 @@
+Raha Life v0.4.0+7 — Files changed since v0.3.0+6
+
+Added (9):
++ CHANGED_FILES_0.4.0.txt
++ docs/DELIVERY_0.4.0.md
++ docs/VALIDATION_0.4.0.md
++ lib/core/notifications/reminder_models.dart
++ lib/core/notifications/reminder_service.dart
++ lib/core/settings/app_module.dart
++ test/finance_bill_test.dart
++ test/reminder_models_test.dart
++ test/scheduled_shopping_test.dart
+
+Modified (34):
+* .github/workflows/build-release.yml
+* CHANGELOG.md
+* MANIFEST.txt
+* README.md
+* docs/IMPLEMENTATION_ROADMAP.md
+* lib/app/app.dart
+* lib/app/theme.dart
+* lib/core/settings/app_settings.dart
+* lib/features/calendar/presentation/calendar_screen.dart
+* lib/features/cycle/domain/cycle_log.dart
+* lib/features/cycle/presentation/cycle_controller.dart
+* lib/features/cycle/presentation/cycle_screen.dart
+* lib/features/dashboard/presentation/today_screen.dart
+* lib/features/finance/domain/finance_models.dart
+* lib/features/finance/presentation/finance_controller.dart
+* lib/features/finance/presentation/finance_screen.dart
+* lib/features/home/domain/home_entry.dart
+* lib/features/home/presentation/entry_details_sheet.dart
+* lib/features/home/presentation/home_controller.dart
+* lib/features/home/presentation/home_entry_ui.dart
+* lib/features/home/presentation/quick_add_sheet.dart
+* lib/features/lists/presentation/lists_screen.dart
+* lib/features/medication/domain/medication_plan.dart
+* lib/features/medication/presentation/medication_controller.dart
+* lib/features/medication/presentation/medication_screen.dart
+* lib/features/settings/presentation/settings_screen.dart
+* lib/features/shopping/domain/shopping_list.dart
+* lib/features/shopping/presentation/shopping_controller.dart
+* lib/features/shopping/presentation/shopping_list_screen.dart
+* lib/features/shopping/presentation/shopping_screen.dart
+* lib/l10n/app_en.arb
+* lib/l10n/app_fa.arb
+* lib/main.dart
+* pubspec.yaml
+
+Deleted (0):
+- None

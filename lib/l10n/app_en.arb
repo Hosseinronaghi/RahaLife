@@ -237,5 +237,123 @@
   "appointmentParty": "Party",
   "appointmentCustom": "Custom",
   "relatedPerson": "Related person",
-  "noRelatedPerson": "No related person"
+  "noRelatedPerson": "No related person",
+  "affairShopping": "Shopping",
+  "affairBill": "Bill and payment",
+  "location": "Location",
+  "address": "Address",
+  "reminder": "Reminder",
+  "reminderHint": "Show a notification or alarm at the selected time.",
+  "reminderMode": "Reminder type",
+  "notificationMode": "Gentle notification",
+  "alarmMode": "Sound alarm",
+  "remindBefore": "Remind me",
+  "atEventTime": "At event time",
+  "oneDayBefore": "One day before",
+  "repeat": "Repeat",
+  "repeatOnce": "Once",
+  "repeatDaily": "Daily",
+  "repeatWeekly": "Weekly",
+  "repeatMonthly": "Monthly",
+  "repeatYearly": "Yearly",
+  "reminderDue": "This item is due.",
+  "customizeModuleOrder": "Module layout",
+  "dragToReorderModules": "Drag modules to reorder them. You can also hide individual modules.",
+  "restoreDefaultOrder": "Restore default order",
+  "noVisibleModules": "All modules are hidden.",
+  "notificationsAndAlarms": "Notifications and alarms",
+  "notificationsPermissionHint": "Enable notification permission to receive reminders.",
+  "notificationPermissionGranted": "Notification permission enabled.",
+  "notificationPermissionDenied": "Notification permission was not granted.",
+  "enableNotifications": "Enable notifications",
+  "testNotification": "Test notification",
+  "testAlarm": "Test alarm",
+  "testReminderTitle": "Raha Life test reminder",
+  "testReminderBody": "Notifications are working correctly.",
+  "testAlarmTitle": "Raha Life test alarm",
+  "testAlarmBody": "Check the alarm sound and vibration.",
+  "storeOrLocation": "Store or location",
+  "linkShoppingToAffair": "Create shopping affair",
+  "linkShoppingToAffairHint": "Link this list to a scheduled affair so it can remind you at the selected time.",
+  "shoppingAffairDescription": "Affair linked to a shopping list",
+  "purchaseDate": "Purchase date",
+  "openLinkedAffair": "Open linked affair",
+  "bill": "Bill",
+  "billType": "Bill type",
+  "billIdentifier": "Bill identifier",
+  "paymentIdentifier": "Payment identifier",
+  "dueDate": "Due date",
+  "paid": "Paid",
+  "unpaid": "Unpaid",
+  "markPaid": "Mark as paid",
+  "markUnpaid": "Mark as unpaid",
+  "unpaidBills": "Unpaid bills",
+  "billReminderBody": "A bill payment deadline is approaching.",
+  "categoryBills": "Bills",
+  "categoryRentHousing": "Rent and housing",
+  "categoryGroceries": "Groceries",
+  "categoryRestaurantCafe": "Restaurant and cafe",
+  "categoryTransportation": "Transportation",
+  "categoryFuel": "Fuel",
+  "categoryHealthcare": "Healthcare",
+  "categoryMedicine": "Medicine",
+  "categoryDailyShopping": "Daily shopping",
+  "categoryEducation": "Education",
+  "categoryEntertainment": "Entertainment",
+  "categoryTravel": "Travel",
+  "categoryClothing": "Clothing",
+  "categoryInternetPhone": "Internet and phone",
+  "categoryInsurance": "Insurance",
+  "categoryTax": "Tax",
+  "categoryLoanInstallment": "Loans and installments",
+  "categorySubscriptions": "Subscriptions",
+  "categoryRepairs": "Repairs",
+  "categoryGift": "Gift",
+  "categoryFamily": "Family",
+  "categoryPets": "Pets",
+  "categoryCharity": "Charity",
+  "billElectricity": "Electricity",
+  "billWater": "Water",
+  "billGas": "Gas",
+  "billTelephone": "Telephone",
+  "billInternet": "Internet",
+  "billBuildingCharge": "Building charge",
+  "minutesBefore": "{count} minutes before",
+  "@minutesBefore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursBefore": "{count} hours before",
+  "@hoursBefore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "daysBefore": "{count} days before",
+  "@daysBefore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shoppingReminderBody": "You have {count} items in this shopping list.",
+  "@shoppingReminderBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openLinkedShoppingList": "Open linked shopping list",
+  "medicationReminderBody": "It is time to take your medicine.",
+  "dailyMedicationReminder": "Remind every day at the selected time",
+  "nextCycleReminder": "Next cycle reminder",
+  "nextCycleReminderHint": "Remind me based on the estimated next start date",
+  "cycleReminderBody": "The estimated next cycle is approaching. This date is only an estimate."
 }

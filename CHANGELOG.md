@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.4.0+7
+
+### Added
+- Unified local reminder engine with normal notifications and prominent alarms.
+- Time-zone-aware scheduling, repeat rules, exact-alarm permission handling, and notification-tap routing.
+- Reminder controls for Affairs, Appointments, Birthdays, Shopping, Medicine, Bills, and estimated Cycle dates.
+- Location and address fields for Affairs, Appointments, and Shopping lists.
+- Scheduled shopping lists with purchase date, time, location, reminder, recurrence, and a linked Shopping Affair.
+- Two-way navigation between a Shopping list and its linked Affair.
+- Bill reminders with due date/time, bill type, bill/payment identifiers, paid state, and repeat schedule.
+- Full default expense categories covering bills, rent, food, transport, health, medicine, education, travel, subscriptions, loans, and more.
+- User-controlled module order with drag-and-drop, hide/show controls, and restore-default action.
+- Daily medicine notification/alarm schedules.
+- Optional reminder for the estimated next cycle date.
+- Tests for reminder serialization and IDs, scheduled Shopping links, and unpaid/paid bill accounting.
+
+### Changed
+- Moved Cycle before People in the default module order.
+- Rebuilt light and dark theme colors to force readable foreground colors on Android and Windows.
+- Added Vazirmatn as the preferred Persian typeface with an offline Vazir fallback.
+- Constrained the desktop month calendar width and cell proportions to prevent oversized selected dates.
+- Updated notification permissions and Android scheduled-notification receivers in GitHub Actions.
+- Updated app version to `0.4.0+7`.
+
+### Still planned
+- Server-backed account registration, password recovery, and multi-device synchronization.
+- Collaborative live Shopping lists.
+- User-created financial categories/subcategories, budgets, receipts, and advanced charts.
+- Custom alarm sounds and snooze actions.
+
 ## 0.3.0+6
 
 ### Added

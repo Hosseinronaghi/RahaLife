@@ -116,8 +116,17 @@ class TodayScreen extends ConsumerWidget {
                             icon: Icons.account_balance_wallet_rounded,
                             title: l10n.finance,
                             value: localizedNumber(
-                              todayTransactions.fold<double>(0, (sum, item) =>
-                                sum + (item.type == FinanceTransactionType.expense || item.type == FinanceTransactionType.debt ? -item.amount : item.amount)),
+                              todayTransactions.fold<double>(0, (sum, item) {
+                                if (item.type == FinanceTransactionType.expense ||
+                                    item.type == FinanceTransactionType.debt ||
+                                    (item.type == FinanceTransactionType.bill && item.paid)) {
+                                  return sum - item.amount;
+                                }
+                                if (item.type == FinanceTransactionType.bill && !item.paid) {
+                                  return sum;
+                                }
+                                return sum + item.amount;
+                              }),
                               locale,
                             ),
                             onTap: () => context.push('/finance'),

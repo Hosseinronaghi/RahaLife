@@ -239,31 +239,35 @@ class _MonthGrid extends StatelessWidget {
           );
     final cellCount = ((offset + days + 6) ~/ 7) * 7;
 
-    return Column(
-      children: [
-        Row(
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Column(
           children: [
-            for (final label in labels)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.labelMedium,
+            Row(
+              children: [
+                for (final label in labels)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelMedium,
+                      ),
+                    ),
                   ),
-                ),
+              ],
+            ),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                mainAxisSpacing: 5,
+                crossAxisSpacing: 5,
+                childAspectRatio: 1.12,
               ),
-          ],
-        ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            mainAxisSpacing: 4,
-            crossAxisSpacing: 4,
-          ),
           itemCount: cellCount,
           itemBuilder: (context, index) {
             final day = index - offset + 1;
@@ -317,9 +321,11 @@ class _MonthGrid extends StatelessWidget {
                 ),
               ),
             );
-          },
+              },
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

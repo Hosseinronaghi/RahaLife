@@ -1,3 +1,5 @@
+import '../../../core/notifications/reminder_models.dart';
+
 enum FlowIntensity { light, medium, heavy }
 
 enum CycleMood { calm, sensitive, low, energetic, irritable, other }
@@ -11,16 +13,33 @@ class CycleLog {
     required this.painLevel,
     required this.mood,
     this.notes,
+    this.predictionReminder = const ReminderPlan(),
+    this.predictionReminderTime = '09:00',
   });
 
   factory CycleLog.fromJson(Map<String, Object?> json) => CycleLog(
         id: json['id']! as String,
         startDate: DateTime.parse(json['startDate']! as String),
-        endDate: json['endDate'] == null ? null : DateTime.parse(json['endDate']! as String),
-        flow: FlowIntensity.values.firstWhere((value) => value.name == json['flow'], orElse: () => FlowIntensity.medium),
+        endDate: json['endDate'] == null
+            ? null
+            : DateTime.parse(json['endDate']! as String),
+        flow: FlowIntensity.values.firstWhere(
+          (value) => value.name == json['flow'],
+          orElse: () => FlowIntensity.medium,
+        ),
         painLevel: json['painLevel'] as int? ?? 0,
-        mood: CycleMood.values.firstWhere((value) => value.name == json['mood'], orElse: () => CycleMood.other),
+        mood: CycleMood.values.firstWhere(
+          (value) => value.name == json['mood'],
+          orElse: () => CycleMood.other,
+        ),
         notes: json['notes'] as String?,
+        predictionReminder: ReminderPlan.fromJson(
+          json['predictionReminder'] is Map
+              ? Map<String, Object?>.from(json['predictionReminder']! as Map)
+              : null,
+        ),
+        predictionReminderTime:
+            json['predictionReminderTime'] as String? ?? '09:00',
       );
 
   final String id;
@@ -30,6 +49,8 @@ class CycleLog {
   final int painLevel;
   final CycleMood mood;
   final String? notes;
+  final ReminderPlan predictionReminder;
+  final String predictionReminderTime;
 
   Map<String, Object?> toJson() => {
         'id': id,
@@ -39,5 +60,7 @@ class CycleLog {
         'painLevel': painLevel,
         'mood': mood.name,
         'notes': notes,
+        'predictionReminder': predictionReminder.toJson(),
+        'predictionReminderTime': predictionReminderTime,
       };
 }
