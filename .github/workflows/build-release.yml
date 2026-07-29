@@ -36,7 +36,7 @@ jobs:
       - name: Remove generated default widget test
         run: rm -f test/widget_test.dart
 
-      - name: Enable Android internet access
+      - name: Configure Android permissions and scheduled reminders
         shell: bash
         run: |
           python3 <<'PY'
@@ -44,13 +44,39 @@ jobs:
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           text = manifest.read_text(encoding="utf-8")
-          permission = '<uses-permission android:name="android.permission.INTERNET" />'
-          if permission not in text:
-              marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
-              text = text.replace(marker, f'{marker}\n    {permission}', 1)
+          marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+          permissions = [
+              '<uses-permission android:name="android.permission.INTERNET" />',
+              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+              '<uses-permission android:name="android.permission.VIBRATE" />',
+              '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
+              '<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />',
+              '<uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />',
+          ]
+          for permission in permissions:
+              if permission not in text:
+                  text = text.replace(marker, f'{marker}\n    {permission}', 1)
+
+          application_end = '</application>'
+          receivers = """
+              <receiver
+                  android:exported="false"
+                  android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+              <receiver
+                  android:exported="false"
+                  android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+                  <intent-filter>
+                      <action android:name="android.intent.action.BOOT_COMPLETED" />
+                      <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                      <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                      <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+                  </intent-filter>
+              </receiver>
+          """
+          if 'ScheduledNotificationReceiver' not in text:
+              text = text.replace(application_end, receivers + '\n    ' + application_end, 1)
           manifest.write_text(text, encoding="utf-8")
           PY
-
       - name: Enable Android core library desugaring
         shell: bash
         run: |
