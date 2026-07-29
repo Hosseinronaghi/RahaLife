@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1+8
+
+### Fixed
+- Removed an unnecessary non-null assertion in the medication controller.
+- Migrated module reordering from the deprecated `onReorder` callback to `onReorderItem`.
+- Updated reorder index handling for the new Flutter callback semantics.
+- Restored compatibility with `flutter analyze --fatal-infos` on current Flutter stable.
+
 ## 0.4.0+7
 
 ### Added

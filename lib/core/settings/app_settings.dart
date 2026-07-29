@@ -152,7 +152,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
 
   Future<void> reorderModules(int oldIndex, int newIndex) async {
     final modules = [...state.moduleOrder];
-    if (newIndex > oldIndex) newIndex -= 1;
+    // ReorderableListView.onReorderItem already adjusts newIndex after removal.
     final item = modules.removeAt(oldIndex);
     modules.insert(newIndex, item);
     state = state.copyWith(moduleOrder: modules);

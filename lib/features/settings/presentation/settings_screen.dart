@@ -160,7 +160,7 @@ class SettingsScreen extends ConsumerWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   buildDefaultDragHandles: false,
                   itemCount: settings.moduleOrder.length,
-                  onReorder: notifier.reorderModules,
+                  onReorderItem: notifier.reorderModules,
                   itemBuilder: (context, index) {
                     final module = settings.moduleOrder[index];
                     final visible = !settings.hiddenModules.contains(module);

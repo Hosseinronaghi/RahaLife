@@ -72,7 +72,7 @@ class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
           item,
     ];
     unawaited(_persist());
-    if (updated != null && !updated!.active) {
+    if (updated != null && !updated.active) {
       unawaited(ReminderService.instance.cancel('medication:$id'));
     }
     return updated;

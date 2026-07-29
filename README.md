@@ -1,8 +1,8 @@
-# Raha Life — v0.4.0
+# Raha Life — v0.4.1
 
 Raha Life is a bilingual, offline-first personal organizer for Affairs, Appointments, Shopping, Medicine, Cycle tracking, People, Birthdays, Notes, Habits, and personal Finance.
 
-## What changed in v0.4.0
+## What changed in v0.4.1
 
 ### Readable colors and Persian typography
 
