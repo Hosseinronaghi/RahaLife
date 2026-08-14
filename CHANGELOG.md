@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3+12
+
+- Fixed the file attachment size lookup for `file_picker 12` by using the asynchronous `PlatformFile.length()` API.
+- Restores analyzer and Windows/Android build compatibility after the v12 file-picker migration.
+- No product behavior or data-model changes.
+
 ## 0.5.2+11
 
 - Migrated `file_picker` to 12.0.0 and the new federated plugin architecture.

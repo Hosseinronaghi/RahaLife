@@ -1,7 +1,7 @@
 name: raha_life
 description: Premium offline-first bilingual personal organizer with optional online AI assistants.
 publish_to: none
-version: 0.5.2+11
+version: 0.5.3+12
 environment:
   sdk: '>=3.10.0 <4.0.0'
 

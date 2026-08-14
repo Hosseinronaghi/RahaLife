@@ -304,12 +304,13 @@ class _Files extends ConsumerWidget {
           onPressed: () async {
             final file = await FilePicker.pickFile();
             if (file == null) return;
+            final fileSize = await file.length();
             ref.read(projectsProvider.notifier).addAttachment(
                   project.id,
                   ProjectAttachment(
                     id: const Uuid().v4(),
                     name: file.name,
-                    size: file.size,
+                    size: fileSize,
                     path: file.path,
                   ),
                 );

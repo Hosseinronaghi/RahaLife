@@ -1,6 +1,12 @@
-# Raha Life — v0.5.2
+# Raha Life — v0.5.3
 
 Raha Life is a Persian/English, local-first personal organizer intended for Android, iPhone, Windows, macOS, Linux and Web.
+
+## v0.5.3 file metadata hotfix
+
+- Uses `await PlatformFile.length()` for attachment size with `file_picker 12`.
+- Fixes the analyzer and desktop/mobile compilation error caused by the removed `PlatformFile.size` getter.
+
 
 It brings daily Affairs, Appointments, Shopping, Medicine, Cycle tracking, People, Birthdays, Notes, Habits, Finance, Projects, sharing and reminders into one consistent application while allowing each module to keep its own subject-specific UI.
 
