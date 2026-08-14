@@ -27,6 +27,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.0'
           channel: stable
           cache: true
 
@@ -138,6 +139,9 @@ jobs:
           print(gradle.read_text(encoding="utf-8"))
           PY
 
+      - name: Clean generated build state
+        run: flutter clean
+
       - name: Get dependencies
         run: flutter pub get
 
@@ -190,6 +194,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.0'
           channel: stable
           cache: true
 
@@ -205,6 +210,9 @@ jobs:
           if (Test-Path "test/widget_test.dart") {
             Remove-Item "test/widget_test.dart" -Force
           }
+
+      - name: Clean generated build state
+        run: flutter clean
 
       - name: Get dependencies
         run: flutter pub get
@@ -251,6 +259,7 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.47.0'
           channel: stable
           cache: true
 
@@ -259,6 +268,9 @@ jobs:
 
       - name: Remove generated default widget test
         run: rm -f test/widget_test.dart
+
+      - name: Clean generated build state
+        run: flutter clean
 
       - name: Get dependencies
         run: flutter pub get
