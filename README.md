@@ -1,8 +1,12 @@
-# Raha Life — v0.5.0
+# Raha Life — v0.5.1
 
 Raha Life is a Persian/English, local-first personal organizer intended for Android, iPhone, Windows, macOS, Linux and Web.
 
 It brings daily Affairs, Appointments, Shopping, Medicine, Cycle tracking, People, Birthdays, Notes, Habits, Finance, Projects, sharing and reminders into one consistent application while allowing each module to keep its own subject-specific UI.
+
+## v0.5.1 hotfix
+
+This hotfix fixes analyzer/build compatibility with current Dart/Flutter stable without changing product behavior. It removes fatal lint infos, fixes nullable medication catalog access, and removes an unused import.
 
 ## v0.5.0 highlights
 

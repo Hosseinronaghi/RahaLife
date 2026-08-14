@@ -40,30 +40,30 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => ResponsiveShell(child: child),
         routes: [
-          GoRoute(path: '/today', builder: (_, __) => const TodayScreen()),
-          GoRoute(path: '/calendar', builder: (_, __) => const CalendarScreen()),
-          GoRoute(path: '/lists', builder: (_, __) => const ListsScreen()),
-          GoRoute(path: '/reports', builder: (_, __) => const ReportsScreen()),
-          GoRoute(path: '/more', builder: (_, __) => const MoreScreen()),
+          GoRoute(path: '/today', builder: (_, _) => const TodayScreen()),
+          GoRoute(path: '/calendar', builder: (_, _) => const CalendarScreen()),
+          GoRoute(path: '/lists', builder: (_, _) => const ListsScreen()),
+          GoRoute(path: '/reports', builder: (_, _) => const ReportsScreen()),
+          GoRoute(path: '/more', builder: (_, _) => const MoreScreen()),
         ],
       ),
-      GoRoute(path: '/search', builder: (_, __) => const GlobalSearchScreen()),
-      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
-      GoRoute(path: '/settings/ai', builder: (_, __) => const AiSettingsScreen()),
-      GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
-      GoRoute(path: '/account', builder: (_, __) => const AccountScreen()),
-      GoRoute(path: '/sync', builder: (_, __) => const SyncCenterScreen()),
-      GoRoute(path: '/widgets', builder: (_, __) => const WidgetSettingsScreen()),
-      GoRoute(path: '/quick-add', builder: (_, __) => const QuickAddLaunchScreen()),
-      GoRoute(path: '/inbox', builder: (_, __) => const InboxScreen()),
-      GoRoute(path: '/projects', builder: (_, __) => const ProjectsScreen()),
+      GoRoute(path: '/search', builder: (_, _) => const GlobalSearchScreen()),
+      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+      GoRoute(path: '/settings/ai', builder: (_, _) => const AiSettingsScreen()),
+      GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
+      GoRoute(path: '/account', builder: (_, _) => const AccountScreen()),
+      GoRoute(path: '/sync', builder: (_, _) => const SyncCenterScreen()),
+      GoRoute(path: '/widgets', builder: (_, _) => const WidgetSettingsScreen()),
+      GoRoute(path: '/quick-add', builder: (_, _) => const QuickAddLaunchScreen()),
+      GoRoute(path: '/inbox', builder: (_, _) => const InboxScreen()),
+      GoRoute(path: '/projects', builder: (_, _) => const ProjectsScreen()),
       GoRoute(
         path: '/projects/:id',
         builder: (_, state) => ProjectDetailsScreen(
           projectId: state.pathParameters['id']!,
         ),
       ),
-      GoRoute(path: '/notes', builder: (_, __) => const NotesScreen()),
+      GoRoute(path: '/notes', builder: (_, _) => const NotesScreen()),
       GoRoute(
         path: '/notes/edit',
         builder: (_, state) {
@@ -82,24 +82,24 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      GoRoute(path: '/messages', builder: (_, __) => const MessagesScreen()),
+      GoRoute(path: '/messages', builder: (_, _) => const MessagesScreen()),
       GoRoute(
         path: '/messages/:personId',
         builder: (_, state) => ChatScreen(
           personId: state.pathParameters['personId']!,
         ),
       ),
-      GoRoute(path: '/people', builder: (_, __) => const PeopleScreen()),
-      GoRoute(path: '/shopping', builder: (_, __) => const ShoppingScreen()),
+      GoRoute(path: '/people', builder: (_, _) => const PeopleScreen()),
+      GoRoute(path: '/shopping', builder: (_, _) => const ShoppingScreen()),
       GoRoute(
         path: '/shopping/:id',
         builder: (_, state) => ShoppingListScreen(
           listId: state.pathParameters['id']!,
         ),
       ),
-      GoRoute(path: '/medication', builder: (_, __) => const MedicationScreen()),
-      GoRoute(path: '/finance', builder: (_, __) => const FinanceScreen()),
-      GoRoute(path: '/cycle', builder: (_, __) => const CycleScreen()),
+      GoRoute(path: '/medication', builder: (_, _) => const MedicationScreen()),
+      GoRoute(path: '/finance', builder: (_, _) => const FinanceScreen()),
+      GoRoute(path: '/cycle', builder: (_, _) => const CycleScreen()),
       GoRoute(
         path: '/module/:type',
         builder: (context, state) {

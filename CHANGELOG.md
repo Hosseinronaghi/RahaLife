@@ -1,3 +1,12 @@
+## 0.5.1+10
+
+Hotfix for current Flutter stable / `flutter analyze --fatal-infos`:
+
+- Fixed nullable medication catalog access that blocked Windows and other builds.
+- Replaced deprecated-style multiple underscore wildcard parameter names with Dart wildcard `_`.
+- Removed an unused Projects import.
+- No feature or data-model changes.
+
 # Changelog
 
 ## 0.5.0+9

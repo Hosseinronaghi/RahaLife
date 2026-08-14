@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/localization/locale_formatters.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../people/presentation/people_controller.dart';
-import '../domain/project.dart';
 import 'projects_controller.dart';
 
 class ProjectsScreen extends ConsumerWidget {
@@ -44,7 +43,7 @@ class ProjectsScreen extends ConsumerWidget {
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               itemCount: projects.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final project = projects[index];
                 final progress = project.checklistProgress;

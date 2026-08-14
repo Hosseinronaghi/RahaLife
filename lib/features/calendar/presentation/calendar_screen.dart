@@ -351,7 +351,7 @@ class _WeekStrip extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: 7,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final date = start.add(Duration(days: index));
           final isSelected = DateUtils.isSameDay(date, selected);

@@ -49,7 +49,7 @@ class MessagesScreen extends ConsumerWidget {
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               itemCount: people.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (_, index) {
                 final person = people[index];
                 final thread = messages.where((item) => item.personId == person.id).toList();

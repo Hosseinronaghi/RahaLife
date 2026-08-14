@@ -62,7 +62,7 @@ class MedicationScreen extends ConsumerWidget {
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               itemCount: plans.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final plan = plans[index];
                 final finished = plan.isCourseFinished();
@@ -256,7 +256,7 @@ Future<void> _showCatalog(
                 Expanded(
                   child: ListView.separated(
                     itemCount: results.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (_, index) {
                       final item = results[index];
                       return ListTile(
@@ -354,7 +354,7 @@ Future<void> showMedicationForm(
                         color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Text('${catalogItem.groupFor(lang)} • ${catalogItem.commonUseFor(lang)}'),
+                      child: Text('${selectedCatalog?.groupFor(lang) ?? ''} • ${selectedCatalog?.commonUseFor(lang) ?? ''}'),
                     ),
                   ],
                   const SizedBox(height: 10),

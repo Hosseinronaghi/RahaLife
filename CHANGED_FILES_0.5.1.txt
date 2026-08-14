@@ -1,0 +1,18 @@
+Raha Life v0.5.1+10 — changed files compared with v0.5.0+9
+
+CHANGELOG.md
+HOTFIX_0.5.1.md
+README.md
+lib/app/router.dart
+lib/features/calendar/presentation/calendar_screen.dart
+lib/features/dashboard/presentation/today_screen.dart
+lib/features/inbox/presentation/inbox_screen.dart
+lib/features/lists/presentation/module_entries_screen.dart
+lib/features/medication/presentation/medication_screen.dart
+lib/features/messages/presentation/messages_screen.dart
+lib/features/notes/presentation/notes_screen.dart
+lib/features/people/presentation/people_screen.dart
+lib/features/projects/presentation/projects_screen.dart
+lib/features/search/presentation/global_search_screen.dart
+lib/features/shopping/presentation/shopping_screen.dart
+pubspec.yaml

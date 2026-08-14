@@ -151,7 +151,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       itemCount: results.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         final item = results[index];
                         return Card(child: ListTile(leading: CircleAvatar(child: Icon(item.icon)), title: Text(item.title), subtitle: Text(item.subtitle), trailing: const Icon(Icons.chevron_right_rounded), onTap: item.onTap));
