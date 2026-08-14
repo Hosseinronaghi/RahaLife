@@ -1,0 +1,11 @@
+.github/workflows/build-extended-platforms.yml
+.github/workflows/build-release.yml
+.github/workflows/flutter-ci.yml
+CHANGELOG.md
+HOTFIX_0.5.2.md
+README.md
+lib/features/messages/presentation/chat_screen.dart
+lib/features/projects/presentation/project_details_screen.dart
+pubspec.yaml
+tool/bootstrap.sh
+tool/configure_apple_platforms.py

@@ -1,7 +1,7 @@
 name: raha_life
 description: Premium offline-first bilingual personal organizer with optional online AI assistants.
 publish_to: none
-version: 0.5.1+10
+version: 0.5.2+11
 environment:
   sdk: '>=3.10.0 <4.0.0'
 
@@ -30,11 +30,11 @@ dependencies:
   flutter_timezone: ^5.1.0
   collection: ^1.19.1
   crypto: ^3.0.7
-  share_plus: ^12.0.2
+  share_plus: 13.3.0
   persian_fonts: ^1.0.6
   flutter_quill: ^11.5.1
   home_widget: ^0.9.3
-  file_picker: ^11.0.3
+  file_picker: 12.0.0
 
 dev_dependencies:
   flutter_test:

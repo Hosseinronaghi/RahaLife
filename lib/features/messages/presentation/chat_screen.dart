@@ -190,9 +190,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> _attach() async {
-    final result = await FilePicker.pickFiles();
-    if (result == null || result.files.isEmpty) return;
-    final file = result.files.first;
+    final file = await FilePicker.pickFile();
+    if (file == null) return;
     ref.read(messagesProvider.notifier).send(
           personId: widget.personId,
           body: _controller.text,

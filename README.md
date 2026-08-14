@@ -1,8 +1,17 @@
-# Raha Life — v0.5.1
+# Raha Life — v0.5.2
 
 Raha Life is a Persian/English, local-first personal organizer intended for Android, iPhone, Windows, macOS, Linux and Web.
 
 It brings daily Affairs, Appointments, Shopping, Medicine, Cycle tracking, People, Birthdays, Notes, Habits, Finance, Projects, sharing and reminders into one consistent application while allowing each module to keep its own subject-specific UI.
+
+
+## v0.5.2 Android build hotfix
+
+- Moves file selection to `file_picker 12.0.0` federated architecture.
+- Uses `FilePicker.pickFile()` for the two single-file attachment flows.
+- Pins CI to Flutter 3.47.0 so future Flutter stable changes do not unexpectedly break releases.
+- Updates `share_plus` to 13.3.0 for current built-in Kotlin support.
+- Sets generated iOS projects to deployment target 14.0, required by file_picker 12.
 
 ## v0.5.1 hotfix
 

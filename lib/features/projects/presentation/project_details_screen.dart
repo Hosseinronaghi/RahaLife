@@ -302,9 +302,8 @@ class _Files extends ConsumerWidget {
       children: [
         FilledButton.icon(
           onPressed: () async {
-            final result = await FilePicker.pickFiles();
-            if (result == null || result.files.isEmpty) return;
-            final file = result.files.first;
+            final file = await FilePicker.pickFile();
+            if (file == null) return;
             ref.read(projectsProvider.notifier).addAttachment(
                   project.id,
                   ProjectAttachment(

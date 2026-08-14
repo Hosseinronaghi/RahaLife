@@ -1,3 +1,15 @@
+# Changelog
+
+## 0.5.2+11
+
+- Migrated `file_picker` to 12.0.0 and the new federated plugin architecture.
+- Updated single-file picking call sites to `FilePicker.pickFile()`.
+- Updated `share_plus` to 13.3.0 for current Flutter / built-in Kotlin compatibility.
+- Pinned GitHub Actions to Flutter 3.47.0 for reproducible builds.
+- Added `flutter clean` before dependency resolution in CI build jobs.
+- Raised generated iOS deployment target to 14.0 to match file_picker 12 requirements.
+- Fixes Android release failure where `GeneratedPluginRegistrant.java` could not resolve `FilePickerPlugin`.
+
 ## 0.5.1+10
 
 Hotfix for current Flutter stable / `flutter analyze --fatal-infos`:
