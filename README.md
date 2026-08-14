@@ -1,95 +1,134 @@
-# Raha Life — v0.4.1
+# Raha Life — v0.5.0
 
-Raha Life is a bilingual, offline-first personal organizer for Affairs, Appointments, Shopping, Medicine, Cycle tracking, People, Birthdays, Notes, Habits, and personal Finance.
+Raha Life is a Persian/English, local-first personal organizer intended for Android, iPhone, Windows, macOS, Linux and Web.
 
-## What changed in v0.4.1
+It brings daily Affairs, Appointments, Shopping, Medicine, Cycle tracking, People, Birthdays, Notes, Habits, Finance, Projects, sharing and reminders into one consistent application while allowing each module to keep its own subject-specific UI.
 
-### Readable colors and Persian typography
+## v0.5.0 highlights
 
-- Rebuilt Material 3 light/dark color handling for Android and Windows.
-- Explicit foreground colors for cards, navigation, forms, dialogs, date/time pickers, chips, and buttons.
-- Vazirmatn remains the preferred Persian font.
-- Bundled Vazir from `persian_fonts` is used as an offline fallback when runtime Vazirmatn is not yet available.
-- Desktop calendar width and day-cell proportions are constrained so selected dates do not become oversized.
+### Project workspace
 
-### Notifications and alarms
+Projects now have a dedicated workspace with:
 
-Two reminder modes are available:
+- Overview and progress
+- Affairs linked to the Project
+- Rich Notes
+- Checklist and completion progress
+- Files/attachments metadata
+- People
+- Project-linked Finance
+- system share
+- internal People share permissions
 
-- Standard notification
-- Prominent alarm with maximum importance, vibration, sound, and Android full-screen intent
+### Professional Notes
 
-Supported repeat rules:
+The Note module now uses a rich-text document model instead of a plain text area. Notes support:
 
-- Once
-- Daily
-- Weekly
-- Monthly
-- Yearly
+- rich formatting
+- tags
+- pin/archive/delete
+- Project link
+- Person link
+- system share
+- internal share with People
 
-Reminder taps open the relevant screen for Shopping, Bills, Medicine, and Cycle. General Affairs and Appointments return to the daily dashboard.
+Quick Add now opens the professional Note editor for new notes.
 
-### Location
+### Cycle-specific UI
 
-Location and address can be recorded for:
+Cycle has a dedicated visual language instead of reusing generic list cards. It includes:
 
+- current cycle-day summary
+- approximate next-period estimate
+- quick symptom logging
+- pain, flow, mood and symptoms
+- history
+- privacy toggle
+- reminder editor
+
+Predictions are explicitly approximate and non-diagnostic.
+
+### Medicine catalog and course tracking
+
+Medicine includes a searchable starter catalog for **recording medicines the user already uses**. Search covers generic name, therapeutic group and general recorded-use labels. The form records:
+
+- generic/brand name
+- medicine form
+- dose
+- reason entered by the user
+- treatment group/use metadata
+- start/end date
+- continuous, fixed-date, fixed-days or as-needed course
+- stock
+- reminder/alarm
+
+The catalog is not a prescribing or treatment recommendation system.
+
+### Birthdays
+
+Birthday registration includes Relationship and can be linked to People records.
+
+### Sharing and Messages
+
+Raha Life now has:
+
+- OS/system sharing for Projects, Notes, Affairs/Appointments and Shopping
+- internal share grants with People
+- view/check/edit permission concepts
+- Shopping list sharing with selected People
+- Messages UI
+- local outgoing message queue
+- file attachment metadata
+- shared Project/Note/Shopping references inside Messages
+
+Remote delivery is intentionally not claimed yet. Messages and internal grants are queued for the Raha Cloud milestone.
+
+### Inbox / Quick Capture
+
+A lightweight Inbox captures text first and later converts it to Affairs, Appointment, Note, Shopping or Project.
+
+### Widgets
+
+Android CI generates seven native home-screen widget providers:
+
+- Today
 - Affairs
-- Appointments
-- Shopping lists
+- Medicine
+- Appointment
+- Shopping
+- Birthday
+- Quick Add
 
-These values are also shown in item details.
+Widgets support light/dark system resources, app-localized data, privacy masking, Android pin requests and deep links back to the correct Raha Life destination. Quick Add opens the Quick Add sheet.
 
-### Scheduled Shopping linked to Affairs
+The Flutter bridge for iOS is present, but an actual WidgetKit Extension/App Group target still has to be created in the Apple-native milestone. `home_widget` only provides the Flutter/native bridge; native widget targets are still required.
 
-A Shopping list can include:
+### Cross-platform sync architecture
 
-- Purchase date
-- Purchase time
-- Store/location
-- Address
-- Notification or alarm
-- Reminder offset
-- Repeat schedule
+Schema v5 and `lib/core/sync/sync_contract.dart` prepare record-level synchronization for:
 
-When **Link Shopping to Affair** is enabled, Raha Life creates an Affair of type Shopping and links both records. The reminder opens the actual Shopping list so items can be checked.
+- Android
+- iPhone / iOS
+- Windows
+- macOS
+- Linux
+- Web
 
-### Bills and Finance categories
+The design synchronizes records rather than copying a live SQLite file. It includes UUID/version/device/update/delete metadata, a SyncQueue, pull cursor, push acknowledgements and conflict objects.
 
-Bill records now support:
+**Important:** Raha Cloud is not deployed in v0.5.0. The Sync Center is an app-side control center and local checkpoint. Real remote sync, remote Messages and live collaborative lists require the next server milestone.
 
-- Bill type
-- Amount
-- Account
-- Due date and time
-- Bill identifier
-- Payment identifier
-- Notification or alarm
-- Reminder offset and recurrence
-- Paid/unpaid state
+Google Drive, Dropbox and OneDrive remain planned as personal encrypted backup/recovery providers rather than the transactional collaboration transport.
 
-Unpaid bills are not counted as completed expenses until they are marked paid.
+See `docs/SYNC_ARCHITECTURE_0.5.md`.
 
-Default expense categories include bills, rent/housing, groceries, restaurant/cafe, transport, fuel, health, medicine, daily shopping, education, entertainment, travel, clothing, internet/phone, insurance, tax, loans/installments, subscriptions, repairs, gifts, family, pets, charity, and other.
+## Default module order
 
-### Medicine
-
-Medication plans now include an optional daily notification or alarm at the selected time. Disabling or deleting a medicine cancels its reminder.
-
-### Cycle
-
-Cycle appears before People in the default module order. A cycle record can optionally schedule a reminder before the estimated next cycle date. The estimate remains explicitly non-diagnostic and approximate.
-
-### Personalized module order
-
-From **Settings → Module order**, the user can:
-
-- Reorder modules using drag and drop
-- Hide or show each module
-- Restore the default order
-
-Default order:
+The user can reorder/hide modules from Settings. The current default includes:
 
 ```text
+Inbox
+Project
 Affairs
 Appointment
 Shopping
@@ -100,40 +139,44 @@ Birthday
 Note
 Habit
 Finance
+Messages
 ```
 
-## Account and synchronization status
+Cycle remains before People; Shopping and Medicine remain before Birthday.
 
-The local account from v0.3.0 remains available. It is not yet a server account. Android, Windows, Web, and other-device synchronization is the next cloud milestone and is not claimed as complete in this release.
+## GitHub Actions
 
-## GitHub Actions outputs
+### Normal build workflow
 
-Open **Actions → Build Raha Life → Run workflow**. The workflow creates:
+`.github/workflows/build-release.yml` creates:
 
-### Android
+- Android universal APK
+- Android split APKs
+- Android AAB
+- Windows x64 portable ZIP
+- Web release ZIP
 
-- `Raha-Life-universal-release.apk`
-- `Raha-Life-arm64-v8a-release.apk`
-- `Raha-Life-armeabi-v7a-release.apk`
-- `Raha-Life-x86_64-release.apk`
-- `Raha-Life-release.aab`
+Android CI also generates the native widget classes/resources.
 
-### Windows
+### Extended platform workflow
 
-- `Raha-Life-Windows-x64-portable.zip`
+`.github/workflows/build-extended-platforms.yml` can be started manually and creates:
 
-### Web
+- Linux x64 portable archive
+- macOS release ZIP
+- unsigned iOS Simulator application ZIP
 
-- `Raha-Life-Web-release.zip`
-
-Scheduled local notifications are currently enabled for native targets; the Web build does not schedule local reminders in this milestone.
+The iOS Simulator artifact is for testing only; App Store/TestFlight distribution still requires Apple signing/provisioning.
 
 ## Repository setup
 
-Extract the complete source and upload its contents to the repository root. `pubspec.yaml` must be directly visible in the repository.
+Upload the **contents** of the source ZIP to the repository root so that `pubspec.yaml` is directly visible.
+
+The project now targets Dart `>=3.10.0` because current plugin dependencies require a modern Flutter/Dart toolchain.
+
+Typical validation/build sequence:
 
 ```bash
-flutter create --platforms=android,ios,windows,macos,linux,web --org com.raha --project-name raha_life .
 flutter pub get
 flutter gen-l10n
 dart run build_runner build --delete-conflicting-outputs
@@ -141,10 +184,36 @@ flutter analyze --fatal-infos
 flutter test
 ```
 
-## Delivery documents
+## Status boundaries
 
-- [v0.4.0 delivery report](docs/DELIVERY_0.4.0.md)
-- [v0.4.0 validation report](docs/VALIDATION_0.4.0.md)
-- [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
-- [UI/UX specification](docs/UI_UX_SPECIFICATION.md)
-- [Changelog](CHANGELOG.md)
+### Implemented in this source
+
+- local-first UI and persistence prototypes
+- Project workspace
+- rich Notes
+- Cycle-specific UI
+- enhanced Medicine
+- People sharing model
+- Messages queue UI
+- Android widgets
+- cross-platform Sync contracts/schema
+- CI definitions for six target platform families
+
+### Not yet remotely operational
+
+- Raha Cloud backend
+- remote registration/account recovery
+- actual multi-device data transfer
+- Google Drive / Dropbox / OneDrive OAuth and backup APIs
+- remote Message delivery
+- live collaborative Shopping/Projects
+- iOS native WidgetKit Extension
+- desktop tray/quick-panel implementation
+- full migration of all feature repositories from SharedPreferences prototypes to Drift
+
+## Documentation
+
+- `docs/SYNC_ARCHITECTURE_0.5.md`
+- `docs/IMPLEMENTATION_ROADMAP.md`
+- `docs/UI_UX_SPECIFICATION.md`
+- `CHANGELOG.md`

@@ -10,16 +10,17 @@ import '../../home/presentation/home_entry_ui.dart';
 import '../../home/presentation/quick_add_sheet.dart';
 
 class ModuleEntriesScreen extends ConsumerWidget {
-  const ModuleEntriesScreen({required this.type, super.key});
+  const ModuleEntriesScreen({required this.type, this.projectId, super.key});
 
   final HomeEntryType type;
+  final String? projectId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final items = ref
         .watch(homeEntriesProvider)
-        .where((item) => item.type == type)
+        .where((item) => item.type == type && (projectId == null || item.projectId == projectId))
         .toList()
       ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
     final color = homeEntryTypeColor(type, Theme.of(context).colorScheme);
@@ -54,7 +55,7 @@ class ModuleEntriesScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 18),
                     FilledButton.icon(
-                      onPressed: () => showAddEntry(context, type),
+                      onPressed: () => showAddEntry(context, type, projectId: projectId),
                       icon: const Icon(Icons.add_rounded),
                       label: Text(addHomeEntryLabel(l10n, type)),
                     ),
@@ -104,7 +105,7 @@ class ModuleEntriesScreen extends ConsumerWidget {
               },
             ),
       floatingActionButton: FloatingActionButton.small(
-        onPressed: () => showAddEntry(context, type),
+        onPressed: () => showAddEntry(context, type, projectId: projectId),
         child: const Icon(Icons.add_rounded),
       ),
     );

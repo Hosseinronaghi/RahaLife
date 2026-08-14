@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/localization/locale_formatters.dart';
 import '../../../core/notifications/reminder_models.dart';
 import '../../../core/notifications/reminder_service.dart';
+import '../../../core/widgets/reminder_editor.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../home/domain/home_entry.dart';
 import '../../home/presentation/home_controller.dart';
@@ -88,10 +89,12 @@ Future<void> showShoppingListForm(BuildContext context, WidgetRef ref) async {
   final address = TextEditingController();
   var scheduledAt = DateTime.now().add(const Duration(days: 1));
   var createAffair = true;
-  var reminderEnabled = true;
-  var reminderKind = ReminderKind.notification;
-  var reminderRepeat = ReminderRepeat.none;
-  var minutesBefore = 30;
+  var reminder = const ReminderPlan(
+    enabled: true,
+    kind: ReminderKind.notification,
+    minutesBefore: 30,
+    repeat: ReminderRepeat.none,
+  );
 
   await showModalBottomSheet<void>(
     context: context,
@@ -213,88 +216,15 @@ Future<void> showShoppingListForm(BuildContext context, WidgetRef ref) async {
                     value: createAffair,
                     onChanged: (value) => setState(() => createAffair = value),
                   ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(l10n.reminder),
-                    value: reminderEnabled,
-                    onChanged: (value) =>
-                        setState(() => reminderEnabled = value),
+                  ReminderEditor(
+                    plan: reminder,
+                    allowedBeforeMinutes: const [0, 15, 30, 60, 120, 1440],
+                    onChanged: (value) => setState(() => reminder = value),
                   ),
-                  if (reminderEnabled) ...[
-                    DropdownButtonFormField<ReminderKind>(
-                      initialValue: reminderKind,
-                      decoration: InputDecoration(labelText: l10n.reminderMode),
-                      items: [
-                        DropdownMenuItem(
-                          value: ReminderKind.notification,
-                          child: Text(l10n.notificationMode),
-                        ),
-                        DropdownMenuItem(
-                          value: ReminderKind.alarm,
-                          child: Text(l10n.alarmMode),
-                        ),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => reminderKind = value);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<int>(
-                      initialValue: minutesBefore,
-                      decoration: InputDecoration(labelText: l10n.remindBefore),
-                      items: const [0, 15, 30, 60, 120, 1440]
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(
-                                value == 0
-                                    ? l10n.atEventTime
-                                    : value == 1440
-                                        ? l10n.oneDayBefore
-                                        : value >= 60
-                                            ? l10n.hoursBefore(value ~/ 60)
-                                            : l10n.minutesBefore(value),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => minutesBefore = value);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    DropdownButtonFormField<ReminderRepeat>(
-                      initialValue: reminderRepeat,
-                      decoration: InputDecoration(labelText: l10n.repeat),
-                      items: ReminderRepeat.values
-                          .map(
-                            (value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(_shoppingRepeatLabel(l10n, value)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => reminderRepeat = value);
-                        }
-                      },
-                    ),
-                  ],
                   const SizedBox(height: 18),
                   FilledButton(
                     onPressed: () async {
                       if (!(formKey.currentState?.validate() ?? false)) return;
-                      final reminder = ReminderPlan(
-                        enabled: reminderEnabled,
-                        kind: reminderKind,
-                        minutesBefore: minutesBefore,
-                        repeat: reminderRepeat,
-                      );
                       final list = ref.read(shoppingProvider.notifier).addList(
                             title.text,
                             items.text.split('\n'),
@@ -348,15 +278,3 @@ Future<void> showShoppingListForm(BuildContext context, WidgetRef ref) async {
   address.dispose();
 }
 
-
-String _shoppingRepeatLabel(
-  AppLocalizations l10n,
-  ReminderRepeat repeat,
-) =>
-    switch (repeat) {
-      ReminderRepeat.none => l10n.repeatOnce,
-      ReminderRepeat.daily => l10n.repeatDaily,
-      ReminderRepeat.weekly => l10n.repeatWeekly,
-      ReminderRepeat.monthly => l10n.repeatMonthly,
-      ReminderRepeat.yearly => l10n.repeatYearly,
-    };

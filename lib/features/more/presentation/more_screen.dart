@@ -50,28 +50,28 @@ class MoreScreen extends ConsumerWidget {
           _MoreSection(
             children: [
               _MoreTile(
-                icon: Icons.cloud_sync_rounded,
+                icon: Icons.manage_accounts_rounded,
                 title: l10n.accountAndSync,
                 subtitle: account == null ? l10n.createAccount : account.email,
                 onTap: () => context.push('/account'),
               ),
               _MoreTile(
+                icon: Icons.cloud_sync_rounded,
+                title: l10n.syncCenter,
+                subtitle: l10n.allPlatforms,
+                onTap: () => context.push('/sync'),
+              ),
+              _MoreTile(
                 icon: Icons.forum_rounded,
-                title: l10n.messages,
-                subtitle: l10n.comingSoon,
-                onTap: () => context.push(
-                  '/coming-soon',
-                  extra: l10n.messages,
-                ),
+                title: l10n.messagesTitle,
+                subtitle: l10n.messageOfflineHint,
+                onTap: () => context.push('/messages'),
               ),
               _MoreTile(
                 icon: Icons.widgets_rounded,
                 title: l10n.widgets,
-                subtitle: l10n.comingSoon,
-                onTap: () => context.push(
-                  '/coming-soon',
-                  extra: l10n.widgets,
-                ),
+                subtitle: l10n.widgetPlatformHint,
+                onTap: () => context.push('/widgets'),
               ),
             ],
           ),
@@ -81,12 +81,13 @@ class MoreScreen extends ConsumerWidget {
               _MoreTile(
                 icon: Icons.info_outline_rounded,
                 title: l10n.about,
-                subtitle: '${l10n.version} ${localizeDigits('0.3.0', Localizations.localeOf(context))}',
+                subtitle:
+                    '${l10n.version} ${localizeDigits('0.5.0', Localizations.localeOf(context))}',
                 onTap: () => showAboutDialog(
                   context: context,
                   applicationName: l10n.appName,
                   applicationVersion: localizeDigits(
-                    '0.3.0',
+                    '0.5.0',
                     Localizations.localeOf(context),
                   ),
                   applicationIcon: Icon(
@@ -106,7 +107,6 @@ class MoreScreen extends ConsumerWidget {
 
 class _MoreSection extends StatelessWidget {
   const _MoreSection({required this.children});
-
   final List<Widget> children;
 
   @override
@@ -152,7 +152,7 @@ class _MoreTile extends StatelessWidget {
           ),
         ),
         title: Text(title),
-        subtitle: Text(subtitle),
+        subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,
       );

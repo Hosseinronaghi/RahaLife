@@ -1,79 +1,89 @@
-Raha Life 0.4.0+7
+Raha Life 0.5.0+9
 
-Core application and design
+Core / shell
 - lib/main.dart
 - lib/app/app.dart
 - lib/app/router.dart
 - lib/app/theme.dart
 - lib/app/shell/responsive_shell.dart
 
-Settings and module layout
-- lib/core/settings/app_settings.dart
-- lib/core/settings/app_module.dart
-- lib/features/settings/presentation/settings_screen.dart
-- lib/features/lists/presentation/lists_screen.dart
+Workspace and Projects
+- lib/features/projects/domain/project.dart
+- lib/features/projects/presentation/projects_controller.dart
+- lib/features/projects/presentation/projects_screen.dart
+- lib/features/projects/presentation/project_details_screen.dart
 
-Notifications and alarms
-- lib/core/notifications/reminder_models.dart
-- lib/core/notifications/reminder_service.dart
+Rich Notes
+- lib/features/notes/domain/rich_note.dart
+- lib/features/notes/presentation/notes_controller.dart
+- lib/features/notes/presentation/notes_screen.dart
+- lib/features/notes/presentation/note_editor_screen.dart
 
-Affairs and appointments
-- lib/features/home/domain/home_entry.dart
-- lib/features/home/presentation/home_controller.dart
-- lib/features/home/presentation/home_entry_ui.dart
-- lib/features/home/presentation/quick_add_sheet.dart
-- lib/features/home/presentation/entry_details_sheet.dart
+Inbox
+- lib/features/inbox/domain/inbox_item.dart
+- lib/features/inbox/presentation/inbox_controller.dart
+- lib/features/inbox/presentation/inbox_screen.dart
 
-Shopping
-- lib/features/shopping/domain/shopping_list.dart
-- lib/features/shopping/presentation/shopping_controller.dart
-- lib/features/shopping/presentation/shopping_screen.dart
-- lib/features/shopping/presentation/shopping_list_screen.dart
+People / Sharing / Messages
+- lib/features/people/
+- lib/features/sharing/domain/share_models.dart
+- lib/features/sharing/presentation/sharing_controller.dart
+- lib/features/sharing/presentation/share_with_people_sheet.dart
+- lib/core/sharing/system_share.dart
+- lib/features/messages/domain/message.dart
+- lib/features/messages/presentation/messages_controller.dart
+- lib/features/messages/presentation/messages_screen.dart
+- lib/features/messages/presentation/chat_screen.dart
 
-Medicine
+Medicine / Cycle / Birthdays
 - lib/features/medication/domain/medication_plan.dart
+- lib/features/medication/domain/medication_catalog.dart
 - lib/features/medication/presentation/medication_controller.dart
 - lib/features/medication/presentation/medication_screen.dart
-
-Finance and bill reminders
-- lib/features/finance/domain/finance_models.dart
-- lib/features/finance/presentation/finance_controller.dart
-- lib/features/finance/presentation/finance_screen.dart
-
-Cycle
 - lib/features/cycle/domain/cycle_log.dart
 - lib/features/cycle/presentation/cycle_controller.dart
 - lib/features/cycle/presentation/cycle_screen.dart
+- lib/features/birthdays/
 
-Calendar and dashboard
-- lib/features/calendar/presentation/calendar_screen.dart
-- lib/features/dashboard/presentation/today_screen.dart
+Reminder / Shopping / Finance
+- lib/core/widgets/reminder_editor.dart
+- lib/core/notifications/reminder_models.dart
+- lib/core/notifications/reminder_service.dart
+- lib/features/shopping/
+- lib/features/finance/
+
+Synchronization
+- lib/core/sync/sync_contract.dart
+- lib/features/sync/domain/sync_settings.dart
+- lib/features/sync/presentation/sync_controller.dart
+- lib/features/sync/presentation/sync_center_screen.dart
+- lib/core/database/app_database.dart (schema v5)
+
+Widgets
+- lib/features/widgets/data/home_widget_bridge.dart
+- lib/features/widgets/presentation/widget_settings_screen.dart
+- lib/features/widgets/presentation/quick_add_launch_screen.dart
+- tool/configure_android_widget.py
 
 Localization
 - lib/l10n/app_fa.arb
 - lib/l10n/app_en.arb
 
-Testing
-- test/money_test.dart
-- test/locale_formatters_test.dart
-- test/home_controller_test.dart
-- test/people_controller_test.dart
-- test/shopping_controller_test.dart
-- test/scheduled_shopping_test.dart
-- test/medication_controller_test.dart
-- test/finance_controller_test.dart
-- test/finance_bill_test.dart
-- test/cycle_controller_test.dart
-- test/reminder_models_test.dart
+Testing additions
+- test/projects_controller_test.dart
+- test/messages_controller_test.dart
+- test/medication_course_test.dart
+- test/sharing_models_test.dart
+- test/sync_engine_test.dart
 
 Automation
 - .github/workflows/build-release.yml
 - .github/workflows/flutter-ci.yml
+- .github/workflows/build-extended-platforms.yml
 
 Documentation
 - README.md
 - CHANGELOG.md
-- docs/DELIVERY_0.4.0.md
-- docs/VALIDATION_0.4.0.md
+- docs/SYNC_ARCHITECTURE_0.5.md
 - docs/IMPLEMENTATION_ROADMAP.md
 - docs/UI_UX_SPECIFICATION.md

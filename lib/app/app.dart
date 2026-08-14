@@ -1,6 +1,11 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:home_widget/home_widget.dart';
 
 import '../core/notifications/reminder_service.dart';
 import '../core/settings/app_settings.dart';
@@ -16,17 +21,63 @@ class RahaLifeApp extends ConsumerStatefulWidget {
 }
 
 class _RahaLifeAppState extends ConsumerState<RahaLifeApp> {
+  StreamSubscription<Uri?>? _widgetClickSubscription;
   @override
   void initState() {
     super.initState();
     ReminderService.instance.selectedPayload.addListener(_handleReminderTap);
     WidgetsBinding.instance.addPostFrameCallback((_) => _handleReminderTap());
+    unawaited(_initializeWidgetLaunchHandling());
   }
 
   @override
   void dispose() {
     ReminderService.instance.selectedPayload.removeListener(_handleReminderTap);
+    _widgetClickSubscription?.cancel();
     super.dispose();
+  }
+
+  bool get _supportsHomeWidget => !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
+  Future<void> _initializeWidgetLaunchHandling() async {
+    if (!_supportsHomeWidget) return;
+    _widgetClickSubscription = HomeWidget.widgetClicked.listen(_handleWidgetUri);
+    final initialUri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+    if (initialUri != null) _handleWidgetUri(initialUri);
+  }
+
+  void _handleWidgetUri(Uri? uri) {
+    if (uri == null || !mounted) return;
+    final target = uri.host.isNotEmpty ? uri.host : uri.path.replaceFirst('/', '');
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final router = ref.read(routerProvider);
+      switch (target) {
+        case 'affairs':
+          router.go('/module/affair');
+          break;
+        case 'medication':
+          router.go('/medication');
+          break;
+        case 'appointment':
+          router.go('/module/appointment');
+          break;
+        case 'shopping':
+          router.go('/shopping');
+          break;
+        case 'birthday':
+          router.go('/module/birthday');
+          break;
+        case 'quick-add':
+          router.go('/quick-add');
+          break;
+        default:
+          router.go('/today');
+          break;
+      }
+    });
   }
 
   void _handleReminderTap() {
@@ -69,8 +120,9 @@ class _RahaLifeAppState extends ConsumerState<RahaLifeApp> {
       themeMode: settings.themeMode,
       locale: settings.locale,
       supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: const [
+      localizationsDelegates: [
         AppLocalizations.delegate,
+        FlutterQuillLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,

@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.5.0+9
+
+### Added
+- Project workspace with Overview, Affairs, Rich Notes, Checklist, Files, People and Finance tabs.
+- Rich Notes editor with Delta JSON, tags, pin/archive, Person/Project links and sharing.
+- Inbox / Quick Capture conversion flow.
+- Dedicated modern Cycle UI with symptom logging, privacy control and approximate next-cycle reminder.
+- Searchable starter Medicine catalog, medicine form, user-recorded reason, course types, start/end dates and finished-course state.
+- Birthday relationship support.
+- Internal People sharing grants and Shopping permissions (view/check/edit).
+- Messages UI with local queued messages, attachment metadata and shared-item references.
+- Sync Center for Android, iOS, Windows, macOS, Linux and Web.
+- Transport-independent record sync engine contract with pull/push cursors and preserved conflicts.
+- Drift schema v5 with common version/device/deleted metadata for syncable user data.
+- Seven Android native home-screen widgets: Today, Affairs, Medicine, Appointment, Shopping, Birthday and Quick Add.
+- Android widget pin requests, privacy masking and deep-link routing.
+- Manual GitHub Actions build workflow for Linux, macOS and iOS Simulator.
+- Sync architecture documentation.
+
+### Changed
+- Quick Add now opens the Rich Note editor for Notes.
+- File Picker calls migrated to the current static API.
+- Unified Reminder Editor is used by scheduled Shopping and bill flows as well as Medicine/Cycle.
+- Project Dart SDK floor moved to 3.10 for current plugin compatibility.
+
+### Sync status
+- App-side record-level sync architecture is implemented, but Raha Cloud is not deployed/connected yet.
+- Google Drive, Dropbox and OneDrive are represented as personal backup providers; OAuth/API adapters remain the next cloud milestone.
+- Internal Messages/shares are local queued prototypes until Raha Cloud is online.
+
 ## 0.4.1+8
 
 ### Fixed

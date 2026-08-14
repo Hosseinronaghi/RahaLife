@@ -50,6 +50,7 @@ class HomeEntry {
     this.location,
     this.address,
     this.linkedShoppingListId,
+    this.projectId,
     this.reminder = const ReminderPlan(),
   });
 
@@ -74,6 +75,7 @@ class HomeEntry {
       location: json['location'] as String?,
       address: json['address'] as String?,
       linkedShoppingListId: json['linkedShoppingListId'] as String?,
+      projectId: json['projectId'] as String?,
       reminder: ReminderPlan.fromJson(
         json['reminder'] is Map
             ? Map<String, Object?>.from(json['reminder']! as Map)
@@ -94,6 +96,7 @@ class HomeEntry {
   final String? location;
   final String? address;
   final String? linkedShoppingListId;
+  final String? projectId;
   final ReminderPlan reminder;
 
   Map<String, Object?> toJson() => {
@@ -109,6 +112,7 @@ class HomeEntry {
         'location': location,
         'address': address,
         'linkedShoppingListId': linkedShoppingListId,
+        'projectId': projectId,
         'reminder': reminder.toJson(),
       };
 
@@ -123,6 +127,7 @@ class HomeEntry {
     String? location,
     String? address,
     String? linkedShoppingListId,
+    String? projectId,
     ReminderPlan? reminder,
   }) =>
       HomeEntry(
@@ -139,6 +144,7 @@ class HomeEntry {
         address: address ?? this.address,
         linkedShoppingListId:
             linkedShoppingListId ?? this.linkedShoppingListId,
+        projectId: projectId ?? this.projectId,
         reminder: reminder ?? this.reminder,
       );
 

@@ -9,10 +9,12 @@ import '../../home/presentation/entry_details_sheet.dart';
 import '../../home/presentation/home_controller.dart';
 import '../../home/presentation/home_entry_ui.dart';
 import '../../medication/presentation/medication_controller.dart';
+import '../../notes/presentation/notes_controller.dart';
 import '../../people/presentation/people_controller.dart';
+import '../../projects/presentation/projects_controller.dart';
 import '../../shopping/presentation/shopping_controller.dart';
 
-enum _SearchKind { all, schedule, people, shopping, medication, finance }
+enum _SearchKind { all, schedule, projects, notes, people, shopping, medication, finance }
 
 class GlobalSearchScreen extends ConsumerStatefulWidget {
   const GlobalSearchScreen({super.key});
@@ -46,6 +48,33 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
               title: entry.title,
               subtitle: '${homeEntryTypeLabel(l10n, entry.type)} • ${compactDualDate(entry.dateTime, Localizations.localeOf(context))}',
               onTap: () => showEntryDetails(context, entry),
+            ));
+          }
+        }
+      }
+      if (filter == _SearchKind.all || filter == _SearchKind.projects) {
+        for (final project in ref.watch(projectsProvider)) {
+          final haystack = '${project.title} ${project.description ?? ''}'.toLowerCase();
+          if (haystack.contains(query)) {
+            results.add(_SearchItem(
+              icon: Icons.workspaces_rounded,
+              title: project.title,
+              subtitle: l10n.projects,
+              onTap: () => context.push('/projects/${project.id}'),
+            ));
+          }
+        }
+      }
+      if (filter == _SearchKind.all || filter == _SearchKind.notes) {
+        for (final note in ref.watch(notesProvider)) {
+          if (note.archived) continue;
+          final haystack = '${note.title} ${note.plainText} ${note.tags.join(' ')}'.toLowerCase();
+          if (haystack.contains(query)) {
+            results.add(_SearchItem(
+              icon: Icons.edit_note_rounded,
+              title: note.title.isEmpty ? l10n.notes : note.title,
+              subtitle: note.plainText,
+              onTap: () => context.push('/notes/edit', extra: note.id),
             ));
           }
         }
@@ -137,6 +166,8 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
 String _kindLabel(AppLocalizations l10n, _SearchKind kind) => switch (kind) {
   _SearchKind.all => l10n.all,
   _SearchKind.schedule => l10n.calendar,
+  _SearchKind.projects => l10n.projects,
+  _SearchKind.notes => l10n.notes,
   _SearchKind.people => l10n.people,
   _SearchKind.shopping => l10n.shopping,
   _SearchKind.medication => l10n.medications,

@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/locale_formatters.dart';
+import '../../../core/sharing/system_share.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../people/domain/person.dart';
 import '../../people/presentation/people_controller.dart';
+import '../../sharing/presentation/share_with_people_sheet.dart';
 import '../domain/home_entry.dart';
 import 'home_controller.dart';
 import 'home_entry_ui.dart';
@@ -149,7 +151,33 @@ class _EntryDetailsSheet extends ConsumerWidget {
                 value: localizedNumber(entry.amount!, locale),
               ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
+            OutlinedButton.icon(
+              onPressed: () => shareTextFromContext(
+                context,
+                subject: entry.title,
+                text: [
+                  entry.title,
+                  '${compactDualDate(entry.dateTime, locale)} · ${localizedTime(entry.dateTime, locale)}',
+                  if (entry.details?.isNotEmpty ?? false) entry.details!,
+                  if (entry.location?.isNotEmpty ?? false) entry.location!,
+                ].join('\n'),
+              ),
+              icon: const Icon(Icons.ios_share_rounded),
+              label: Text(l10n.systemShare),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => showShareWithPeopleSheet(
+                context,
+                ref,
+                entityType: entry.type.name,
+                entityId: entry.id,
+              ),
+              icon: const Icon(Icons.group_add_rounded),
+              label: Text(l10n.shareWithPeople),
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(

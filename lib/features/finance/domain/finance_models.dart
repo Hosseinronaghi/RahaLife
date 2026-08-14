@@ -89,6 +89,7 @@ class FinanceTransaction {
     this.paymentIdentifier,
     this.paid = false,
     this.reminder = const ReminderPlan(),
+    this.projectId,
   });
 
   factory FinanceTransaction.fromJson(Map<String, Object?> json) =>
@@ -110,6 +111,7 @@ class FinanceTransaction {
         billIdentifier: json['billIdentifier'] as String?,
         paymentIdentifier: json['paymentIdentifier'] as String?,
         paid: json['paid'] as bool? ?? false,
+        projectId: json['projectId'] as String?,
         reminder: ReminderPlan.fromJson(
           json['reminder'] is Map
               ? Map<String, Object?>.from(json['reminder']! as Map)
@@ -130,6 +132,7 @@ class FinanceTransaction {
   final String? paymentIdentifier;
   final bool paid;
   final ReminderPlan reminder;
+  final String? projectId;
 
   bool get isBill => type == FinanceTransactionType.bill;
 
@@ -147,9 +150,10 @@ class FinanceTransaction {
         'paymentIdentifier': paymentIdentifier,
         'paid': paid,
         'reminder': reminder.toJson(),
+        'projectId': projectId,
       };
 
-  FinanceTransaction copyWith({bool? paid}) => FinanceTransaction(
+  FinanceTransaction copyWith({bool? paid, String? projectId}) => FinanceTransaction(
         id: id,
         type: type,
         amount: amount,
@@ -163,6 +167,7 @@ class FinanceTransaction {
         paymentIdentifier: paymentIdentifier,
         paid: paid ?? this.paid,
         reminder: reminder,
+        projectId: projectId ?? this.projectId,
       );
 }
 

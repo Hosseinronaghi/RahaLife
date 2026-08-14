@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/localization/locale_formatters.dart';
 import '../../../core/notifications/reminder_models.dart';
 import '../../../core/notifications/reminder_service.dart';
+import '../../../core/widgets/reminder_editor.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../domain/finance_models.dart';
 import 'finance_controller.dart';
@@ -256,7 +257,11 @@ IconData _typeIcon(FinanceTransactionType type) => switch (type) {
       FinanceTransactionType.bill => Icons.receipt_long_rounded,
     };
 
-Future<void> showFinanceForm(BuildContext context, WidgetRef ref) async {
+Future<void> showFinanceForm(
+  BuildContext context,
+  WidgetRef ref, {
+  String? projectId,
+}) async {
   final l10n = AppLocalizations.of(context);
   final formKey = GlobalKey<FormState>();
   final amount = TextEditingController();
@@ -271,10 +276,12 @@ Future<void> showFinanceForm(BuildContext context, WidgetRef ref) async {
   var dueDate = DateTime.now().add(const Duration(days: 3));
   var category = defaultExpenseCategories.first;
   var billType = defaultBillTypes.first;
-  var reminderEnabled = true;
-  var reminderKind = ReminderKind.notification;
-  var reminderRepeat = ReminderRepeat.monthly;
-  var minutesBefore = 1440;
+  var reminder = const ReminderPlan(
+    enabled: true,
+    kind: ReminderKind.notification,
+    minutesBefore: 1440,
+    repeat: ReminderRepeat.monthly,
+  );
 
   await showModalBottomSheet<void>(
     context: context,
@@ -433,76 +440,11 @@ Future<void> showFinanceForm(BuildContext context, WidgetRef ref) async {
                         ),
                       ],
                     ),
-                    SwitchListTile.adaptive(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(l10n.reminder),
-                      value: reminderEnabled,
-                      onChanged: (value) =>
-                          setState(() => reminderEnabled = value),
+                    ReminderEditor(
+                      plan: reminder,
+                      allowedBeforeMinutes: const [60, 120, 1440, 2880, 10080],
+                      onChanged: (value) => setState(() => reminder = value),
                     ),
-                    if (reminderEnabled) ...[
-                      DropdownButtonFormField<ReminderKind>(
-                        initialValue: reminderKind,
-                        decoration:
-                            InputDecoration(labelText: l10n.reminderMode),
-                        items: [
-                          DropdownMenuItem(
-                            value: ReminderKind.notification,
-                            child: Text(l10n.notificationMode),
-                          ),
-                          DropdownMenuItem(
-                            value: ReminderKind.alarm,
-                            child: Text(l10n.alarmMode),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => reminderKind = value);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<int>(
-                        initialValue: minutesBefore,
-                        decoration:
-                            InputDecoration(labelText: l10n.remindBefore),
-                        items: const [60, 120, 1440, 2880, 10080]
-                            .map(
-                              (value) => DropdownMenuItem(
-                                value: value,
-                                child: Text(
-                                  value >= 1440
-                                      ? l10n.daysBefore(value ~/ 1440)
-                                      : l10n.hoursBefore(value ~/ 60),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => minutesBefore = value);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<ReminderRepeat>(
-                        initialValue: reminderRepeat,
-                        decoration: InputDecoration(labelText: l10n.repeat),
-                        items: ReminderRepeat.values
-                            .map(
-                              (value) => DropdownMenuItem(
-                                value: value,
-                                child: Text(_financeRepeatLabel(l10n, value)),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => reminderRepeat = value);
-                          }
-                        },
-                      ),
-                    ],
                   ] else ...[
                     DropdownButtonFormField<String>(
                       initialValue: category,
@@ -551,14 +493,9 @@ Future<void> showFinanceForm(BuildContext context, WidgetRef ref) async {
                             if (!(formKey.currentState?.validate() ?? false)) {
                               return;
                             }
-                            final reminder = ReminderPlan(
-                              enabled: isBill && reminderEnabled,
-                              kind: reminderKind,
-                              minutesBefore: minutesBefore,
-                              repeat: isBill
-                                  ? reminderRepeat
-                                  : ReminderRepeat.none,
-                            );
+                            final activeReminder = isBill
+                                ? reminder
+                                : const ReminderPlan();
                             final transaction = ref
                                 .read(financeProvider.notifier)
                                 .addTransaction(
@@ -577,9 +514,10 @@ Future<void> showFinanceForm(BuildContext context, WidgetRef ref) async {
                                       isBill ? billIdentifier.text : null,
                                   paymentIdentifier:
                                       isBill ? paymentIdentifier.text : null,
-                                  reminder: reminder,
+                                  reminder: activeReminder,
+                                  projectId: projectId,
                                 );
-                            if (reminder.enabled && transaction.dueDate != null) {
+                            if (activeReminder.enabled && transaction.dueDate != null) {
                               await ReminderService.instance
                                   .requestPermissions();
                               await ReminderService.instance.schedule(
@@ -588,7 +526,7 @@ Future<void> showFinanceForm(BuildContext context, WidgetRef ref) async {
                                     '${l10n.bill}: ${_billTypeLabel(l10n, billType)}',
                                 body: l10n.billReminderBody,
                                 eventDateTime: transaction.dueDate!,
-                                plan: reminder,
+                                plan: activeReminder,
                                 payload: 'bill:${transaction.id}',
                               );
                             }
@@ -701,14 +639,3 @@ String _billTypeLabel(AppLocalizations l10n, String key) => switch (key) {
     };
 
 
-String _financeRepeatLabel(
-  AppLocalizations l10n,
-  ReminderRepeat repeat,
-) =>
-    switch (repeat) {
-      ReminderRepeat.none => l10n.repeatOnce,
-      ReminderRepeat.daily => l10n.repeatDaily,
-      ReminderRepeat.weekly => l10n.repeatWeekly,
-      ReminderRepeat.monthly => l10n.repeatMonthly,
-      ReminderRepeat.yearly => l10n.repeatYearly,
-    };

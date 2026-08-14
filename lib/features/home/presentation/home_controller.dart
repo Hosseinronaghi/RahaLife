@@ -62,6 +62,7 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
     String? location,
     String? address,
     String? linkedShoppingListId,
+    String? projectId,
     ReminderPlan reminder = const ReminderPlan(),
   }) {
     final entry = HomeEntry(
@@ -82,6 +83,7 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
           ? null
           : address.trim(),
       linkedShoppingListId: linkedShoppingListId,
+      projectId: projectId,
       reminder: reminder,
     );
     state = [...state, entry]..sort((a, b) => a.dateTime.compareTo(b.dateTime));

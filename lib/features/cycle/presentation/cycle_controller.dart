@@ -43,6 +43,7 @@ class CycleNotifier extends StateNotifier<List<CycleLog>> {
     required int painLevel,
     required CycleMood mood,
     String? notes,
+    List<String> symptoms = const [],
     ReminderPlan predictionReminder = const ReminderPlan(),
     String predictionReminderTime = '09:00',
   }) {
@@ -54,6 +55,7 @@ class CycleNotifier extends StateNotifier<List<CycleLog>> {
       painLevel: painLevel,
       mood: mood,
       notes: notes?.trim(),
+      symptoms: symptoms,
       predictionReminder: predictionReminder,
       predictionReminderTime: predictionReminderTime,
     );
@@ -83,3 +85,27 @@ class CycleNotifier extends StateNotifier<List<CycleLog>> {
 }
 
 final cycleProvider = StateNotifierProvider<CycleNotifier, List<CycleLog>>((ref) => CycleNotifier());
+
+
+class CyclePrivacyNotifier extends StateNotifier<bool> {
+  CyclePrivacyNotifier() : super(true) {
+    unawaited(_loadPrivacy());
+  }
+
+  static const _privacyKey = 'cycle.privacy.hideSensitive.v1';
+
+  Future<void> _loadPrivacy() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool(_privacyKey) ?? true;
+  }
+
+  Future<void> setHideSensitive(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_privacyKey, value);
+  }
+}
+
+final cyclePrivacyProvider = StateNotifierProvider<CyclePrivacyNotifier, bool>(
+  (ref) => CyclePrivacyNotifier(),
+);

@@ -98,6 +98,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     String? paymentIdentifier,
     bool paid = false,
     ReminderPlan reminder = const ReminderPlan(),
+    String? projectId,
   }) {
     final transaction = FinanceTransaction(
       id: _uuid.v4(),
@@ -113,6 +114,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
       paymentIdentifier: paymentIdentifier?.trim(),
       paid: paid,
       reminder: reminder,
+      projectId: projectId,
     );
     state = FinanceState(
       accounts: state.accounts,

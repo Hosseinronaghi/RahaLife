@@ -43,9 +43,9 @@ class _SignedInAccount extends ConsumerWidget {
           const SizedBox(height: 14),
           Card(
             child: Column(children: [
-              ListTile(leading: const Icon(Icons.cloud_off_rounded), title: Text(l10n.syncStatus), subtitle: Text(l10n.syncNextVersion)),
+              ListTile(leading: const Icon(Icons.cloud_off_rounded), title: Text(l10n.syncStatus), subtitle: Text(l10n.syncPrototypeNote)),
               const Divider(),
-              ListTile(leading: const Icon(Icons.devices_rounded), title: Text(l10n.multiDevice), subtitle: Text(l10n.syncNextVersion)),
+              ListTile(leading: const Icon(Icons.devices_rounded), title: Text(l10n.multiDevice), subtitle: Text(l10n.syncPrototypeNote)),
             ]),
           ),
           const SizedBox(height: 18),

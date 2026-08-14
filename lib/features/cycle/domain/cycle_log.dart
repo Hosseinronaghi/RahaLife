@@ -13,6 +13,7 @@ class CycleLog {
     required this.painLevel,
     required this.mood,
     this.notes,
+    this.symptoms = const [],
     this.predictionReminder = const ReminderPlan(),
     this.predictionReminderTime = '09:00',
   });
@@ -33,6 +34,7 @@ class CycleLog {
           orElse: () => CycleMood.other,
         ),
         notes: json['notes'] as String?,
+        symptoms: (json['symptoms'] as List<dynamic>? ?? const []).map((item) => item.toString()).toList(growable: false),
         predictionReminder: ReminderPlan.fromJson(
           json['predictionReminder'] is Map
               ? Map<String, Object?>.from(json['predictionReminder']! as Map)
@@ -49,6 +51,7 @@ class CycleLog {
   final int painLevel;
   final CycleMood mood;
   final String? notes;
+  final List<String> symptoms;
   final ReminderPlan predictionReminder;
   final String predictionReminderTime;
 
@@ -60,6 +63,7 @@ class CycleLog {
         'painLevel': painLevel,
         'mood': mood.name,
         'notes': notes,
+        'symptoms': symptoms,
         'predictionReminder': predictionReminder.toJson(),
         'predictionReminderTime': predictionReminderTime,
       };
