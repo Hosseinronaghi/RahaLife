@@ -1,158 +1,143 @@
-# Raha Life implementation roadmap
+# Raha Life implementation roadmap — after v0.7.0
 
-## Delivered foundation — v0.1 to v0.4.1
+## Delivered foundation — v0.1 to v0.6
 
-- Flutter responsive shell
-- Persian/English localization and RTL/LTR
-- Material 3 theme and personalization
-- Today dashboard, calendar, global search, reports
-- Affairs and Appointment classification
-- People, Shopping, Medicine, Finance, Cycle
-- local account/session
-- reminders and alarms
-- scheduled Shopping linked to Affairs
-- bill reminders and finance categories
-- customizable module order and visibility
-- Android, Windows and Web CI builds
+- Flutter cross-platform application foundation for Android, iOS, Windows, macOS, Linux and Web
+- Persian/English localization, RTL/LTR, Solar Hijri/Gregorian presentation
+- Today, Calendar, Affairs, Appointment, Shopping, Medication, Cycle, People, Birthday, Notes, Habits, Finance, Projects, Messages, Inbox, Reports, Search and Settings foundations
+- reminders/alarms, widgets, local account/session, sharing foundations
+- encrypted local-first backup and recovery key
+- WebDAV/Nextcloud/S3/SFTP/self-hosted/custom backup providers
+- Docker and PHP/MySQL self-hosted Raha Sync server packages
+- provider-based architecture with no dependency on a Raha-owned VPS/cloud
 
-## Delivered client/workspace milestone — v0.5.0
+## P0 delivered in v0.7.0 — core data and sync
 
-- Project workspace with Overview, Affairs, Notes, Checklist, Files, People and Finance
-- Rich Notes editor using Delta JSON, tags, pin/archive, Project/Person links and sharing
-- Inbox / Quick Capture conversion flow
-- dedicated modern Cycle dashboard and symptom logging
-- searchable medication starter catalog, therapeutic/use metadata, reason, medicine form and course duration
-- Birthday relationship support
-- unified Reminder Editor used by main scheduled modules
-- Messages UI with local outgoing queue, file metadata and shared-item references
-- system sharing plus internal People permission grants
-- Shopping sharing permissions (view/check/edit)
-- Android native home-screen widgets: Today, Affairs, Medicine, Appointment, Shopping, Birthday, Quick Add
-- widget privacy setting, pin requests, and deep-link launch routing
-- Sync Center covering Android, iOS, Windows, macOS, Linux and Web
-- record-level Sync engine contract and conflict model
-- Drift schema v5 with shared sync metadata
-- manual CI workflow for Linux, macOS and iOS simulator
+### Safe update / migration
 
-## Next milestone 1 — Raha Cloud account and real synchronization
+- preflight recovery capture before v0.7 migration
+- native SQLite safety copy where available
+- schema v6 migration
+- migration journal and one-time legacy imports
+- primary legacy preference removal only after durable import succeeds
+- optional persistent Android release-signing workflow
 
-### Server account
+### Primary data on Drift
 
-- remote registration/login
-- email verification
-- password recovery
-- access/refresh token lifecycle
-- migrate/claim an existing local account
-- device registration, device list, remote sign-out
-- account export/deletion
+- active primary user-domain repositories moved from SharedPreferences JSON to Drift entity documents
+- Shopping split into parent lists and independent item records
+- canonical JSON comparison
+- serialized per-entity writes
 
-### Sync API
+### Incremental device sync
 
-- PostgreSQL data store
-- push/pull endpoints with cursors
-- UUID/version/device/update/tombstone handling
-- SyncQueue integration from Drift repositories
-- retry/backoff
-- sync history and diagnostics
-- conflict persistence and UI
-- attachment object storage
+- durable record change log
+- `changeId`, version, device ID, timestamp and tombstones
+- cursor-based pull and exact acknowledged push
+- pull-first synchronization
+- automatic sync debounce and resume/start checks
+- one active live record-sync target; multiple backup targets
+- provider-switch history replay
+- conflict persistence and Keep Local / Use Remote UI
+- self-hosted protocol v2 and v0.6 server upgrade SQL
 
-### Platform goal
+### Design System v2 foundation
 
-One account must synchronize the same data across:
+- shared visual tokens
+- module visual identities
+- Raha surfaces, hero panels and metric tiles
+- global theme/control update
+- Today as first full visible rollout
 
-- Android
-- iPhone
-- Windows PC
-- macOS
-- Linux
-- Web
+## P1 — next product-depth milestone
 
-## Next milestone 2 — live collaboration and Messages
+### Finance v2 — personal accounting
 
-- actual one-to-one Message delivery
-- unread/read state across devices
-- attachment upload/download
-- shared Shopping list invitations
-- owner / viewer / checker / editor permissions
-- live Shopping item updates
-- shared Projects and Notes
-- Shared Spaces
-- collaboration notifications
+- unlimited accounts: cash, bank account, bank card, wallet, savings, custom
+- bank/account metadata, opening balance, currency, archive
+- income / expense / transfer / debt / receivable / installment / bill / savings
+- internal ledger postings so transfers are not double-counted as income/expense
+- account-specific and consolidated reports
+- categories/subcategories, budgets, savings goals, recurring transactions, receipts
+- filters, charts and exports
 
-## Next milestone 3 — personal cloud backup providers
+### Profile + occupation / use style
 
-- Google Drive OAuth + encrypted application backup
-- Dropbox OAuth + encrypted app-folder backup
-- OneDrive OAuth + encrypted app-folder backup
-- backup history
-- restore preview
-- selective backup modules
-- local encrypted backup/export
+- expanded profile and avatar
+- occupation/activity area
+- personal/work/study/family/mixed use style
+- suggested initial module layout/templates based on use profile
+- user can always override or disable suggestions without changing old data
 
-## Next milestone 4 — native platform polish
+### Home slots
 
-### iOS
+- configurable visible slot count
+- every eligible module can be added/removed/reordered
+- when full, adding a module prompts replacement/reorder or capacity change
+- independent Today-section ordering can remain available
 
-- native WidgetKit Extension and App Group entitlement
-- production signing / TestFlight workflow
-- notification permission UX
+### Complete editing contract
 
-### Windows/macOS/Linux
+For every user-created module item:
 
-- tray/quick panel
-- installer packaging
-- startup/background options
-- native notification verification
+- create
+- view
+- edit
+- duplicate where meaningful
+- archive where meaningful
+- delete
+- undo/restore where meaningful
 
-### Android
+### Connections / Friends
 
-- actionable reminder buttons
-- Snooze actions
-- widget interaction polish
+Separate from People. People can include non-Raha contacts; Connections represents Raha users.
 
-## Product-depth milestones
+- username / QR / invite
+- requests and acceptance
+- block/remove
+- messages
+- sharing permissions
+- shared Shopping / Projects / Shared Spaces
 
-### Finance
+This requires an optional multi-user collaboration backend/provider; personal data remains local-first and must not depend on it.
 
-- custom categories/subcategories
-- destination account for transfers
-- recurring transactions
-- People-linked debt/receivables
-- budgets/category limits
-- savings goals
-- receipt attachments
-- charts and exports
+### AI assistant UX
 
-### Medicine
+- clear capability/privacy explanation
+- free Raha quota when available
+- BYOK OpenAI/Gemini/custom OpenAI-compatible provider
+- explicit preview/confirmation before data-changing actions
+- disclose what data is sent
+- medical and financial safety boundaries
 
-- multiple daily schedules
-- taken / late / skipped / missed / postponed logs
-- stock decrement/refill reminders
-- expiry reminder
-- medication report export
-- authoritative terminology provider adapter
+## P2
 
-The medication catalog remains a recording aid; Raha Life must not prescribe or recommend medication for a disease.
+### Links / Bookmarks
 
-### Notes
+- folders, tags, favicon, pin, archive, search
+- HTML import/export first
+- browser-extension sync later
 
-- image/file attachments in the editor
-- voice notes
-- backlinks
-- trash/restore history
-- templates
+### Browser Extension
 
-### Cycle
+- Chrome/Edge/Firefox target
+- explicit permissions
+- bookmark import/export/sync bridge
 
-- richer multi-month calendar
-- trends
-- stronger privacy lock controls
-- optional fertility features, disabled by default
+### Advanced reports
 
-### Projects
+- finance, habits, medication adherence, cycle trends, weekly/monthly review
+- comparisons, filters and export
 
-- templates
-- project-specific dashboards
-- richer file lifecycle/versioning
-- shared Project collaboration
+### Module-specific settings
+
+Dedicated settings for Affairs, Appointment, Shopping, Medication, Cycle, Finance, Notes, Projects and other modules.
+
+## Platform/release work continuing alongside P1
+
+- GitHub CI acceptance of v0.7 migration/sync
+- iOS/macOS production signing and TestFlight/App Store workflows when Apple credentials are available
+- Windows installer packaging / stable app identity
+- Linux packaging refinement
+- Google Drive/OneDrive/Dropbox direct OAuth adapters only after real provider app registrations exist
+- direct LAN/QR device pairing and SFTP private-key authentication

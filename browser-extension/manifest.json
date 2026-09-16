@@ -1,0 +1,1 @@
+{"manifest_version":3,"name":"Raha Life Bookmarks","version":"0.8.0","description":"Export bookmarks for Raha Life with an explicit preview.","permissions":["bookmarks"],"action":{"default_popup":"popup.html"},"browser_specific_settings":{"gecko":{"id":"bookmarks@raha-life.local"}}}
