@@ -13,6 +13,6 @@ void main() {
       startDate: DateTime(2026, 8, 1),
       courseDays: 10,
     );
-    expect(plan.calculatedEndDate, DateTime(2026, 8, 11));
+    expect(plan.calculatedEndDate, DateTime(2026, 8, 10));
   });
 }

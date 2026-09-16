@@ -1,0 +1,37 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: raha_sync
+      MYSQL_USER: raha_sync
+      MYSQL_PASSWORD: ${RAHA_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${RAHA_DB_ROOT_PASSWORD}
+    volumes:
+      - raha_db:/var/lib/mysql
+      - ../shared-hosting/install.sql:/docker-entrypoint-initdb.d/01-install.sql:ro
+
+  sync:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "${RAHA_HTTP_PORT:-8080}:80"
+    environment:
+      RAHA_DB_DSN: mysql:host=db;dbname=raha_sync;charset=utf8mb4
+      RAHA_DB_USER: raha_sync
+      RAHA_DB_PASSWORD: ${RAHA_DB_PASSWORD}
+      RAHA_REGISTRATION_CODE: ${RAHA_REGISTRATION_CODE:-}
+      RAHA_API_TOKEN: ${RAHA_API_TOKEN}
+      RAHA_STORAGE_DIR: /var/lib/raha-sync
+      RAHA_CORS_ORIGIN: ${RAHA_CORS_ORIGIN:-*}
+      RAHA_KEEP_BACKUP_VERSIONS: ${RAHA_KEEP_BACKUP_VERSIONS:-7}
+    volumes:
+      - raha_storage:/var/lib/raha-sync
+
+volumes:
+  raha_db:
+  raha_storage:

@@ -1,7 +1,7 @@
 name: raha_life
 description: Premium offline-first bilingual personal organizer with optional online AI assistants.
 publish_to: none
-version: 0.5.3+12
+version: 0.8.0+15
 environment:
   sdk: '>=3.10.0 <4.0.0'
 
@@ -15,12 +15,13 @@ dependencies:
   go_router: ^16.0.0
   intl: ^0.20.2
   shamsi_date: ^1.1.1
-  google_fonts: ^8.2.0
   drift: ^2.28.0
   sqlite3_flutter_libs: ^0.5.39
+  sqlite3: 2.9.4
   path_provider: ^2.1.5
   path: ^1.9.1
   uuid: ^4.5.1
+  url_launcher: ^6.3.2
   dio: ^5.8.0+1
   flutter_secure_storage: ^10.0.0
   shared_preferences: ^2.5.3
@@ -30,8 +31,9 @@ dependencies:
   flutter_timezone: ^5.1.0
   collection: ^1.19.1
   crypto: ^3.0.7
+  cryptography: 2.9.0
+  dartssh2: 2.22.5
   share_plus: 13.3.0
-  persian_fonts: ^1.0.6
   flutter_quill: ^11.5.1
   home_widget: ^0.9.3
   file_picker: 12.0.0
@@ -46,3 +48,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+
+  fonts:
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/Vazirmatn.ttf

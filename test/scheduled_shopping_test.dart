@@ -11,10 +11,7 @@ void main() {
       ['Milk', 'Bread'],
       scheduledAt: scheduledAt,
       location: 'Local market',
-      reminder: const ReminderPlan(
-        enabled: true,
-        minutesBefore: 30,
-      ),
+      reminder: const ReminderPlan(enabled: true, minutesBefore: 30),
     );
     controller.linkAffair(list.id, 'affair-1');
 

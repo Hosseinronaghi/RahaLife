@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import plistlib
 import re
 
 IOS_TARGET = "14.0"
+LOCAL_NETWORK_USAGE = (
+    "Raha Life connects to personal servers, NAS and storage services "
+    "that you choose on your local network for backup and synchronization."
+)
 
 podfile = Path("ios/Podfile")
 if podfile.exists():
@@ -25,4 +30,15 @@ if project.exists():
     )
     project.write_text(text, encoding="utf-8")
 
-print(f"Configured iOS deployment target {IOS_TARGET}")
+for plist_path in (Path("ios/Runner/Info.plist"), Path("macos/Runner/Info.plist")):
+    if not plist_path.exists():
+        continue
+    with plist_path.open("rb") as source:
+        values = plistlib.load(source)
+    values["NSLocalNetworkUsageDescription"] = LOCAL_NETWORK_USAGE
+    with plist_path.open("wb") as destination:
+        plistlib.dump(values, destination, sort_keys=False)
+
+print(
+    f"Configured iOS deployment target {IOS_TARGET} and Apple local-network privacy text"
+)

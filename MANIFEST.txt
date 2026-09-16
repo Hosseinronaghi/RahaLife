@@ -1,89 +1,86 @@
-Raha Life 0.5.0+9
+Raha Life 0.8.0+15 — review candidate
+Current inventory: docs/SOURCE_SHA256.json
+Current validation: docs/VALIDATION_0.8.md
+Current Persian scope: docs/RELEASE_0.8_FA.md
 
-Core / shell
-- lib/main.dart
-- lib/app/app.dart
-- lib/app/router.dart
-- lib/app/theme.dart
-- lib/app/shell/responsive_shell.dart
+Historical v0.7 inventory follows:
 
-Workspace and Projects
-- lib/features/projects/domain/project.dart
-- lib/features/projects/presentation/projects_controller.dart
-- lib/features/projects/presentation/projects_screen.dart
-- lib/features/projects/presentation/project_details_screen.dart
+Raha Life 0.7.0+14 — Core Data, Incremental Sync, Safe Migration, Design System v2
 
-Rich Notes
-- lib/features/notes/domain/rich_note.dart
-- lib/features/notes/presentation/notes_controller.dart
-- lib/features/notes/presentation/notes_screen.dart
-- lib/features/notes/presentation/note_editor_screen.dart
+P0 core data / migration
+- lib/core/database/app_database.dart (schema v6)
+- lib/core/database/database_connection*.dart
+- lib/core/database/database_provider.dart
+- lib/core/migration/safe_upgrade*.dart
+- lib/core/migration/primary_data_migration.dart
+- lib/core/persistence/drift_entity_repository.dart
 
-Inbox
-- lib/features/inbox/domain/inbox_item.dart
-- lib/features/inbox/presentation/inbox_controller.dart
-- lib/features/inbox/presentation/inbox_screen.dart
-
-People / Sharing / Messages
-- lib/features/people/
-- lib/features/sharing/domain/share_models.dart
-- lib/features/sharing/presentation/sharing_controller.dart
-- lib/features/sharing/presentation/share_with_people_sheet.dart
-- lib/core/sharing/system_share.dart
-- lib/features/messages/domain/message.dart
-- lib/features/messages/presentation/messages_controller.dart
-- lib/features/messages/presentation/messages_screen.dart
-- lib/features/messages/presentation/chat_screen.dart
-
-Medicine / Cycle / Birthdays
-- lib/features/medication/domain/medication_plan.dart
-- lib/features/medication/domain/medication_catalog.dart
-- lib/features/medication/presentation/medication_controller.dart
-- lib/features/medication/presentation/medication_screen.dart
-- lib/features/cycle/domain/cycle_log.dart
-- lib/features/cycle/presentation/cycle_controller.dart
-- lib/features/cycle/presentation/cycle_screen.dart
-- lib/features/birthdays/
-
-Reminder / Shopping / Finance
-- lib/core/widgets/reminder_editor.dart
-- lib/core/notifications/reminder_models.dart
-- lib/core/notifications/reminder_service.dart
-- lib/features/shopping/
-- lib/features/finance/
-
-Synchronization
+P0 incremental sync
+- lib/core/sync/canonical_json.dart
+- lib/core/sync/device_identity.dart
+- lib/core/sync/drift_sync_store.dart
 - lib/core/sync/sync_contract.dart
+- lib/core/sync/sync_conflict_repository.dart
+- lib/core/sync/providers/raha_http_sync_transport.dart
 - lib/features/sync/domain/sync_settings.dart
 - lib/features/sync/presentation/sync_controller.dart
 - lib/features/sync/presentation/sync_center_screen.dart
-- lib/core/database/app_database.dart (schema v5)
+- lib/features/sync/presentation/sync_conflicts_sheet.dart
+- lib/features/sync/presentation/synced_feature_refresh.dart
 
-Widgets
-- lib/features/widgets/data/home_widget_bridge.dart
-- lib/features/widgets/presentation/widget_settings_screen.dart
-- lib/features/widgets/presentation/quick_add_launch_screen.dart
-- tool/configure_android_widget.py
+Primary Drift-backed feature repositories/controllers
+- lib/features/home/presentation/home_controller.dart
+- lib/features/people/presentation/people_controller.dart
+- lib/features/notes/presentation/notes_controller.dart
+- lib/features/projects/presentation/projects_controller.dart
+- lib/features/medication/presentation/medication_controller.dart
+- lib/features/cycle/presentation/cycle_controller.dart
+- lib/features/inbox/presentation/inbox_controller.dart
+- lib/features/messages/presentation/messages_controller.dart
+- lib/features/sharing/presentation/sharing_controller.dart
+- lib/features/finance/presentation/finance_controller.dart
+- lib/features/shopping/data/shopping_drift_repository.dart
+- lib/features/shopping/presentation/shopping_controller.dart
 
-Localization
-- lib/l10n/app_fa.arb
-- lib/l10n/app_en.arb
+Backup v2
+- lib/core/sync/backup/local_backup_service.dart
+- lib/core/sync/backup/logical_drift_snapshot.dart
+- lib/core/sync/backup/database_snapshot*.dart
 
-Testing additions
-- test/projects_controller_test.dart
-- test/messages_controller_test.dart
-- test/medication_course_test.dart
-- test/sharing_models_test.dart
-- test/sync_engine_test.dart
+Self-hosted protocol v2
+- server/shared-hosting/install.sql
+- server/shared-hosting/upgrade_v0.7.sql
+- server/shared-hosting/public/index.php
+- server/shared-hosting/README.md
+- server/docker/README.md
 
-Automation
+Design System v2 foundation
+- lib/app/design_system/raha_tokens.dart
+- lib/app/design_system/raha_surfaces.dart
+- lib/app/theme.dart
+- lib/features/dashboard/presentation/today_screen.dart
+
+Cross-platform web/native database setup
+- web/drift_worker.dart
+- tool/prepare_drift_web.sh
 - .github/workflows/build-release.yml
-- .github/workflows/flutter-ci.yml
-- .github/workflows/build-extended-platforms.yml
+
+Release signing support
+- tool/configure_android_release_signing.py
+- docs/ANDROID_RELEASE_SIGNING.md
+
+Key tests
+- test/database_schema_v6_test.dart
+- test/drift_entity_repository_test.dart
+- test/drift_sync_store_test.dart
+- test/sync_conflict_repository_test.dart
+- test/logical_backup_merge_test.dart
+- existing domain/sync tests remain included
 
 Documentation
 - README.md
 - CHANGELOG.md
-- docs/SYNC_ARCHITECTURE_0.5.md
+- docs/RAHA_SYNC_PROTOCOL.md
+- docs/DATA_MIGRATION_0.7.md
+- docs/DESIGN_SYSTEM_V2.md
 - docs/IMPLEMENTATION_ROADMAP.md
-- docs/UI_UX_SPECIFICATION.md

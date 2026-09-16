@@ -1,5 +1,95 @@
 # Changelog
 
+## 0.8.0+15 — review candidate
+
+- Schema 7, vector-clock conflict detection, atomic cursor application and exact change acknowledgements.
+- Safer stale-editor writes, insert-only migration, logical backups and legacy recovery tooling.
+- Responsive Today redesign, bundled Persian typography, light/dark themes and editable home shortcuts.
+- Profile, record editing/recovery, financial transfers/budgets/installments, bookmarks and BYOK assistant expansion.
+- Protocol 3 accounts, friends, direct messages and independently shared snapshots.
+- 50 passing Flutter cases, release web compilation and documented external acceptance gates.
+- See docs/RELEASE_0.8_FA.md for implemented scope and unresolved product work.
+
+## 0.7.0+14
+
+### P0 — Safe update and primary data migration
+- Added a v0.7 preflight recovery snapshot for known legacy primary SharedPreferences payloads before migration starts.
+- Added a one-time native SQLite safety copy before schema migration where a native database exists.
+- Added migration journal rows so legacy imports are idempotent and legacy keys are removed only after durable writes succeed.
+- Upgraded Drift schema to version 6 with entity documents, durable change log, provider cursor state, conflicts and migration journal tables.
+- Added optional persistent Android release-signing support in GitHub Actions; production in-place upgrades require the same user-owned keystore across releases.
+
+### P0 — Primary data on Drift
+- Migrated active primary domain repositories for Today/home entries, People, Notes, Projects, Medication, Cycle, Inbox, Messages, Sharing, Finance and Shopping to Drift-backed entity documents.
+- Split Shopping into list records and independent item records so checking/editing one item does not rewrite the entire list.
+- Added serialized per-entity write queues to prevent rapid asynchronous UI saves from completing out of order.
+- Added canonical JSON encoding so map key ordering does not create false sync changes.
+- Configuration/session preferences intentionally remain settings rather than user-domain records.
+
+### P0 — Incremental multi-device sync
+- Implemented durable record-level `SyncChanges` with stable `changeId`, version, device identity and tombstones.
+- Implemented pull-first cursor sync with bounded pagination and exact change acknowledgements.
+- Added automatic incremental sync after local changes, app start and app resume, respecting the optional Wi-Fi/Ethernet-only policy.
+- Added one active live record-sync target at a time with independent unlimited backup targets.
+- Switching live record-sync provider requeues durable history so a new compatible server can be seeded without database replacement.
+- Added conflict storage and user-facing Keep Local / Use Remote resolution; no silent overwrite for divergent same-revision edits.
+- Updated the PHP/MySQL and Docker self-hosted server protocol to v2 with idempotent `changeId`, cursor paging, tombstones, stale-delta acknowledgement and conflict preservation.
+- Added `server/shared-hosting/upgrade_v0.7.sql` for existing v0.6 MySQL installations.
+
+### P0 — Backup and web data runtime
+- Backup payload v2 now exports a logical Drift snapshot and merges it conservatively during restore.
+- Equal local revisions are never overwritten by backup restore; only missing or strictly newer backup revisions are merged.
+- v0.6 backup payloads remain supported through the legacy raw-database restore path.
+- Added conditional native/web Drift database connections and a WASM web worker preparation script used by Web CI.
+
+### P0 — Design System v2 foundation
+- Added shared spacing, radius, motion and module-identity visual tokens.
+- Added reusable Raha surfaces, hero panels and metric tiles.
+- Updated the global Material 3 theme and rolled the new visual language into Today with richer graphical hierarchy, module accents and animated progress.
+- This is the design-system foundation and first screen rollout; final bespoke UI for every module remains iterative work.
+
+### Tests and docs
+- Added tests for record deltas, canonical JSON, serialized rapid writes, remote apply behavior, conflict resolution, schema v6 and non-destructive logical backup merge.
+- Added protocol-v2, migration, Android signing and Design System v2 documentation.
+
+### Current boundary
+- Live record sync currently targets a self-hosted Raha Sync Server or compatible custom HTTPS API. WebDAV/Nextcloud/S3/SFTP remain encrypted-backup targets.
+- Direct Google Drive/OneDrive/Dropbox OAuth live-record adapters still require provider application registrations and are not presented as active.
+- Multi-user Friends/remote social authentication, professional Finance v2, career/profile personalization, Home slots, complete edit coverage, AI onboarding, bookmarks and browser extension remain later P1/P2 work.
+
+## 0.6.0+13
+
+### Added
+- Provider-based local-first data/backup architecture with no dependency on a Raha-owned VPS or cloud.
+- AES-256-GCM encrypted `.rahabackup` creation and restore plus recovery-key export/import.
+- Multiple user-defined backup connections, primary target selection, connection test, enable/disable, backup and restore.
+- Secure provider credential storage separate from ordinary settings.
+- Real WebDAV and Nextcloud/ownCloud encrypted backup targets.
+- Real S3-compatible/MinIO encrypted backup target with AWS Signature V4 requests.
+- Real SFTP encrypted backup target on native platforms, with a web-safe unsupported adapter.
+- Self-hosted Raha Sync Server / Custom HTTPS backup target.
+- HTTP record-sync transport for a compatible Raha Sync Server.
+- HTTPS-by-default transport validation with an explicit trusted-LAN HTTP override.
+- Automatic backup checks after sync settings load and on app resume, with optional Wi-Fi/Ethernet-only policy.
+- Encrypted system-share transfer for moving a backup to another device without a Raha server.
+- Docker self-hosted server edition for VPS/NAS/home server deployments.
+- PHP/MySQL shared-hosting server edition for users without a VPS or Docker.
+- Self-hosted health, backup upload/download, sync pull/push and conflict-preservation endpoints.
+- Bounded self-hosted backup retention (default seven archives) plus a rolling latest snapshot; generic WebDAV/S3/SFTP automatic targets keep one rolling latest snapshot to prevent unbounded storage growth.
+- Apple local-network privacy text for user-selected NAS/VPS/home-server connections.
+- Sync provider model/security tests.
+
+### Changed
+- Reframed cloud architecture from `Raha Cloud` dependency to `Raha Sync`, a provider-based/self-hostable architecture.
+- Updated Persian and English copy for Messages, Shared Space and Sync so it no longer promises a Raha-owned cloud.
+- Personal cloud backup can use the OS file picker for Google Drive, OneDrive, Dropbox and iCloud locations exposed by the platform.
+- App version is now `0.6.0+13`.
+
+### Current boundary
+- Record-sync protocol and self-hosted endpoints are implemented, but full record-level synchronization of every feature waits for migration of active feature repositories from SharedPreferences to Drift.
+- Automatic OAuth adapters for Google Drive/OneDrive/Dropbox require real provider app registrations/client IDs and are not falsely presented as connected.
+- Direct network P2P/QR pairing is not yet implemented; v0.6.0 provides encrypted file-mediated device transfer.
+
 ## 0.5.3+12
 
 - Fixed the file attachment size lookup for `file_picker 12` by using the asynchronous `PlatformFile.length()` API.
@@ -24,8 +114,6 @@ Hotfix for current Flutter stable / `flutter analyze --fatal-infos`:
 - Replaced deprecated-style multiple underscore wildcard parameter names with Dart wildcard `_`.
 - Removed an unused Projects import.
 - No feature or data-model changes.
-
-# Changelog
 
 ## 0.5.0+9
 
