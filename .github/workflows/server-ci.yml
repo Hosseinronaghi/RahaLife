@@ -1,0 +1,35 @@
+name: Server protocol and account tests
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test-only-password
+          MYSQL_DATABASE: raha_test
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ptest-only-password"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      RAHA_DB_DSN: mysql:host=127.0.0.1;dbname=raha_test;charset=utf8mb4
+      RAHA_DB_USER: root
+      RAHA_DB_PASSWORD: test-only-password
+      RAHA_REGISTRATION_CODE: ci-disposable-invitation
+    steps:
+      - uses: actions/checkout@v5
+      - name: PHP runtime
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql
+      - run: php server/tests/protocol_test.php
+      - name: Fresh database
+        run: mysql -h 127.0.0.1 -uroot -ptest-only-password raha_test < server/shared-hosting/install.sql
+      - name: Start disposable server
+        run: php -S 127.0.0.1:8090 -t server/shared-hosting/public server/shared-hosting/public/index.php > /tmp/raha-server.log 2>&1 &
+      - run: python3 server/tests/http_smoke.py
+      - if: failure()
+        run: cat /tmp/raha-server.log

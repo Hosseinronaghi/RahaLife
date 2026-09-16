@@ -81,6 +81,40 @@ jobs:
       - name: Configure Android home screen widget
         run: python3 tool/configure_android_widget.py
 
+      - name: Detect persistent Android release signing
+        id: raha_signing
+        shell: bash
+        env:
+          RAHA_ANDROID_KEYSTORE_BASE64: ${{ secrets.RAHA_ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [[ -n "$RAHA_ANDROID_KEYSTORE_BASE64" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure persistent Android release signing
+        if: ${{ steps.raha_signing.outputs.configured == 'true' }}
+        shell: bash
+        env:
+          RAHA_ANDROID_KEYSTORE_BASE64: ${{ secrets.RAHA_ANDROID_KEYSTORE_BASE64 }}
+          RAHA_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RAHA_ANDROID_KEYSTORE_PASSWORD }}
+          RAHA_ANDROID_KEY_ALIAS: ${{ secrets.RAHA_ANDROID_KEY_ALIAS }}
+          RAHA_ANDROID_KEY_PASSWORD: ${{ secrets.RAHA_ANDROID_KEY_PASSWORD }}
+        run: |
+          printf '%s' "$RAHA_ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/raha-release.jks
+          python3 tool/configure_android_release_signing.py
+
+      - name: Record Android signing mode
+        shell: bash
+        run: |
+          mkdir -p release/android
+          if [[ -f android/app/raha-release.jks ]]; then
+            echo "Persistent release signing: configured" > release/android/SIGNING_STATUS.txt
+          else
+            echo "Persistent release signing: NOT configured. This CI artifact must not be relied on for in-place production upgrades." > release/android/SIGNING_STATUS.txt
+          fi
+
       - name: Enable Android core library desugaring
         shell: bash
         run: |
@@ -284,6 +318,9 @@ jobs:
         run: |
           flutter analyze --fatal-infos
           flutter test
+
+      - name: Prepare Drift web runtime
+        run: bash tool/prepare_drift_web.sh
 
       - name: Build Web release
         run: flutter build web --release
