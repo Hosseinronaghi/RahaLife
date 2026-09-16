@@ -10,7 +10,9 @@ class AccountScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(authProvider);
-    if (state.loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (state.loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     return state.signedIn ? const _SignedInAccount() : const _AuthForms();
   }
 }
@@ -29,27 +31,55 @@ class _SignedInAccount extends ConsumerWidget {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(children: [
-                CircleAvatar(radius: 44, child: Text(user.name.characters.first, style: Theme.of(context).textTheme.headlineMedium)),
-                const SizedBox(height: 14),
-                Text(user.name, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 4),
-                Text(user.email),
-                const SizedBox(height: 16),
-                Chip(avatar: const Icon(Icons.offline_bolt_rounded, size: 18), label: Text(l10n.localAccount)),
-              ]),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 44,
+                    child: Text(
+                      user.name.characters.first,
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    user.name,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(user.email),
+                  const SizedBox(height: 16),
+                  Chip(
+                    avatar: const Icon(Icons.offline_bolt_rounded, size: 18),
+                    label: Text(l10n.localAccount),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 14),
           Card(
-            child: Column(children: [
-              ListTile(leading: const Icon(Icons.cloud_off_rounded), title: Text(l10n.syncStatus), subtitle: Text(l10n.syncPrototypeNote)),
-              const Divider(),
-              ListTile(leading: const Icon(Icons.devices_rounded), title: Text(l10n.multiDevice), subtitle: Text(l10n.syncPrototypeNote)),
-            ]),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.cloud_off_rounded),
+                  title: Text(l10n.syncStatus),
+                  subtitle: Text(l10n.syncPrototypeNote),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.devices_rounded),
+                  title: Text(l10n.multiDevice),
+                  subtitle: Text(l10n.syncPrototypeNote),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 18),
-          OutlinedButton.icon(onPressed: () => ref.read(authProvider.notifier).signOut(), icon: const Icon(Icons.logout_rounded), label: Text(l10n.signOut)),
+          OutlinedButton.icon(
+            onPressed: () => ref.read(authProvider.notifier).signOut(),
+            icon: const Icon(Icons.logout_rounded),
+            label: Text(l10n.signOut),
+          ),
         ],
       ),
     );
@@ -77,13 +107,36 @@ class _AuthFormsState extends State<_AuthForms> {
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.all(22),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  SegmentedButton<bool>(segments: [ButtonSegment(value: true, label: Text(l10n.createAccount), icon: const Icon(Icons.person_add_rounded)), ButtonSegment(value: false, label: Text(l10n.signIn), icon: const Icon(Icons.login_rounded))], selected: {signUp}, onSelectionChanged: (value) => setState(() => signUp = value.first)),
-                  const SizedBox(height: 22),
-                  _CredentialsForm(signUp: signUp),
-                  const SizedBox(height: 16),
-                  Text(l10n.localAccountNotice, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
-                ]),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SegmentedButton<bool>(
+                      segments: [
+                        ButtonSegment(
+                          value: true,
+                          label: Text(l10n.createAccount),
+                          icon: const Icon(Icons.person_add_rounded),
+                        ),
+                        ButtonSegment(
+                          value: false,
+                          label: Text(l10n.signIn),
+                          icon: const Icon(Icons.login_rounded),
+                        ),
+                      ],
+                      selected: {signUp},
+                      onSelectionChanged: (value) =>
+                          setState(() => signUp = value.first),
+                    ),
+                    const SizedBox(height: 22),
+                    _CredentialsForm(signUp: signUp),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.localAccountNotice,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -108,7 +161,12 @@ class _CredentialsFormState extends ConsumerState<_CredentialsForm> {
   bool obscure = true;
 
   @override
-  void dispose() { name.dispose(); email.dispose(); password.dispose(); super.dispose(); }
+  void dispose() {
+    name.dispose();
+    email.dispose();
+    password.dispose();
+    super.dispose();
+  }
 
   String _errorLabel(AppLocalizations l10n, String? code) => switch (code) {
     'weakPassword' => l10n.weakPassword,
@@ -122,11 +180,19 @@ class _CredentialsFormState extends ConsumerState<_CredentialsForm> {
     if (!(formKey.currentState?.validate() ?? false)) return;
     final notifier = ref.read(authProvider.notifier);
     final ok = widget.signUp
-        ? await notifier.signUp(name: name.text, email: email.text, password: password.text)
+        ? await notifier.signUp(
+            name: name.text,
+            email: email.text,
+            password: password.text,
+          )
         : await notifier.signIn(email: email.text, password: password.text);
     if (!ok && mounted) {
       final error = ref.read(authProvider).errorCode;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_errorLabel(AppLocalizations.of(context), error))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_errorLabel(AppLocalizations.of(context), error)),
+        ),
+      );
     }
   }
 
@@ -136,17 +202,58 @@ class _CredentialsFormState extends ConsumerState<_CredentialsForm> {
     final loading = ref.watch(authProvider).loading;
     return Form(
       key: formKey,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (widget.signUp) ...[
-          TextFormField(controller: name, textInputAction: TextInputAction.next, decoration: InputDecoration(labelText: l10n.fullName), validator: (value) => value == null || value.trim().isEmpty ? l10n.requiredField : null),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.signUp) ...[
+            TextFormField(
+              controller: name,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(labelText: l10n.fullName),
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? l10n.requiredField
+                  : null,
+            ),
+            const SizedBox(height: 12),
+          ],
+          TextFormField(
+            controller: email,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(labelText: l10n.email),
+            validator: (value) => value == null || !value.contains('@')
+                ? l10n.invalidEmail
+                : null,
+          ),
           const SizedBox(height: 12),
+          TextFormField(
+            controller: password,
+            obscureText: obscure,
+            onFieldSubmitted: (_) => submit(),
+            decoration: InputDecoration(
+              labelText: l10n.password,
+              suffixIcon: IconButton(
+                onPressed: () => setState(() => obscure = !obscure),
+                icon: Icon(
+                  obscure
+                      ? Icons.visibility_rounded
+                      : Icons.visibility_off_rounded,
+                ),
+              ),
+            ),
+            validator: (value) =>
+                value == null || value.length < 8 ? l10n.weakPassword : null,
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: loading ? null : submit,
+            icon: Icon(
+              widget.signUp ? Icons.person_add_rounded : Icons.login_rounded,
+            ),
+            label: Text(widget.signUp ? l10n.createAccount : l10n.signIn),
+          ),
         ],
-        TextFormField(controller: email, keyboardType: TextInputType.emailAddress, textInputAction: TextInputAction.next, decoration: InputDecoration(labelText: l10n.email), validator: (value) => value == null || !value.contains('@') ? l10n.invalidEmail : null),
-        const SizedBox(height: 12),
-        TextFormField(controller: password, obscureText: obscure, onFieldSubmitted: (_) => submit(), decoration: InputDecoration(labelText: l10n.password, suffixIcon: IconButton(onPressed: () => setState(() => obscure = !obscure), icon: Icon(obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded))), validator: (value) => value == null || value.length < 8 ? l10n.weakPassword : null),
-        const SizedBox(height: 18),
-        FilledButton.icon(onPressed: loading ? null : submit, icon: Icon(widget.signUp ? Icons.person_add_rounded : Icons.login_rounded), label: Text(widget.signUp ? l10n.createAccount : l10n.signIn)),
-      ]),
+      ),
     );
   }
 }

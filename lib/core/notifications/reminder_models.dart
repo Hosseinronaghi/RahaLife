@@ -32,22 +32,21 @@ class ReminderPlan {
   final ReminderRepeat repeat;
 
   Map<String, Object?> toJson() => {
-        'enabled': enabled,
-        'kind': kind.name,
-        'minutesBefore': minutesBefore,
-        'repeat': repeat.name,
-      };
+    'enabled': enabled,
+    'kind': kind.name,
+    'minutesBefore': minutesBefore,
+    'repeat': repeat.name,
+  };
 
   ReminderPlan copyWith({
     bool? enabled,
     ReminderKind? kind,
     int? minutesBefore,
     ReminderRepeat? repeat,
-  }) =>
-      ReminderPlan(
-        enabled: enabled ?? this.enabled,
-        kind: kind ?? this.kind,
-        minutesBefore: minutesBefore ?? this.minutesBefore,
-        repeat: repeat ?? this.repeat,
-      );
+  }) => ReminderPlan(
+    enabled: enabled ?? this.enabled,
+    kind: kind ?? this.kind,
+    minutesBefore: minutesBefore ?? this.minutesBefore,
+    repeat: repeat ?? this.repeat,
+  );
 }

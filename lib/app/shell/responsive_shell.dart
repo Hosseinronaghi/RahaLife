@@ -140,26 +140,26 @@ class _BrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Ink(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.tertiary,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(
-            Icons.eco_rounded,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
+    borderRadius: BorderRadius.circular(16),
+    onTap: onTap,
+    child: Ink(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).colorScheme.primary,
+            Theme.of(context).colorScheme.tertiary,
+          ],
         ),
-      );
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Icon(
+        Icons.eco_rounded,
+        color: Theme.of(context).colorScheme.onPrimary,
+      ),
+    ),
+  );
 }

@@ -1,73 +1,81 @@
+import 'dart:collection';
+
+import '../../../core/persistence/write_status.dart';
+
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/notifications/reminder_models.dart';
 import '../../../core/notifications/reminder_service.dart';
+import '../../../core/persistence/drift_entity_repository.dart';
 import '../domain/finance_models.dart';
 
 class FinanceNotifier extends StateNotifier<FinanceState> {
-  FinanceNotifier({this.persistenceEnabled = true})
-      : super(const FinanceState.empty()) {
-    if (persistenceEnabled) unawaited(_load());
+  FinanceNotifier({
+    this.persistenceEnabled = true,
+    DriftEntityRepository? repository,
+  }) : _repository = repository ?? DriftEntityRepository(),
+       super(const FinanceState.empty()) {
+    if (persistenceEnabled) {
+      _ready = WriteStatus.load(_load);
+    }
   }
 
-  static const _accountsKey = 'finance.accounts.v1';
-  static const _transactionsKey = 'finance.transactions.v2';
-  static const _legacyTransactionsKey = 'finance.transactions.v1';
+  static const _accountEntityType = 'finance_account';
+  static const _transactionEntityType = 'finance_transaction';
   static const _uuid = Uuid();
+  Future<void> _ready = Future<void>.value();
   final bool persistenceEnabled;
+  final DriftEntityRepository _repository;
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
     try {
-      final accountsRaw = prefs.getString(_accountsKey);
-      final transactionsRaw = prefs.getString(_transactionsKey) ??
-          prefs.getString(_legacyTransactionsKey);
-      var accounts = accountsRaw == null
-          ? <FinanceAccount>[]
-          : (jsonDecode(accountsRaw) as List<dynamic>)
-              .map(
-                (item) => FinanceAccount.fromJson(
-                  Map<String, Object?>.from(item as Map),
-                ),
-              )
-              .toList();
+      await _repository.migrateLegacyList(
+        migrationKey: 'v0.7.finance.accounts.v1',
+        entityType: _accountEntityType,
+        preferenceKeys: const ['finance.accounts.v1'],
+      );
+      await _repository.migrateLegacyList(
+        migrationKey: 'v0.7.finance.transactions.v2',
+        entityType: _transactionEntityType,
+        preferenceKeys: const [
+          'finance.transactions.v2',
+          'finance.transactions.v1',
+        ],
+      );
+      var accounts = (await _repository.loadAll(
+        _accountEntityType,
+        includeArchived: true,
+      )).map(FinanceAccount.fromJson).toList();
       if (accounts.isEmpty) {
         accounts = [FinanceAccount(id: _uuid.v4(), name: 'Cash')];
       }
-      final transactions = transactionsRaw == null
-          ? <FinanceTransaction>[]
-          : (jsonDecode(transactionsRaw) as List<dynamic>)
-              .map(
-                (item) => FinanceTransaction.fromJson(
-                  Map<String, Object?>.from(item as Map),
-                ),
-              )
-              .toList();
-      state = FinanceState(
-        accounts: accounts,
-        transactions: transactions
-          ..sort((a, b) => b.dateTime.compareTo(a.dateTime)),
-      );
-      await _persist();
-    } catch (_) {}
+      final transactions =
+          (await _repository.loadAll(
+              _transactionEntityType,
+            )).map(FinanceTransaction.fromJson).toList()
+            ..sort((a, b) => b.dateTime.compareTo(a.dateTime));
+      state = FinanceState(accounts: accounts, transactions: transactions);
+    } catch (error) {
+      WriteStatus.report(error);
+    }
   }
 
   Future<void> _persist() async {
     if (!persistenceEnabled) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _accountsKey,
-      jsonEncode(state.accounts.map((item) => item.toJson()).toList()),
-    );
-    await prefs.setString(
-      _transactionsKey,
-      jsonEncode(state.transactions.map((item) => item.toJson()).toList()),
-    );
+    await _ready;
+    await _repository.db.transaction(() async {
+      await _repository.replaceAll(
+        _accountEntityType,
+        state.accounts.map((item) => item.toJson()),
+      );
+      await _repository.replaceAll(
+        _transactionEntityType,
+        state.transactions.map((item) => item.toJson()),
+      );
+    });
   }
 
   void addAccount(String name, {double openingBalance = 0}) {
@@ -82,7 +90,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
       ],
       transactions: state.transactions,
     );
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   FinanceTransaction addTransaction({
@@ -90,6 +98,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     required double amount,
     required DateTime dateTime,
     required String accountId,
+    String? toAccountId,
     String? category,
     String? note,
     DateTime? dueDate,
@@ -100,12 +109,32 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     ReminderPlan reminder = const ReminderPlan(),
     String? projectId,
   }) {
+    if (!amount.isFinite || amount <= 0) {
+      throw ArgumentError('Amount must be positive.');
+    }
+    final account = state.accounts.where((a) => a.id == accountId).firstOrNull;
+    if (account == null || account.archived) {
+      throw ArgumentError('Select an active account.');
+    }
+    if (type == FinanceTransactionType.transfer ||
+        type == FinanceTransactionType.saving) {
+      final target = state.accounts
+          .where((a) => a.id == toAccountId)
+          .firstOrNull;
+      if (target == null ||
+          target.archived ||
+          target.id == accountId ||
+          target.currencyCode != account.currencyCode) {
+        throw ArgumentError('Select a different account in the same currency.');
+      }
+    }
     final transaction = FinanceTransaction(
       id: _uuid.v4(),
       type: type,
       amount: amount,
       dateTime: dateTime,
       accountId: accountId,
+      toAccountId: toAccountId,
       category: category?.trim(),
       note: note?.trim(),
       dueDate: dueDate,
@@ -121,7 +150,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
       transactions: [...state.transactions, transaction]
         ..sort((a, b) => b.dateTime.compareTo(a.dateTime)),
     );
-    unawaited(_persist());
+    WriteStatus.track(_persist());
     return transaction;
   }
 
@@ -134,21 +163,19 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
       ],
     );
     unawaited(ReminderService.instance.cancel('bill:$id'));
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   void deleteTransaction(String id) {
     state = FinanceState(
       accounts: state.accounts,
-      transactions:
-          state.transactions.where((item) => item.id != id).toList(),
+      transactions: state.transactions.where((item) => item.id != id).toList(),
     );
     unawaited(ReminderService.instance.cancel('bill:$id'));
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 }
 
-final financeProvider =
-    StateNotifierProvider<FinanceNotifier, FinanceState>(
+final financeProvider = StateNotifierProvider<FinanceNotifier, FinanceState>(
   (ref) => FinanceNotifier(),
 );

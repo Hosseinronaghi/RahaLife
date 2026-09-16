@@ -1,3 +1,5 @@
+import '../../workspace/record_editor.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,15 +14,20 @@ import '../domain/home_entry.dart';
 import 'home_controller.dart';
 import 'home_entry_ui.dart';
 
-Future<void> showEntryDetails(BuildContext context, HomeEntry entry) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _EntryDetailsSheet(entry: entry),
-    );
+Future<void> showEntryDetails(
+  BuildContext context,
+  HomeEntry entry, {
+  DateTime? occurrenceDate,
+}) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  builder: (_) =>
+      _EntryDetailsSheet(entry: entry, occurrenceDate: occurrenceDate),
+);
 
 class _EntryDetailsSheet extends ConsumerWidget {
-  const _EntryDetailsSheet({required this.entry});
+  const _EntryDetailsSheet({required this.entry, this.occurrenceDate});
+  final DateTime? occurrenceDate;
 
   final HomeEntry entry;
 
@@ -68,9 +75,9 @@ class _EntryDetailsSheet extends ConsumerWidget {
                     children: [
                       Text(
                         homeEntryTypeLabel(l10n, entry.type),
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: typeColor,
-                            ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.labelLarge?.copyWith(color: typeColor),
                       ),
                       Text(
                         entry.title,
@@ -117,7 +124,10 @@ class _EntryDetailsSheet extends ConsumerWidget {
               _InfoRow(
                 icon: Icons.location_on_outlined,
                 title: l10n.location,
-                value: [entry.location!, if (entry.address?.isNotEmpty ?? false) entry.address!].join(' · '),
+                value: [
+                  entry.location!,
+                  if (entry.address?.isNotEmpty ?? false) entry.address!,
+                ].join(' · '),
               ),
             ],
             if (entry.reminder.enabled) ...[
@@ -151,6 +161,12 @@ class _EntryDetailsSheet extends ConsumerWidget {
                 value: localizedNumber(entry.amount!, locale),
               ),
             ],
+            TextButton.icon(
+              onPressed: () =>
+                  recordActions(context, ref, 'home_entry', entry.toJson()),
+              icon: const Icon(Icons.edit_outlined),
+              label: Text(tr(context, 'ویرایش و مدیریت', 'Edit and manage')),
+            ),
             const SizedBox(height: 18),
             OutlinedButton.icon(
               onPressed: () => shareTextFromContext(
@@ -185,9 +201,9 @@ class _EntryDetailsSheet extends ConsumerWidget {
                     onPressed: () {
                       ref.read(homeEntriesProvider.notifier).delete(entry.id);
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.itemDeleted)),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(l10n.itemDeleted)));
                     },
                     icon: const Icon(Icons.delete_outline_rounded),
                     label: Text(l10n.delete),
@@ -197,16 +213,20 @@ class _EntryDetailsSheet extends ConsumerWidget {
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: () {
-                      ref.read(homeEntriesProvider.notifier).toggle(entry.id);
+                      ref
+                          .read(homeEntriesProvider.notifier)
+                          .toggle(entry.id, date: occurrenceDate);
                       Navigator.pop(context);
                     },
                     icon: Icon(
-                      entry.completed
+                      entry.completedOn(occurrenceDate ?? DateTime.now())
                           ? Icons.undo_rounded
                           : Icons.check_rounded,
                     ),
                     label: Text(
-                      entry.completed ? l10n.markUndone : l10n.markDone,
+                      entry.completedOn(occurrenceDate ?? DateTime.now())
+                          ? l10n.markUndone
+                          : l10n.markDone,
                     ),
                   ),
                 ),
@@ -232,27 +252,27 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(18),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 21),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.labelMedium),
+              const SizedBox(height: 4),
+              Text(value),
+            ],
+          ),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 21),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.labelMedium),
-                  const SizedBox(height: 4),
-                  Text(value),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 }

@@ -30,7 +30,8 @@ class OpenAiCompatibleProvider implements AiProvider {
       data: {
         'model': model,
         'messages': [
-          if (request.systemPrompt != null) {'role': 'system', 'content': request.systemPrompt},
+          if (request.systemPrompt != null)
+            {'role': 'system', 'content': request.systemPrompt},
           {'role': 'user', 'content': request.prompt},
         ],
         'temperature': 0.2,
@@ -38,7 +39,9 @@ class OpenAiCompatibleProvider implements AiProvider {
     );
     final data = response.data ?? const {};
     final choices = data['choices'] as List<dynamic>? ?? const [];
-    final first = choices.isEmpty ? null : choices.first as Map<String, dynamic>?;
+    final first = choices.isEmpty
+        ? null
+        : choices.first as Map<String, dynamic>?;
     final message = first?['message'] as Map<String, dynamic>?;
     final text = message?['content']?.toString() ?? '';
     return AiResponse(text: text, provider: type, raw: data);
@@ -46,9 +49,14 @@ class OpenAiCompatibleProvider implements AiProvider {
 
   @override
   Future<List<String>> listModels() async {
-    final response = await _dio.get<Map<String, Object?>>('$baseUrl/models', options: _options);
+    final response = await _dio.get<Map<String, Object?>>(
+      '$baseUrl/models',
+      options: _options,
+    );
     final list = response.data?['data'] as List<dynamic>? ?? const [];
-    return list.map((e) => (e as Map<String, dynamic>)['id'].toString()).toList();
+    return list
+        .map((e) => (e as Map<String, dynamic>)['id'].toString())
+        .toList();
   }
 
   @override

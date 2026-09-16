@@ -1,37 +1,54 @@
+import '../../../core/persistence/write_status.dart';
+
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/persistence/drift_entity_repository.dart';
 import '../domain/message.dart';
 
 class MessagesNotifier extends StateNotifier<List<LocalMessage>> {
-  MessagesNotifier({this.persistenceEnabled = true}) : super(const []) {
-    if (persistenceEnabled) unawaited(_load());
+  MessagesNotifier({
+    this.persistenceEnabled = true,
+    DriftEntityRepository? repository,
+  }) : _repository = repository ?? DriftEntityRepository(),
+       super(const []) {
+    if (persistenceEnabled) {
+      _ready = WriteStatus.load(_load);
+    }
   }
 
-  static const _key = 'messages.local.v1';
+  static const _entityType = 'message';
   static const _uuid = Uuid();
+  Future<void> _ready = Future<void>.value();
   final bool persistenceEnabled;
+  final DriftEntityRepository _repository;
 
   Future<void> _load() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_key);
-      if (raw == null || raw.isEmpty) return;
-      state = (jsonDecode(raw) as List<dynamic>)
-          .map((item) => LocalMessage.fromJson(Map<String, Object?>.from(item as Map)))
-          .toList(growable: false)
-        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    } catch (_) {}
+      await _repository.migrateLegacyList(
+        migrationKey: 'v0.7.messages.local.v1',
+        entityType: _entityType,
+        preferenceKeys: const ['messages.local.v1'],
+      );
+      state =
+          (await _repository.loadAll(
+              _entityType,
+            )).map(LocalMessage.fromJson).toList(growable: false)
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    } catch (error) {
+      WriteStatus.report(error);
+    }
   }
 
   Future<void> _persist() async {
     if (!persistenceEnabled) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(state.map((item) => item.toJson()).toList()));
+    await _ready;
+    await _repository.replaceAll(
+      _entityType,
+      state.map((item) => item.toJson()),
+    );
   }
 
   void send({
@@ -42,7 +59,9 @@ class MessagesNotifier extends StateNotifier<List<LocalMessage>> {
     String? attachmentName,
     String? attachmentPath,
   }) {
-    if (body.trim().isEmpty && entityId == null && attachmentName == null) return;
+    if (body.trim().isEmpty && entityId == null && attachmentName == null) {
+      return;
+    }
     state = [
       ...state,
       LocalMessage(
@@ -56,10 +75,11 @@ class MessagesNotifier extends StateNotifier<List<LocalMessage>> {
         attachmentPath: attachmentPath,
       ),
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 }
 
-final messagesProvider = StateNotifierProvider<MessagesNotifier, List<LocalMessage>>(
-  (ref) => MessagesNotifier(),
-);
+final messagesProvider =
+    StateNotifierProvider<MessagesNotifier, List<LocalMessage>>(
+      (ref) => MessagesNotifier(),
+    );

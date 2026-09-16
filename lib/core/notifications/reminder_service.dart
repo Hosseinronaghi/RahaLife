@@ -7,6 +7,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'reminder_models.dart';
 
 class ReminderService {
+  final lastError = ValueNotifier<String?>(null);
   ReminderService._();
 
   static final ReminderService instance = ReminderService._();
@@ -58,11 +59,11 @@ class ReminderService {
           launchPayload.isNotEmpty) {
         selectedPayload.value = launchPayload;
       }
+      _initialized = true;
     } catch (error, stackTrace) {
+      lastError.value = error.toString();
       debugPrint('Reminder initialization failed: $error');
       debugPrintStack(stackTrace: stackTrace);
-    } finally {
-      _initialized = true;
     }
   }
 
@@ -70,8 +71,10 @@ class ReminderService {
     if (kIsWeb) return false;
     await initialize();
     var granted = true;
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android != null) {
       granted = await android.requestNotificationsPermission() ?? false;
       try {
@@ -81,24 +84,22 @@ class ReminderService {
         // Exact/full-screen alarm permissions are unavailable on some devices.
       }
     }
-    final ios = _plugin.resolvePlatformSpecificImplementation<
-        IOSFlutterLocalNotificationsPlugin>();
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
     if (ios != null) {
-      granted = await ios.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          ) ??
+      granted =
+          await ios.requestPermissions(alert: true, badge: true, sound: true) ??
           false;
     }
-    final mac = _plugin.resolvePlatformSpecificImplementation<
-        MacOSFlutterLocalNotificationsPlugin>();
+    final mac = _plugin
+        .resolvePlatformSpecificImplementation<
+          MacOSFlutterLocalNotificationsPlugin
+        >();
     if (mac != null) {
-      granted = await mac.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          ) ??
+      granted =
+          await mac.requestPermissions(alert: true, badge: true, sound: true) ??
           false;
     }
     return granted;
@@ -138,15 +139,17 @@ class ReminderService {
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
-        interruptionLevel:
-            isAlarm ? InterruptionLevel.timeSensitive : InterruptionLevel.active,
+        interruptionLevel: isAlarm
+            ? InterruptionLevel.timeSensitive
+            : InterruptionLevel.active,
       ),
       macOS: DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
-        interruptionLevel:
-            isAlarm ? InterruptionLevel.timeSensitive : InterruptionLevel.active,
+        interruptionLevel: isAlarm
+            ? InterruptionLevel.timeSensitive
+            : InterruptionLevel.active,
       ),
     );
 
@@ -155,13 +158,7 @@ class ReminderService {
         notificationId(key),
         title,
         body,
-        tz.TZDateTime.local(
-          scheduledAt.year,
-          scheduledAt.month,
-          scheduledAt.day,
-          scheduledAt.hour,
-          scheduledAt.minute,
-        ),
+        tz.TZDateTime.from(scheduledAt, tz.local),
         details,
         androidScheduleMode: isAlarm
             ? AndroidScheduleMode.exactAllowWhileIdle
@@ -170,9 +167,15 @@ class ReminderService {
         matchDateTimeComponents: _components(plan.repeat),
       );
     } catch (error, stackTrace) {
-      debugPrint('Reminder scheduling failed: $error');
+      lastError.value = 'Reminder scheduling failed: $error';
       debugPrintStack(stackTrace: stackTrace);
     }
+  }
+
+  Future<void> cancelAllManaged() async {
+    if (kIsWeb) return;
+    await initialize();
+    await _plugin.cancelAll();
   }
 
   Future<void> cancel(String key) async {
@@ -198,16 +201,16 @@ class ReminderService {
         title,
         body,
         NotificationDetails(
-        android: AndroidNotificationDetails(
-          alarm ? 'raha_alarm' : 'raha_reminders',
-          alarm ? 'Raha Life Alarms' : 'Raha Life Reminders',
-          importance: alarm ? Importance.max : Importance.high,
-          priority: alarm ? Priority.max : Priority.high,
-          fullScreenIntent: alarm,
-          playSound: true,
-          enableVibration: true,
-        ),
-        iOS: const DarwinNotificationDetails(),
+          android: AndroidNotificationDetails(
+            alarm ? 'raha_alarm' : 'raha_reminders',
+            alarm ? 'Raha Life Alarms' : 'Raha Life Reminders',
+            importance: alarm ? Importance.max : Importance.high,
+            priority: alarm ? Priority.max : Priority.high,
+            fullScreenIntent: alarm,
+            playSound: true,
+            enableVibration: true,
+          ),
+          iOS: const DarwinNotificationDetails(),
           macOS: const DarwinNotificationDetails(),
         ),
       );
@@ -217,12 +220,12 @@ class ReminderService {
   }
 
   DateTimeComponents? _components(ReminderRepeat repeat) => switch (repeat) {
-        ReminderRepeat.none => null,
-        ReminderRepeat.daily => DateTimeComponents.time,
-        ReminderRepeat.weekly => DateTimeComponents.dayOfWeekAndTime,
-        ReminderRepeat.monthly => DateTimeComponents.dayOfMonthAndTime,
-        ReminderRepeat.yearly => DateTimeComponents.dateAndTime,
-      };
+    ReminderRepeat.none => null,
+    ReminderRepeat.daily => DateTimeComponents.time,
+    ReminderRepeat.weekly => DateTimeComponents.dayOfWeekAndTime,
+    ReminderRepeat.monthly => DateTimeComponents.dayOfMonthAndTime,
+    ReminderRepeat.yearly => DateTimeComponents.dateAndTime,
+  };
 
   String? consumeSelectedPayload() {
     final payload = selectedPayload.value;

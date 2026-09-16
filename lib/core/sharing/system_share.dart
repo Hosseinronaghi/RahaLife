@@ -13,11 +13,7 @@ Future<bool> shareTextFromContext(
       : box.localToGlobal(Offset.zero) & box.size;
   try {
     await SharePlus.instance.share(
-      ShareParams(
-        text: text,
-        subject: subject,
-        sharePositionOrigin: origin,
-      ),
+      ShareParams(text: text, subject: subject, sharePositionOrigin: origin),
     );
     return true;
   } catch (_) {

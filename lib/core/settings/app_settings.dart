@@ -11,11 +11,11 @@ enum AccentChoice { emerald, blue, purple, orange }
 
 extension AccentChoiceColor on AccentChoice {
   Color get color => switch (this) {
-        AccentChoice.emerald => const Color(0xFF22C55E),
-        AccentChoice.blue => const Color(0xFF3B82F6),
-        AccentChoice.purple => const Color(0xFF8B5CF6),
-        AccentChoice.orange => const Color(0xFFF97316),
-      };
+    AccentChoice.emerald => const Color(0xFF22C55E),
+    AccentChoice.blue => const Color(0xFF3B82F6),
+    AccentChoice.purple => const Color(0xFF8B5CF6),
+    AccentChoice.orange => const Color(0xFFF97316),
+  };
 }
 
 @immutable
@@ -46,16 +46,15 @@ class AppSettings {
     Set<HomeEntryType>? hiddenHomeSections,
     List<AppModule>? moduleOrder,
     Set<AppModule>? hiddenModules,
-  }) =>
-      AppSettings(
-        locale: locale ?? this.locale,
-        themeMode: themeMode ?? this.themeMode,
-        accentChoice: accentChoice ?? this.accentChoice,
-        textScale: textScale ?? this.textScale,
-        hiddenHomeSections: hiddenHomeSections ?? this.hiddenHomeSections,
-        moduleOrder: moduleOrder ?? this.moduleOrder,
-        hiddenModules: hiddenModules ?? this.hiddenModules,
-      );
+  }) => AppSettings(
+    locale: locale ?? this.locale,
+    themeMode: themeMode ?? this.themeMode,
+    accentChoice: accentChoice ?? this.accentChoice,
+    textScale: textScale ?? this.textScale,
+    hiddenHomeSections: hiddenHomeSections ?? this.hiddenHomeSections,
+    moduleOrder: moduleOrder ?? this.moduleOrder,
+    hiddenModules: hiddenModules ?? this.hiddenModules,
+  );
 }
 
 class AppSettingsNotifier extends StateNotifier<AppSettings> {
@@ -77,12 +76,17 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final themeIndex = preferences.getInt(_themeKey) ?? ThemeMode.system.index;
     final accentIndex =
         preferences.getInt(_accentKey) ?? AccentChoice.emerald.index;
-    final hiddenNames = preferences.getStringList(_hiddenSectionsKey) ?? const [];
+    final hiddenNames =
+        preferences.getStringList(_hiddenSectionsKey) ?? const [];
     final savedOrder = preferences.getStringList(_moduleOrderKey) ?? const [];
     final hiddenModuleNames =
         preferences.getStringList(_hiddenModulesKey) ?? const [];
-    final safeThemeIndex = themeIndex.clamp(0, ThemeMode.values.length - 1).toInt();
-    final safeAccentIndex = accentIndex.clamp(0, AccentChoice.values.length - 1).toInt();
+    final safeThemeIndex = themeIndex
+        .clamp(0, ThemeMode.values.length - 1)
+        .toInt();
+    final safeAccentIndex = accentIndex
+        .clamp(0, AccentChoice.values.length - 1)
+        .toInt();
 
     final restoredOrder = <AppModule>[];
     for (final name in savedOrder) {
@@ -191,5 +195,5 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
 
 final appSettingsProvider =
     StateNotifierProvider<AppSettingsNotifier, AppSettings>(
-  (ref) => AppSettingsNotifier(),
-);
+      (ref) => AppSettingsNotifier(),
+    );

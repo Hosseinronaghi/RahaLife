@@ -13,7 +13,10 @@ class NotesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final notes = ref.watch(notesProvider).where((item) => !item.archived).toList();
+    final notes = ref
+        .watch(notesProvider)
+        .where((item) => !item.archived)
+        .toList();
     final projects = ref.watch(projectsProvider);
 
     return Scaffold(
@@ -55,7 +58,9 @@ class NotesScreen extends ConsumerWidget {
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(16),
                     leading: Icon(
-                      note.pinned ? Icons.push_pin_rounded : Icons.notes_rounded,
+                      note.pinned
+                          ? Icons.push_pin_rounded
+                          : Icons.notes_rounded,
                     ),
                     title: Text(
                       note.title.isEmpty ? l10n.notes : note.title,
@@ -75,7 +80,10 @@ class NotesScreen extends ConsumerWidget {
                           const SizedBox(height: 7),
                           Chip(
                             visualDensity: VisualDensity.compact,
-                            avatar: const Icon(Icons.workspaces_rounded, size: 16),
+                            avatar: const Icon(
+                              Icons.workspaces_rounded,
+                              size: 16,
+                            ),
                             label: Text(project.title),
                           ),
                         ],
@@ -84,7 +92,9 @@ class NotesScreen extends ConsumerWidget {
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) {
                         if (value == 'pin') {
-                          ref.read(notesProvider.notifier).togglePinned(note.id);
+                          ref
+                              .read(notesProvider.notifier)
+                              .togglePinned(note.id);
                         } else if (value == 'archive') {
                           ref.read(notesProvider.notifier).archive(note.id);
                         } else if (value == 'delete') {
@@ -94,10 +104,18 @@ class NotesScreen extends ConsumerWidget {
                       itemBuilder: (_) => [
                         PopupMenuItem(
                           value: 'pin',
-                          child: Text(note.pinned ? l10n.unpinNote : l10n.pinNote),
+                          child: Text(
+                            note.pinned ? l10n.unpinNote : l10n.pinNote,
+                          ),
                         ),
-                        PopupMenuItem(value: 'archive', child: Text(l10n.archiveNote)),
-                        PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
+                        PopupMenuItem(
+                          value: 'archive',
+                          child: Text(l10n.archiveNote),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(l10n.delete),
+                        ),
                       ],
                     ),
                     onTap: () => context.push('/notes/edit', extra: note.id),
@@ -112,7 +130,6 @@ class NotesScreen extends ConsumerWidget {
     );
   }
 }
-
 
 ProjectData? _projectById(Iterable<ProjectData> items, String id) {
   for (final item in items) {

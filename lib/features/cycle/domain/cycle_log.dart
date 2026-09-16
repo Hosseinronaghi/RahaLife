@@ -19,30 +19,32 @@ class CycleLog {
   });
 
   factory CycleLog.fromJson(Map<String, Object?> json) => CycleLog(
-        id: json['id']! as String,
-        startDate: DateTime.parse(json['startDate']! as String),
-        endDate: json['endDate'] == null
-            ? null
-            : DateTime.parse(json['endDate']! as String),
-        flow: FlowIntensity.values.firstWhere(
-          (value) => value.name == json['flow'],
-          orElse: () => FlowIntensity.medium,
-        ),
-        painLevel: json['painLevel'] as int? ?? 0,
-        mood: CycleMood.values.firstWhere(
-          (value) => value.name == json['mood'],
-          orElse: () => CycleMood.other,
-        ),
-        notes: json['notes'] as String?,
-        symptoms: (json['symptoms'] as List<dynamic>? ?? const []).map((item) => item.toString()).toList(growable: false),
-        predictionReminder: ReminderPlan.fromJson(
-          json['predictionReminder'] is Map
-              ? Map<String, Object?>.from(json['predictionReminder']! as Map)
-              : null,
-        ),
-        predictionReminderTime:
-            json['predictionReminderTime'] as String? ?? '09:00',
-      );
+    id: json['id']! as String,
+    startDate: DateTime.parse(json['startDate']! as String),
+    endDate: json['endDate'] == null
+        ? null
+        : DateTime.parse(json['endDate']! as String),
+    flow: FlowIntensity.values.firstWhere(
+      (value) => value.name == json['flow'],
+      orElse: () => FlowIntensity.medium,
+    ),
+    painLevel: json['painLevel'] as int? ?? 0,
+    mood: CycleMood.values.firstWhere(
+      (value) => value.name == json['mood'],
+      orElse: () => CycleMood.other,
+    ),
+    notes: json['notes'] as String?,
+    symptoms: (json['symptoms'] as List<dynamic>? ?? const [])
+        .map((item) => item.toString())
+        .toList(growable: false),
+    predictionReminder: ReminderPlan.fromJson(
+      json['predictionReminder'] is Map
+          ? Map<String, Object?>.from(json['predictionReminder']! as Map)
+          : null,
+    ),
+    predictionReminderTime:
+        json['predictionReminderTime'] as String? ?? '09:00',
+  );
 
   final String id;
   final DateTime startDate;
@@ -56,15 +58,15 @@ class CycleLog {
   final String predictionReminderTime;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'startDate': startDate.toIso8601String(),
-        'endDate': endDate?.toIso8601String(),
-        'flow': flow.name,
-        'painLevel': painLevel,
-        'mood': mood.name,
-        'notes': notes,
-        'symptoms': symptoms,
-        'predictionReminder': predictionReminder.toJson(),
-        'predictionReminderTime': predictionReminderTime,
-      };
+    'id': id,
+    'startDate': startDate.toIso8601String(),
+    'endDate': endDate?.toIso8601String(),
+    'flow': flow.name,
+    'painLevel': painLevel,
+    'mood': mood.name,
+    'notes': notes,
+    'symptoms': symptoms,
+    'predictionReminder': predictionReminder.toJson(),
+    'predictionReminderTime': predictionReminderTime,
+  };
 }

@@ -26,13 +26,21 @@ class PeopleScreen extends ConsumerWidget {
                 final person = people[index];
                 return Card(
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: CircleAvatar(child: Text(person.name.characters.first)),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    leading: CircleAvatar(
+                      child: Text(person.name.characters.first),
+                    ),
                     title: Text(person.name),
-                    subtitle: Text([
-                      if (person.relationship?.isNotEmpty ?? false) person.relationship!,
-                      if (person.phone?.isNotEmpty ?? false) person.phone!,
-                    ].join(' • ')),
+                    subtitle: Text(
+                      [
+                        if (person.relationship?.isNotEmpty ?? false)
+                          person.relationship!,
+                        if (person.phone?.isNotEmpty ?? false) person.phone!,
+                      ].join(' • '),
+                    ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) {
                         if (value == 'delete') {
@@ -40,7 +48,10 @@ class PeopleScreen extends ConsumerWidget {
                         }
                       },
                       itemBuilder: (_) => [
-                        PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Text(l10n.delete),
+                        ),
                       ],
                     ),
                     onTap: () => showModalBottomSheet<void>(
@@ -52,13 +63,21 @@ class PeopleScreen extends ConsumerWidget {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text(person.name, style: Theme.of(context).textTheme.titleLarge),
-                            if (person.relationship?.isNotEmpty ?? false) Text(person.relationship!),
-                            if (person.phone?.isNotEmpty ?? false) Text(person.phone!),
-                            if (person.email?.isNotEmpty ?? false) Text(person.email!),
+                            Text(
+                              person.name,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            if (person.relationship?.isNotEmpty ?? false)
+                              Text(person.relationship!),
+                            if (person.phone?.isNotEmpty ?? false)
+                              Text(person.phone!),
+                            if (person.email?.isNotEmpty ?? false)
+                              Text(person.email!),
                             if (person.birthDate != null) ...[
                               const SizedBox(height: 8),
-                              Text('${l10n.birthdayDate}: ${compactDualDate(person.birthDate!, Localizations.localeOf(context))}'),
+                              Text(
+                                '${l10n.birthdayDate}: ${compactDualDate(person.birthDate!, Localizations.localeOf(context))}',
+                              ),
                             ],
                             if (person.notes?.isNotEmpty ?? false) ...[
                               const SizedBox(height: 12),
@@ -97,7 +116,11 @@ class _EmptyPeople extends StatelessWidget {
             const SizedBox(height: 16),
             Text(l10n.noPeople, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 16),
-            FilledButton.icon(onPressed: onAdd, icon: const Icon(Icons.add_rounded), label: Text(l10n.addPerson)),
+            FilledButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(l10n.addPerson),
+            ),
           ],
         ),
       ),
@@ -119,40 +142,93 @@ Future<void> _showPersonForm(BuildContext context, WidgetRef ref) async {
     isScrollControlled: true,
     builder: (sheetContext) => StatefulBuilder(
       builder: (context, setState) => Padding(
-        padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          24 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
         child: SingleChildScrollView(
           child: Form(
             key: formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(l10n.addPerson, style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  l10n.addPerson,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 16),
-                TextFormField(controller: name, autofocus: true, decoration: InputDecoration(labelText: l10n.fullName), validator: (v) => v == null || v.trim().isEmpty ? l10n.requiredField : null),
+                TextFormField(
+                  controller: name,
+                  autofocus: true,
+                  decoration: InputDecoration(labelText: l10n.fullName),
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? l10n.requiredField : null,
+                ),
                 const SizedBox(height: 10),
-                TextFormField(controller: relationship, decoration: InputDecoration(labelText: l10n.relationship)),
+                TextFormField(
+                  controller: relationship,
+                  decoration: InputDecoration(labelText: l10n.relationship),
+                ),
                 const SizedBox(height: 10),
-                TextFormField(controller: phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: l10n.phone)),
+                TextFormField(
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(labelText: l10n.phone),
+                ),
                 const SizedBox(height: 10),
-                TextFormField(controller: email, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: l10n.email)),
+                TextFormField(
+                  controller: email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(labelText: l10n.email),
+                ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final selected = await showDatePicker(context: context, firstDate: DateTime(1920), lastDate: DateTime.now(), initialDate: birthDate ?? DateTime(1990));
+                    final selected = await showDatePicker(
+                      context: context,
+                      firstDate: DateTime(1920),
+                      lastDate: DateTime.now(),
+                      initialDate: birthDate ?? DateTime(1990),
+                    );
                     if (selected != null) setState(() => birthDate = selected);
                   },
                   icon: const Icon(Icons.cake_outlined),
-                  label: Text(birthDate == null ? l10n.birthdayDate : compactDualDate(birthDate!, Localizations.localeOf(context))),
+                  label: Text(
+                    birthDate == null
+                        ? l10n.birthdayDate
+                        : compactDualDate(
+                            birthDate!,
+                            Localizations.localeOf(context),
+                          ),
+                  ),
                 ),
                 const SizedBox(height: 10),
-                TextFormField(controller: notes, minLines: 2, maxLines: 4, decoration: InputDecoration(labelText: l10n.notes)),
+                TextFormField(
+                  controller: notes,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(labelText: l10n.notes),
+                ),
                 const SizedBox(height: 18),
                 FilledButton(
                   onPressed: () {
                     if (!(formKey.currentState?.validate() ?? false)) return;
-                    final personId = ref.read(peopleProvider.notifier).add(name: name.text, relationship: relationship.text, phone: phone.text, email: email.text, birthDate: birthDate, notes: notes.text);
+                    final personId = ref
+                        .read(peopleProvider.notifier)
+                        .add(
+                          name: name.text,
+                          relationship: relationship.text,
+                          phone: phone.text,
+                          email: email.text,
+                          birthDate: birthDate,
+                          notes: notes.text,
+                        );
                     if (birthDate != null) {
-                      ref.read(homeEntriesProvider.notifier).add(
+                      ref
+                          .read(homeEntriesProvider.notifier)
+                          .add(
                             type: HomeEntryType.birthday,
                             title: name.text,
                             dateTime: birthDate!,
@@ -171,5 +247,9 @@ Future<void> _showPersonForm(BuildContext context, WidgetRef ref) async {
       ),
     ),
   );
-  name.dispose(); relationship.dispose(); phone.dispose(); email.dispose(); notes.dispose();
+  name.dispose();
+  relationship.dispose();
+  phone.dispose();
+  email.dispose();
+  notes.dispose();
 }

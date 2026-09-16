@@ -1,4 +1,5 @@
-import 'package:file_picker/file_picker.dart';
+import '../../../core/persistence/attachments.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -35,7 +36,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     for (final person in people) {
       if (person.id == widget.personId) personName = person.name;
     }
-    final messages = ref.watch(messagesProvider).where((item) => item.personId == widget.personId).toList();
+    final messages = ref
+        .watch(messagesProvider)
+        .where((item) => item.personId == widget.personId)
+        .toList();
     return Scaffold(
       appBar: AppBar(title: Text(personName)),
       body: Column(
@@ -58,9 +62,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         child: Container(
                           constraints: const BoxConstraints(maxWidth: 520),
                           margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primaryContainer,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
                             borderRadius: BorderRadius.circular(18),
                           ),
                           child: Column(
@@ -71,15 +80,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 6),
                                   child: Chip(
-                                    avatar: const Icon(Icons.ios_share_rounded, size: 16),
-                                    label: Text('${message.sharedEntityType}: ${message.sharedEntityId}'),
+                                    avatar: const Icon(
+                                      Icons.ios_share_rounded,
+                                      size: 16,
+                                    ),
+                                    label: Text(
+                                      '${message.sharedEntityType}: ${message.sharedEntityId}',
+                                    ),
                                   ),
                                 ),
                               if (message.attachmentName != null)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 6),
                                   child: Chip(
-                                    avatar: const Icon(Icons.attach_file_rounded, size: 16),
+                                    avatar: const Icon(
+                                      Icons.attach_file_rounded,
+                                      size: 16,
+                                    ),
                                     label: Text(message.attachmentName!),
                                   ),
                                 ),
@@ -136,24 +153,41 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-
   Future<void> _shareAppItem() async {
     final l10n = AppLocalizations.of(context);
     final projects = ref.read(projectsProvider);
-    final notes = ref.read(notesProvider).where((item) => !item.archived).toList();
+    final notes = ref
+        .read(notesProvider)
+        .where((item) => !item.archived)
+        .toList();
     final shopping = ref.read(shoppingProvider);
     final options = <({String type, String id, String title, IconData icon})>[
       for (final project in projects)
-        (type: 'project', id: project.id, title: project.title, icon: Icons.workspaces_rounded),
+        (
+          type: 'project',
+          id: project.id,
+          title: project.title,
+          icon: Icons.workspaces_rounded,
+        ),
       for (final note in notes)
-        (type: 'note', id: note.id, title: note.title.isEmpty ? l10n.notes : note.title, icon: Icons.edit_note_rounded),
+        (
+          type: 'note',
+          id: note.id,
+          title: note.title.isEmpty ? l10n.notes : note.title,
+          icon: Icons.edit_note_rounded,
+        ),
       for (final list in shopping)
-        (type: 'shopping', id: list.id, title: list.title, icon: Icons.shopping_basket_rounded),
+        (
+          type: 'shopping',
+          id: list.id,
+          title: list.title,
+          icon: Icons.shopping_basket_rounded,
+        ),
     ];
     if (options.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.noItems)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.noItems)));
       return;
     }
     await showModalBottomSheet<void>(
@@ -175,7 +209,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               leading: Icon(option.icon),
               title: Text(option.title),
               onTap: () {
-                ref.read(messagesProvider.notifier).send(
+                ref
+                    .read(messagesProvider.notifier)
+                    .send(
                       personId: widget.personId,
                       body: option.title,
                       entityType: option.type,
@@ -190,13 +226,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Future<void> _attach() async {
-    final file = await FilePicker.pickFile();
+    final file = await AttachmentStore().pick();
     if (file == null) return;
-    ref.read(messagesProvider.notifier).send(
+    ref
+        .read(messagesProvider.notifier)
+        .send(
           personId: widget.personId,
           body: _controller.text,
-          attachmentName: file.name,
-          attachmentPath: file.path,
+          attachmentName: file['name'] as String,
+          attachmentPath: file['path'] as String,
         );
     _controller.clear();
   }
@@ -204,7 +242,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _send() {
     final text = _controller.text;
     if (text.trim().isEmpty) return;
-    ref.read(messagesProvider.notifier).send(personId: widget.personId, body: text);
+    ref
+        .read(messagesProvider.notifier)
+        .send(personId: widget.personId, body: text);
     _controller.clear();
   }
 }

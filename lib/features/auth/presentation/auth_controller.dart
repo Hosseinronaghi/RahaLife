@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart' as kdf;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,8 +13,8 @@ import '../domain/local_account.dart';
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage(),
-        super(const AuthState(loading: true)) {
+    : _storage = storage ?? const FlutterSecureStorage(),
+      super(const AuthState(loading: true)) {
     unawaited(_load());
   }
 
@@ -33,27 +34,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return;
     }
     try {
-      state = AuthState(user: LocalAccount.fromJson(Map<String, Object?>.from(jsonDecode(raw) as Map)));
+      state = AuthState(
+        user: LocalAccount.fromJson(
+          Map<String, Object?>.from(jsonDecode(raw) as Map),
+        ),
+      );
     } catch (_) {
       state = const AuthState();
     }
   }
 
-  Future<bool> signUp({required String name, required String email, required String password}) async {
+  Future<bool> signUp({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
     state = state.copyWith(loading: true, clearError: true);
-    if (password.length < 8) {
+    if (name.trim().isEmpty || !email.contains('@') || password.length < 10) {
       state = state.copyWith(loading: false, errorCode: 'weakPassword');
       return false;
     }
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getString(_profileKey) != null) {
+    if (prefs.getString(_profileKey) != null &&
+        await _storage.read(key: _hashKey) != null) {
       state = state.copyWith(loading: false, errorCode: 'accountExists');
       return false;
     }
     final salt = _randomSalt();
-    final account = LocalAccount(id: _uuid.v4(), name: name.trim(), email: email.trim().toLowerCase());
+    final account = LocalAccount(
+      id: _uuid.v4(),
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+    );
     await _storage.write(key: _saltKey, value: salt);
-    await _storage.write(key: _hashKey, value: _hash(password, salt));
+    await _storage.write(
+      key: _hashKey,
+      value: await _strongHash(password, salt),
+    );
     await prefs.setString(_profileKey, jsonEncode(account.toJson()));
     await prefs.setBool(_sessionKey, true);
     state = AuthState(user: account);
@@ -70,10 +87,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(loading: false, errorCode: 'accountNotFound');
       return false;
     }
-    final account = LocalAccount.fromJson(Map<String, Object?>.from(jsonDecode(raw) as Map));
-    if (account.email != email.trim().toLowerCase() || _hash(password, salt) != storedHash) {
+    final account = LocalAccount.fromJson(
+      Map<String, Object?>.from(jsonDecode(raw) as Map),
+    );
+    if (account.email != email.trim().toLowerCase() ||
+        (storedHash.startsWith('pbkdf2:')
+                ? await _strongHash(password, salt)
+                : _hash(password, salt)) !=
+            storedHash) {
       state = state.copyWith(loading: false, errorCode: 'invalidCredentials');
       return false;
+    }
+    if (!storedHash.startsWith('pbkdf2:')) {
+      await _storage.write(
+        key: _hashKey,
+        value: await _strongHash(password, salt),
+      );
     }
     await prefs.setBool(_sessionKey, true);
     state = AuthState(user: account);
@@ -86,7 +115,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState();
   }
 
-  static String _hash(String password, String salt) => sha256.convert(utf8.encode('$salt:$password')).toString();
+  static Future<String> _strongHash(String password, String salt) async {
+    final key =
+        await kdf.Pbkdf2(
+          macAlgorithm: kdf.Hmac.sha256(),
+          iterations: 600000,
+          bits: 256,
+        ).deriveKey(
+          secretKey: kdf.SecretKey(utf8.encode(password)),
+          nonce: utf8.encode(salt),
+        );
+    return 'pbkdf2:${base64UrlEncode(await key.extractBytes())}';
+  }
+
+  static String _hash(String password, String salt) =>
+      sha256.convert(utf8.encode('$salt:$password')).toString();
 
   static String _randomSalt() {
     final random = Random.secure();
@@ -95,4 +138,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
+final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
+  (ref) => AuthNotifier(),
+);

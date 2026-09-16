@@ -16,17 +16,10 @@ class ProjectChecklistItem {
   final String title;
   final bool done;
 
-  ProjectChecklistItem copyWith({bool? done}) => ProjectChecklistItem(
-        id: id,
-        title: title,
-        done: done ?? this.done,
-      );
+  ProjectChecklistItem copyWith({bool? done}) =>
+      ProjectChecklistItem(id: id, title: title, done: done ?? this.done);
 
-  Map<String, Object?> toJson() => {
-        'id': id,
-        'title': title,
-        'done': done,
-      };
+  Map<String, Object?> toJson() => {'id': id, 'title': title, 'done': done};
 }
 
 class ProjectAttachment {
@@ -51,11 +44,11 @@ class ProjectAttachment {
   final String? path;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'name': name,
-        'size': size,
-        'path': path,
-      };
+    'id': id,
+    'name': name,
+    'size': size,
+    'path': path,
+  };
 }
 
 enum ProjectStatus { active, paused, done, archived }
@@ -76,39 +69,39 @@ class ProjectData {
   });
 
   factory ProjectData.fromJson(Map<String, Object?> json) => ProjectData(
-        id: json['id']! as String,
-        title: json['title']! as String,
-        createdAt: DateTime.parse(json['createdAt']! as String),
-        description: json['description'] as String?,
-        status: ProjectStatus.values.firstWhere(
-          (item) => item.name == json['status'],
-          orElse: () => ProjectStatus.active,
-        ),
-        progress: (json['progress'] as num?)?.toDouble() ?? 0,
-        startDate: json['startDate'] == null
-            ? null
-            : DateTime.parse(json['startDate']! as String),
-        dueDate: json['dueDate'] == null
-            ? null
-            : DateTime.parse(json['dueDate']! as String),
-        personIds: (json['personIds'] as List<dynamic>? ?? const [])
-            .map((item) => item.toString())
-            .toList(growable: false),
-        checklist: (json['checklist'] as List<dynamic>? ?? const [])
-            .map(
-              (item) => ProjectChecklistItem.fromJson(
-                Map<String, Object?>.from(item as Map),
-              ),
-            )
-            .toList(growable: false),
-        attachments: (json['attachments'] as List<dynamic>? ?? const [])
-            .map(
-              (item) => ProjectAttachment.fromJson(
-                Map<String, Object?>.from(item as Map),
-              ),
-            )
-            .toList(growable: false),
-      );
+    id: json['id']! as String,
+    title: json['title']! as String,
+    createdAt: DateTime.parse(json['createdAt']! as String),
+    description: json['description'] as String?,
+    status: ProjectStatus.values.firstWhere(
+      (item) => item.name == json['status'],
+      orElse: () => ProjectStatus.active,
+    ),
+    progress: (json['progress'] as num?)?.toDouble() ?? 0,
+    startDate: json['startDate'] == null
+        ? null
+        : DateTime.parse(json['startDate']! as String),
+    dueDate: json['dueDate'] == null
+        ? null
+        : DateTime.parse(json['dueDate']! as String),
+    personIds: (json['personIds'] as List<dynamic>? ?? const [])
+        .map((item) => item.toString())
+        .toList(growable: false),
+    checklist: (json['checklist'] as List<dynamic>? ?? const [])
+        .map(
+          (item) => ProjectChecklistItem.fromJson(
+            Map<String, Object?>.from(item as Map),
+          ),
+        )
+        .toList(growable: false),
+    attachments: (json['attachments'] as List<dynamic>? ?? const [])
+        .map(
+          (item) => ProjectAttachment.fromJson(
+            Map<String, Object?>.from(item as Map),
+          ),
+        )
+        .toList(growable: false),
+  );
 
   final String id;
   final String title;
@@ -128,18 +121,18 @@ class ProjectData {
   }
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'title': title,
-        'description': description,
-        'status': status.name,
-        'progress': progress,
-        'startDate': startDate?.toIso8601String(),
-        'dueDate': dueDate?.toIso8601String(),
-        'personIds': personIds,
-        'checklist': checklist.map((item) => item.toJson()).toList(),
-        'attachments': attachments.map((item) => item.toJson()).toList(),
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'description': description,
+    'status': status.name,
+    'progress': progress,
+    'startDate': startDate?.toIso8601String(),
+    'dueDate': dueDate?.toIso8601String(),
+    'personIds': personIds,
+    'checklist': checklist.map((item) => item.toJson()).toList(),
+    'attachments': attachments.map((item) => item.toJson()).toList(),
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   ProjectData copyWith({
     String? title,
@@ -151,18 +144,17 @@ class ProjectData {
     List<String>? personIds,
     List<ProjectChecklistItem>? checklist,
     List<ProjectAttachment>? attachments,
-  }) =>
-      ProjectData(
-        id: id,
-        title: title ?? this.title,
-        description: description ?? this.description,
-        status: status ?? this.status,
-        progress: progress ?? this.progress,
-        startDate: startDate ?? this.startDate,
-        dueDate: dueDate ?? this.dueDate,
-        personIds: personIds ?? this.personIds,
-        checklist: checklist ?? this.checklist,
-        attachments: attachments ?? this.attachments,
-        createdAt: createdAt,
-      );
+  }) => ProjectData(
+    id: id,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    status: status ?? this.status,
+    progress: progress ?? this.progress,
+    startDate: startDate ?? this.startDate,
+    dueDate: dueDate ?? this.dueDate,
+    personIds: personIds ?? this.personIds,
+    checklist: checklist ?? this.checklist,
+    attachments: attachments ?? this.attachments,
+    createdAt: createdAt,
+  );
 }

@@ -7,6 +7,9 @@ class Money {
     if (currencyCode != other.currencyCode) {
       throw ArgumentError('Currency mismatch');
     }
-    return Money(minorUnits: minorUnits + other.minorUnits, currencyCode: currencyCode);
+    return Money(
+      minorUnits: minorUnits + other.minorUnits,
+      currencyCode: currencyCode,
+    );
   }
 }

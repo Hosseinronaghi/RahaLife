@@ -19,18 +19,17 @@ Future<void> showAddEntry(
   BuildContext context,
   HomeEntryType type, {
   String? projectId,
-}) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _AddEntrySheet(type: type, projectId: projectId),
-    );
+}) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  builder: (_) => _AddEntrySheet(type: type, projectId: projectId),
+);
 
 Future<void> showQuickAdd(BuildContext context) => showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => const _QuickAddMenu(),
-    );
+  context: context,
+  isScrollControlled: true,
+  builder: (_) => const _QuickAddMenu(),
+);
 
 class _QuickAddMenu extends ConsumerWidget {
   const _QuickAddMenu();
@@ -61,8 +60,10 @@ class _QuickAddMenu extends ConsumerWidget {
               itemCount: homeSectionOrder.length,
               itemBuilder: (context, index) {
                 final type = homeSectionOrder[index];
-                final color =
-                    homeEntryTypeColor(type, Theme.of(context).colorScheme);
+                final color = homeEntryTypeColor(
+                  type,
+                  Theme.of(context).colorScheme,
+                );
                 return InkWell(
                   borderRadius: BorderRadius.circular(18),
                   onTap: () async {
@@ -92,9 +93,7 @@ class _QuickAddMenu extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: color.withValues(alpha: 0.18),
-                      ),
+                      border: Border.all(color: color.withValues(alpha: 0.18)),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.all(14),
@@ -204,15 +203,19 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
     final subtype = widget.type == HomeEntryType.affair
         ? _affairKind.name
         : widget.type == HomeEntryType.appointment
-            ? _appointmentKind.name
-            : null;
-    final reminder = _supportsReminder
-        ? _reminderPlan
-        : const ReminderPlan();
-    final entry = ref.read(homeEntriesProvider.notifier).add(
+        ? _appointmentKind.name
+        : null;
+    final reminder = _supportsReminder ? _reminderPlan : const ReminderPlan();
+    ref
+        .read(homeEntriesProvider.notifier)
+        .add(
+          calendar: Localizations.localeOf(context).languageCode == 'fa'
+              ? 'jalali'
+              : 'gregorian',
           type: widget.type,
           title: _titleController.text,
-          details: widget.type == HomeEntryType.birthday &&
+          details:
+              widget.type == HomeEntryType.birthday &&
                   _relationshipController.text.trim().isNotEmpty
               ? [
                   _relationshipController.text.trim(),
@@ -230,22 +233,13 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
         );
     if (reminder.enabled) {
       await ReminderService.instance.requestPermissions();
-      await ReminderService.instance.schedule(
-        key: 'home:${entry.id}',
-        title: entry.title,
-        body: _locationController.text.trim().isEmpty
-            ? l10n.reminderDue
-            : '${l10n.location}: ${_locationController.text.trim()}',
-        eventDateTime: entry.dateTime,
-        plan: reminder,
-        payload: 'home:${entry.id}',
-      );
+      // Persisted data is reconciled by ReminderCoordinator.
     }
     if (!mounted) return;
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.itemAdded)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.itemAdded)));
   }
 
   @override
@@ -320,7 +314,9 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                     final people = ref.watch(peopleProvider);
                     return DropdownButtonFormField<String>(
                       initialValue: _personId,
-                      decoration: InputDecoration(labelText: l10n.relatedPerson),
+                      decoration: InputDecoration(
+                        labelText: l10n.relatedPerson,
+                      ),
                       items: [
                         DropdownMenuItem<String>(
                           value: '',
@@ -334,8 +330,9 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                         ),
                       ],
                       onChanged: (value) => setState(
-                        () => _personId =
-                            value == null || value.isEmpty ? null : value,
+                        () => _personId = value == null || value.isEmpty
+                            ? null
+                            : value,
                       ),
                     );
                   },
@@ -428,4 +425,3 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
     );
   }
 }
-

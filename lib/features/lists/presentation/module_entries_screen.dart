@@ -18,11 +18,16 @@ class ModuleEntriesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final items = ref
-        .watch(homeEntriesProvider)
-        .where((item) => item.type == type && (projectId == null || item.projectId == projectId))
-        .toList()
-      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    final items =
+        ref
+            .watch(homeEntriesProvider)
+            .where(
+              (item) =>
+                  item.type == type &&
+                  (projectId == null || item.projectId == projectId),
+            )
+            .toList()
+          ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
     final color = homeEntryTypeColor(type, Theme.of(context).colorScheme);
 
     return Scaffold(
@@ -55,7 +60,8 @@ class ModuleEntriesScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 18),
                     FilledButton.icon(
-                      onPressed: () => showAddEntry(context, type, projectId: projectId),
+                      onPressed: () =>
+                          showAddEntry(context, type, projectId: projectId),
                       icon: const Icon(Icons.add_rounded),
                       label: Text(addHomeEntryLabel(l10n, type)),
                     ),
@@ -76,7 +82,7 @@ class ModuleEntriesScreen extends ConsumerWidget {
                       vertical: 8,
                     ),
                     leading: Checkbox(
-                      value: entry.completed,
+                      value: entry.completedOn(DateTime.now()),
                       onChanged: (_) => ref
                           .read(homeEntriesProvider.notifier)
                           .toggle(entry.id),
@@ -84,8 +90,9 @@ class ModuleEntriesScreen extends ConsumerWidget {
                     title: Text(
                       entry.title,
                       style: TextStyle(
-                        decoration:
-                            entry.completed ? TextDecoration.lineThrough : null,
+                        decoration: entry.completedOn(DateTime.now())
+                            ? TextDecoration.lineThrough
+                            : null,
                       ),
                     ),
                     subtitle: Text(

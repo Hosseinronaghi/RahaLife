@@ -32,10 +32,7 @@ class ComingSoonScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    l10n.featureNotReady,
-                    textAlign: TextAlign.center,
-                  ),
+                  Text(l10n.featureNotReady, textAlign: TextAlign.center),
                   const SizedBox(height: 22),
                   FilledButton(
                     onPressed: () => Navigator.maybePop(context),

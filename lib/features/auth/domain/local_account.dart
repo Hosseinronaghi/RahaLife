@@ -1,11 +1,15 @@
 class LocalAccount {
-  const LocalAccount({required this.id, required this.name, required this.email});
+  const LocalAccount({
+    required this.id,
+    required this.name,
+    required this.email,
+  });
 
   factory LocalAccount.fromJson(Map<String, Object?> json) => LocalAccount(
-        id: json['id']! as String,
-        name: json['name']! as String,
-        email: json['email']! as String,
-      );
+    id: json['id']! as String,
+    name: json['name']! as String,
+    email: json['email']! as String,
+  );
 
   final String id;
   final String name;
@@ -21,9 +25,15 @@ class AuthState {
   final String? errorCode;
   bool get signedIn => user != null;
 
-  AuthState copyWith({LocalAccount? user, bool? loading, String? errorCode, bool clearUser = false, bool clearError = false}) => AuthState(
-        user: clearUser ? null : (user ?? this.user),
-        loading: loading ?? this.loading,
-        errorCode: clearError ? null : (errorCode ?? this.errorCode),
-      );
+  AuthState copyWith({
+    LocalAccount? user,
+    bool? loading,
+    String? errorCode,
+    bool clearUser = false,
+    bool clearError = false,
+  }) => AuthState(
+    user: clearUser ? null : (user ?? this.user),
+    loading: loading ?? this.loading,
+    errorCode: clearError ? null : (errorCode ?? this.errorCode),
+  );
 }

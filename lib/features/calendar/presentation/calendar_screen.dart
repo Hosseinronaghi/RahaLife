@@ -1,3 +1,7 @@
+import 'package:go_router/go_router.dart';
+
+import '../../../core/notifications/agenda.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -66,18 +70,40 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _startOfWeek(DateTime date) {
     if (_isPersian) {
       final weekDay = Jalali.fromDateTime(date).weekDay;
-      return DateTime(date.year, date.month, date.day)
-          .subtract(Duration(days: weekDay - 1));
+      return DateTime(
+        date.year,
+        date.month,
+        date.day,
+      ).subtract(Duration(days: weekDay - 1));
     }
-    return DateTime(date.year, date.month, date.day)
-        .subtract(Duration(days: date.weekday - 1));
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).subtract(Duration(days: date.weekday - 1));
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context);
-    final entries = ref.watch(homeEntriesProvider);
+    final original = ref.watch(homeEntriesProvider);
+    final specialized =
+        (ref.watch(agendaProvider).valueOrNull ?? <AgendaItem>[]).where(
+          (e) => !e.key.startsWith('home:'),
+        );
+    final entries = [
+      ...original,
+      for (final e in specialized)
+        HomeEntry(
+          id: e.key,
+          type: HomeEntryType.appointment,
+          title: e.title,
+          dateTime: e.at,
+          details: e.route,
+          completed: e.done,
+        ),
+    ];
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.calendar)),
@@ -88,24 +114,24 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             scrollDirection: Axis.horizontal,
             child: SegmentedButton<_CalendarView>(
               showSelectedIcon: false,
-            segments: [
-              ButtonSegment(
-                value: _CalendarView.month,
-                label: Text(l10n.calendarMonth),
-                icon: const Icon(Icons.calendar_view_month_rounded),
-              ),
-              ButtonSegment(
-                value: _CalendarView.week,
-                label: Text(l10n.calendarWeek),
-                icon: const Icon(Icons.view_week_rounded),
-              ),
-              ButtonSegment(
-                value: _CalendarView.day,
-                label: Text(l10n.calendarDay),
-                icon: const Icon(Icons.view_day_rounded),
-              ),
-            ],
-            selected: {_view},
+              segments: [
+                ButtonSegment(
+                  value: _CalendarView.month,
+                  label: Text(l10n.calendarMonth),
+                  icon: const Icon(Icons.calendar_view_month_rounded),
+                ),
+                ButtonSegment(
+                  value: _CalendarView.week,
+                  label: Text(l10n.calendarWeek),
+                  icon: const Icon(Icons.view_week_rounded),
+                ),
+                ButtonSegment(
+                  value: _CalendarView.day,
+                  label: Text(l10n.calendarDay),
+                  icon: const Icon(Icons.view_day_rounded),
+                ),
+              ],
+              selected: {_view},
               onSelectionChanged: (values) {
                 setState(() => _view = values.first);
               },
@@ -137,17 +163,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               Text(
                                 _isPersian
                                     ? localizeDigits(
-                                        DateFormat('yyyy/MM', 'en').format(_anchor),
+                                        DateFormat(
+                                          'yyyy/MM',
+                                          'en',
+                                        ).format(_anchor),
                                         locale,
                                       )
                                     : secondaryDateLabel(_anchor, locale),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelMedium
+                                style: Theme.of(context).textTheme.labelMedium
                                     ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                               ),
                             ],
@@ -164,18 +191,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   const SizedBox(height: 18),
                   switch (_view) {
                     _CalendarView.month => _MonthGrid(
-                        anchor: _anchor,
-                        selected: _selected,
-                        isPersian: _isPersian,
-                        entries: entries,
-                        onSelected: (date) => setState(() => _selected = date),
-                      ),
+                      anchor: _anchor,
+                      selected: _selected,
+                      isPersian: _isPersian,
+                      entries: entries,
+                      onSelected: (date) => setState(() => _selected = date),
+                    ),
                     _CalendarView.week => _WeekStrip(
-                        start: _startOfWeek(_anchor),
-                        selected: _selected,
-                        entries: entries,
-                        onSelected: (date) => setState(() => _selected = date),
-                      ),
+                      start: _startOfWeek(_anchor),
+                      selected: _selected,
+                      entries: entries,
+                      onSelected: (date) => setState(() => _selected = date),
+                    ),
                     _CalendarView.day => _DayHero(date: _anchor),
                   },
                 ],
@@ -233,9 +260,10 @@ class _MonthGrid extends StatelessWidget {
         ? const ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج']
         : List.generate(
             7,
-            (index) => DateFormat('E', 'en')
-                .format(DateTime(2024, 1, 1 + index))
-                .substring(0, 1),
+            (index) => DateFormat(
+              'E',
+              'en',
+            ).format(DateTime(2024, 1, 1 + index)).substring(0, 1),
           );
     final cellCount = ((offset + days + 6) ~/ 7) * 7;
 
@@ -268,59 +296,61 @@ class _MonthGrid extends StatelessWidget {
                 crossAxisSpacing: 5,
                 childAspectRatio: 1.12,
               ),
-          itemCount: cellCount,
-          itemBuilder: (context, index) {
-            final day = index - offset + 1;
-            if (day < 1 || day > days) return const SizedBox.shrink();
-            final date = dateForDay(day);
-            final selectedDay = DateUtils.isSameDay(date, selected);
-            final today = DateUtils.isSameDay(date, DateTime.now());
-            final count = entries.where((item) => item.occursOn(date)).length;
-            return InkWell(
-              borderRadius: BorderRadius.circular(13),
-              onTap: () => onSelected(date),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                decoration: BoxDecoration(
-                  color: selectedDay
-                      ? Theme.of(context).colorScheme.primary
-                      : today
+              itemCount: cellCount,
+              itemBuilder: (context, index) {
+                final day = index - offset + 1;
+                if (day < 1 || day > days) return const SizedBox.shrink();
+                final date = dateForDay(day);
+                final selectedDay = DateUtils.isSameDay(date, selected);
+                final today = DateUtils.isSameDay(date, DateTime.now());
+                final count = entries
+                    .where((item) => item.occursOn(date))
+                    .length;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(13),
+                  onTap: () => onSelected(date),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    decoration: BoxDecoration(
+                      color: selectedDay
+                          ? Theme.of(context).colorScheme.primary
+                          : today
                           ? Theme.of(context).colorScheme.primaryContainer
                           : Colors.transparent,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(
-                      localizeDigits(day, locale),
-                      style: TextStyle(
-                        fontWeight: selectedDay || today
-                            ? FontWeight.w800
-                            : FontWeight.w500,
-                        color: selectedDay
-                            ? Theme.of(context).colorScheme.onPrimary
-                            : null,
-                      ),
+                      borderRadius: BorderRadius.circular(13),
                     ),
-                    if (count > 0)
-                      Positioned(
-                        bottom: 5,
-                        child: Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Text(
+                          localizeDigits(day, locale),
+                          style: TextStyle(
+                            fontWeight: selectedDay || today
+                                ? FontWeight.w800
+                                : FontWeight.w500,
                             color: selectedDay
                                 ? Theme.of(context).colorScheme.onPrimary
-                                : Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
+                                : null,
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-            );
+                        if (count > 0)
+                          Positioned(
+                            bottom: 5,
+                            child: Container(
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: selectedDay
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : Theme.of(context).colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
               },
             ),
           ],
@@ -384,10 +414,10 @@ class _WeekStrip extends StatelessWidget {
                   Text(
                     localizeDigits(date.day, locale),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.onPrimary
-                              : null,
-                        ),
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : null,
+                    ),
                   ),
                   if (count > 0)
                     Text(
@@ -463,10 +493,7 @@ class _SelectedDayAgenda extends StatelessWidget {
             if (items.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                child: Text(
-                  l10n.noItemsToday,
-                  textAlign: TextAlign.center,
-                ),
+                child: Text(l10n.noItemsToday, textAlign: TextAlign.center),
               )
             else
               for (var index = 0; index < items.length; index++) ...[
@@ -484,7 +511,15 @@ class _SelectedDayAgenda extends StatelessWidget {
                     '${localizedTime(items[index].dateTime, locale)} · ${homeEntryTypeLabel(l10n, items[index].type)}',
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => showEntryDetails(context, items[index]),
+                  onTap: () =>
+                      items[index].id.contains(':') &&
+                          (items[index].details?.startsWith('/') ?? false)
+                      ? context.push(items[index].details!)
+                      : showEntryDetails(
+                          context,
+                          items[index],
+                          occurrenceDate: date,
+                        ),
                 ),
                 if (index < items.length - 1) const Divider(),
               ],

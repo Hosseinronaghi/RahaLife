@@ -27,7 +27,10 @@ class MessagesScreen extends ConsumerWidget {
               children: [
                 const Icon(Icons.lock_person_rounded, size: 64),
                 const SizedBox(height: 14),
-                Text(l10n.createAccount, style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  l10n.createAccount,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 Text(l10n.messageOfflineHint, textAlign: TextAlign.center),
                 const SizedBox(height: 16),
@@ -52,14 +55,20 @@ class MessagesScreen extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (_, index) {
                 final person = people[index];
-                final thread = messages.where((item) => item.personId == person.id).toList();
+                final thread = messages
+                    .where((item) => item.personId == person.id)
+                    .toList();
                 final last = thread.isEmpty ? null : thread.last;
                 return Card(
                   child: ListTile(
-                    leading: CircleAvatar(child: Text(person.name.characters.first)),
+                    leading: CircleAvatar(
+                      child: Text(person.name.characters.first),
+                    ),
                     title: Text(person.name),
                     subtitle: Text(
-                      last == null || last.body.isEmpty ? l10n.newConversation : last.body,
+                      last == null || last.body.isEmpty
+                          ? l10n.newConversation
+                          : last.body,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -74,13 +83,19 @@ class MessagesScreen extends ConsumerWidget {
       floatingActionButton: people.isEmpty
           ? null
           : FloatingActionButton.small(
-              onPressed: () => _choosePerson(context, people.map((e) => MapEntry(e.id, e.name)).toList()),
+              onPressed: () => _choosePerson(
+                context,
+                people.map((e) => MapEntry(e.id, e.name)).toList(),
+              ),
               child: const Icon(Icons.add_comment_rounded),
             ),
     );
   }
 
-  Future<void> _choosePerson(BuildContext context, List<MapEntry<String, String>> people) async {
+  Future<void> _choosePerson(
+    BuildContext context,
+    List<MapEntry<String, String>> people,
+  ) async {
     final l10n = AppLocalizations.of(context);
     await showModalBottomSheet<void>(
       context: context,
@@ -90,7 +105,10 @@ class MessagesScreen extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text(l10n.selectPersonToMessage, style: Theme.of(context).textTheme.titleMedium),
+            child: Text(
+              l10n.selectPersonToMessage,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
           for (final person in people)
             ListTile(

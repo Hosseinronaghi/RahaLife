@@ -1,28 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:persian_fonts/persian_fonts.dart';
 
 import '../core/settings/app_settings.dart';
+import 'design_system/raha_tokens.dart';
 
 ThemeData buildLightTheme({
   required Locale locale,
   required AccentChoice accent,
-}) =>
-    _buildTheme(
-      brightness: Brightness.light,
-      locale: locale,
-      seedColor: accent.color,
-    );
+}) => _buildTheme(
+  brightness: Brightness.light,
+  locale: locale,
+  seedColor: accent.color,
+);
 
 ThemeData buildDarkTheme({
   required Locale locale,
   required AccentChoice accent,
-}) =>
-    _buildTheme(
-      brightness: Brightness.dark,
-      locale: locale,
-      seedColor: accent.color,
-    );
+}) => _buildTheme(
+  brightness: Brightness.dark,
+  locale: locale,
+  seedColor: accent.color,
+);
 
 ThemeData _buildTheme({
   required Brightness brightness,
@@ -33,7 +30,7 @@ ThemeData _buildTheme({
   final colorScheme = ColorScheme.fromSeed(
     seedColor: seedColor,
     brightness: brightness,
-    surface: isDark ? const Color(0xFF101511) : const Color(0xFFF7FAF8),
+    surface: isDark ? const Color(0xFF12131B) : const Color(0xFFF6F7FB),
   );
   final base = ThemeData(
     useMaterial3: true,
@@ -48,28 +45,31 @@ ThemeData _buildTheme({
     bodyColor: colorScheme.onSurface,
     displayColor: colorScheme.onSurface,
   );
-  final persianFallbackFamily = PersianFonts.Vazir.fontFamily!;
-  final textTheme = locale.languageCode == 'fa'
-      ? GoogleFonts.vazirmatnTextTheme(materialTextTheme).apply(
-          // Vazirmatn is the preferred family. The dependency-bundled Vazir
-          // family keeps Persian text consistent while the Google font is
-          // unavailable or still loading on Android and Windows.
-          fontFamilyFallback: <String>[persianFallbackFamily],
-          bodyColor: colorScheme.onSurface,
-          displayColor: colorScheme.onSurface,
-        )
-      : GoogleFonts.interTextTheme(materialTextTheme);
+  const persianFallbackFamily = 'Vazirmatn';
+  final textTheme = materialTextTheme.apply(
+    fontFamily: locale.languageCode == 'fa' ? persianFallbackFamily : null,
+  );
   final resolvedTextTheme = textTheme.copyWith(
-    displayLarge: textTheme.displayLarge?.copyWith(color: colorScheme.onSurface),
-    displayMedium: textTheme.displayMedium?.copyWith(color: colorScheme.onSurface),
-    displaySmall: textTheme.displaySmall?.copyWith(color: colorScheme.onSurface),
-    headlineLarge: textTheme.headlineLarge?.copyWith(color: colorScheme.onSurface),
+    displayLarge: textTheme.displayLarge?.copyWith(
+      color: colorScheme.onSurface,
+    ),
+    displayMedium: textTheme.displayMedium?.copyWith(
+      color: colorScheme.onSurface,
+    ),
+    displaySmall: textTheme.displaySmall?.copyWith(
+      color: colorScheme.onSurface,
+    ),
+    headlineLarge: textTheme.headlineLarge?.copyWith(
+      color: colorScheme.onSurface,
+    ),
     headlineMedium: textTheme.headlineMedium?.copyWith(
       color: colorScheme.onSurface,
       fontWeight: FontWeight.w800,
       letterSpacing: locale.languageCode == 'fa' ? 0 : -0.8,
     ),
-    headlineSmall: textTheme.headlineSmall?.copyWith(color: colorScheme.onSurface),
+    headlineSmall: textTheme.headlineSmall?.copyWith(
+      color: colorScheme.onSurface,
+    ),
     titleLarge: textTheme.titleLarge?.copyWith(
       color: colorScheme.onSurface,
       fontWeight: FontWeight.w700,
@@ -87,15 +87,23 @@ ThemeData _buildTheme({
       color: colorScheme.onSurface,
       height: 1.5,
     ),
-    bodySmall: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+    bodySmall: textTheme.bodySmall?.copyWith(
+      color: colorScheme.onSurfaceVariant,
+    ),
     labelLarge: textTheme.labelLarge?.copyWith(
       color: colorScheme.onSurface,
       fontWeight: FontWeight.w700,
     ),
-    labelMedium: textTheme.labelMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-    labelSmall: textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
+    labelMedium: textTheme.labelMedium?.copyWith(
+      color: colorScheme.onSurfaceVariant,
+    ),
+    labelSmall: textTheme.labelSmall?.copyWith(
+      color: colorScheme.onSurfaceVariant,
+    ),
   );
-  final subtleBorder = colorScheme.outlineVariant.withValues(alpha: isDark ? 0.7 : 0.8);
+  final subtleBorder = colorScheme.outlineVariant.withValues(
+    alpha: isDark ? 0.7 : 0.8,
+  );
 
   return base.copyWith(
     textTheme: resolvedTextTheme,
@@ -125,7 +133,7 @@ ThemeData _buildTheme({
       color: colorScheme.surfaceContainerLow,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RahaRadius.card),
         side: BorderSide(color: subtleBorder),
       ),
     ),
@@ -150,12 +158,14 @@ ThemeData _buildTheme({
           fontWeight: FontWeight.w700,
         );
       }),
-      iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-            size: states.contains(WidgetState.selected) ? 25 : 23,
-            color: states.contains(WidgetState.selected)
-                ? colorScheme.onPrimaryContainer
-                : colorScheme.onSurfaceVariant,
-          )),
+      iconTheme: WidgetStateProperty.resolveWith(
+        (states) => IconThemeData(
+          size: states.contains(WidgetState.selected) ? 25 : 23,
+          color: states.contains(WidgetState.selected)
+              ? colorScheme.onPrimaryContainer
+              : colorScheme.onSurfaceVariant,
+        ),
+      ),
     ),
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: colorScheme.surfaceContainerLow,
@@ -173,20 +183,26 @@ ThemeData _buildTheme({
     ),
     inputDecorationTheme: InputDecorationThemeData(
       filled: true,
-      fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: isDark ? 0.7 : 0.55),
-      labelStyle: resolvedTextTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-      hintStyle: resolvedTextTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+      fillColor: colorScheme.surfaceContainerHighest.withValues(
+        alpha: isDark ? 0.7 : 0.55,
+      ),
+      labelStyle: resolvedTextTheme.bodyMedium?.copyWith(
+        color: colorScheme.onSurfaceVariant,
+      ),
+      hintStyle: resolvedTextTheme.bodyMedium?.copyWith(
+        color: colorScheme.onSurfaceVariant,
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RahaRadius.control),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RahaRadius.control),
         borderSide: BorderSide(color: subtleBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(RahaRadius.control),
         borderSide: BorderSide(color: colorScheme.primary, width: 1.6),
       ),
     ),
@@ -198,7 +214,9 @@ ThemeData _buildTheme({
         disabledBackgroundColor: colorScheme.onSurface.withValues(alpha: 0.12),
         minimumSize: const Size(48, 48),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(RahaRadius.control),
+        ),
         textStyle: resolvedTextTheme.labelLarge,
       ),
     ),
@@ -207,12 +225,33 @@ ThemeData _buildTheme({
         foregroundColor: colorScheme.primary,
         minimumSize: const Size(48, 48),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(RahaRadius.control),
+        ),
         side: BorderSide(color: subtleBorder),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(foregroundColor: colorScheme.primary),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: ButtonStyle(
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(RahaRadius.control),
+          ),
+        ),
+      ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      side: BorderSide(color: subtleBorder, width: 1.4),
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: colorScheme.primary,
+      linearTrackColor: colorScheme.surfaceContainerHighest,
+      linearMinHeight: 8,
+      borderRadius: BorderRadius.circular(RahaRadius.pill),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       elevation: 3,
@@ -226,20 +265,28 @@ ThemeData _buildTheme({
       selectedColor: colorScheme.primaryContainer,
       disabledColor: colorScheme.surfaceContainerHighest,
       side: BorderSide(color: subtleBorder),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      labelStyle: resolvedTextTheme.labelMedium?.copyWith(color: colorScheme.onSurface),
-      secondaryLabelStyle: resolvedTextTheme.labelMedium?.copyWith(color: colorScheme.onPrimaryContainer),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(RahaRadius.control),
+      ),
+      labelStyle: resolvedTextTheme.labelMedium?.copyWith(
+        color: colorScheme.onSurface,
+      ),
+      secondaryLabelStyle: resolvedTextTheme.labelMedium?.copyWith(
+        color: colorScheme.onPrimaryContainer,
+      ),
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
-        foregroundColor: WidgetStateProperty.resolveWith((states) =>
-            states.contains(WidgetState.selected)
-                ? colorScheme.onSecondaryContainer
-                : colorScheme.onSurface),
-        backgroundColor: WidgetStateProperty.resolveWith((states) =>
-            states.contains(WidgetState.selected)
-                ? colorScheme.secondaryContainer
-                : colorScheme.surfaceContainerLow),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colorScheme.onSecondaryContainer
+              : colorScheme.onSurface,
+        ),
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colorScheme.secondaryContainer
+              : colorScheme.surfaceContainerLow,
+        ),
       ),
     ),
     bottomSheetTheme: BottomSheetThemeData(
@@ -248,15 +295,23 @@ ThemeData _buildTheme({
       modalBackgroundColor: colorScheme.surface,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(RahaRadius.sheet),
+        ),
       ),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: colorScheme.surface,
       surfaceTintColor: Colors.transparent,
-      titleTextStyle: resolvedTextTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
-      contentTextStyle: resolvedTextTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+      titleTextStyle: resolvedTextTheme.titleLarge?.copyWith(
+        color: colorScheme.onSurface,
+      ),
+      contentTextStyle: resolvedTextTheme.bodyMedium?.copyWith(
+        color: colorScheme.onSurface,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(RahaRadius.card),
+      ),
     ),
     datePickerTheme: DatePickerThemeData(
       backgroundColor: colorScheme.surface,
@@ -264,7 +319,9 @@ ThemeData _buildTheme({
       headerBackgroundColor: colorScheme.primaryContainer,
       headerForegroundColor: colorScheme.onPrimaryContainer,
       dayForegroundColor: WidgetStatePropertyAll(colorScheme.onSurface),
-      weekdayStyle: resolvedTextTheme.labelMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+      weekdayStyle: resolvedTextTheme.labelMedium?.copyWith(
+        color: colorScheme.onSurfaceVariant,
+      ),
       yearForegroundColor: WidgetStatePropertyAll(colorScheme.onSurface),
     ),
     timePickerTheme: TimePickerThemeData(
@@ -280,11 +337,15 @@ ThemeData _buildTheme({
     popupMenuTheme: PopupMenuThemeData(
       color: colorScheme.surfaceContainer,
       surfaceTintColor: Colors.transparent,
-      textStyle: resolvedTextTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
+      textStyle: resolvedTextTheme.bodyMedium?.copyWith(
+        color: colorScheme.onSurface,
+      ),
     ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: colorScheme.inverseSurface,
-      contentTextStyle: resolvedTextTheme.bodyMedium?.copyWith(color: colorScheme.onInverseSurface),
+      contentTextStyle: resolvedTextTheme.bodyMedium?.copyWith(
+        color: colorScheme.onInverseSurface,
+      ),
       actionTextColor: colorScheme.inversePrimary,
       behavior: SnackBarBehavior.floating,
     ),

@@ -1,38 +1,54 @@
+import '../../../core/persistence/write_status.dart';
+
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/notifications/reminder_models.dart';
 import '../../../core/notifications/reminder_service.dart';
+import '../../../core/persistence/drift_entity_repository.dart';
 import '../domain/medication_plan.dart';
 
 class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
-  MedicationNotifier({this.persistenceEnabled = true}) : super(const []) {
-    if (persistenceEnabled) unawaited(_load());
+  MedicationNotifier({
+    this.persistenceEnabled = true,
+    DriftEntityRepository? repository,
+  }) : _repository = repository ?? DriftEntityRepository(),
+       super(const []) {
+    if (persistenceEnabled) {
+      _ready = WriteStatus.load(_load);
+    }
   }
 
-  static const _key = 'medications.v1';
+  static const _entityType = 'medication_plan';
   static const _uuid = Uuid();
+  Future<void> _ready = Future<void>.value();
   final bool persistenceEnabled;
+  final DriftEntityRepository _repository;
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
-    if (raw == null || raw.isEmpty) return;
     try {
-      state = (jsonDecode(raw) as List<dynamic>)
-          .map((item) => MedicationPlan.fromJson(Map<String, Object?>.from(item as Map)))
-          .toList();
-    } catch (_) {}
+      await _repository.migrateLegacyList(
+        migrationKey: 'v0.7.medications.v1',
+        entityType: _entityType,
+        preferenceKeys: const ['medications.v1'],
+      );
+      state = (await _repository.loadAll(
+        _entityType,
+      )).map(MedicationPlan.fromJson).toList(growable: false);
+    } catch (error) {
+      WriteStatus.report(error);
+    }
   }
 
   Future<void> _persist() async {
     if (!persistenceEnabled) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(state.map((item) => item.toJson()).toList()));
+    await _ready;
+    await _repository.replaceAll(
+      _entityType,
+      state.map((item) => item.toJson()),
+    );
   }
 
   MedicationPlan add({
@@ -76,7 +92,7 @@ class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
       reminder: reminder,
     );
     state = [...state, plan];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
     return plan;
   }
 
@@ -89,7 +105,7 @@ class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
         else
           item,
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
     if (updated != null && !updated.active) {
       unawaited(ReminderService.instance.cancel('medication:$id'));
     }
@@ -99,8 +115,11 @@ class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
   void delete(String id) {
     state = state.where((item) => item.id != id).toList();
     unawaited(ReminderService.instance.cancel('medication:$id'));
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 }
 
-final medicationProvider = StateNotifierProvider<MedicationNotifier, List<MedicationPlan>>((ref) => MedicationNotifier());
+final medicationProvider =
+    StateNotifierProvider<MedicationNotifier, List<MedicationPlan>>(
+      (ref) => MedicationNotifier(),
+    );

@@ -1,3 +1,5 @@
+import 'package:shamsi_date/shamsi_date.dart';
+
 import '../../../core/notifications/reminder_models.dart';
 
 enum HomeEntryType {
@@ -44,6 +46,8 @@ class HomeEntry {
     required this.dateTime,
     this.details,
     this.completed = false,
+    this.completedDates = const [],
+    this.calendar = 'gregorian',
     this.subtype,
     this.personId,
     this.amount,
@@ -69,6 +73,10 @@ class HomeEntry {
       details: json['details'] as String?,
       dateTime: DateTime.parse(json['dateTime']! as String),
       completed: json['completed'] as bool? ?? false,
+      completedDates: (json['completedDates'] as List? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      calendar: json['calendar']?.toString() ?? 'gregorian',
       subtype: json['subtype'] as String?,
       personId: json['personId'] as String?,
       amount: (json['amount'] as num?)?.toDouble(),
@@ -90,6 +98,15 @@ class HomeEntry {
   final String? details;
   final DateTime dateTime;
   final bool completed;
+  final List<String> completedDates;
+  final String calendar;
+  bool get recurring =>
+      type == HomeEntryType.habit ||
+      type == HomeEntryType.birthday ||
+      reminder.repeat != ReminderRepeat.none;
+  String dayKey(DateTime day) => '${day.year}-${day.month}-${day.day}';
+  bool completedOn(DateTime day) =>
+      recurring ? completedDates.contains(dayKey(day)) : completed;
   final String? subtype;
   final String? personId;
   final double? amount;
@@ -100,27 +117,31 @@ class HomeEntry {
   final ReminderPlan reminder;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'type': type.name,
-        'title': title,
-        'details': details,
-        'dateTime': dateTime.toIso8601String(),
-        'completed': completed,
-        'subtype': subtype,
-        'personId': personId,
-        'amount': amount,
-        'location': location,
-        'address': address,
-        'linkedShoppingListId': linkedShoppingListId,
-        'projectId': projectId,
-        'reminder': reminder.toJson(),
-      };
+    'id': id,
+    'type': type.name,
+    'title': title,
+    'details': details,
+    'dateTime': dateTime.toIso8601String(),
+    'completed': completed,
+    'completedDates': completedDates,
+    'calendar': calendar,
+    'subtype': subtype,
+    'personId': personId,
+    'amount': amount,
+    'location': location,
+    'address': address,
+    'linkedShoppingListId': linkedShoppingListId,
+    'projectId': projectId,
+    'reminder': reminder.toJson(),
+  };
 
   HomeEntry copyWith({
     String? title,
     String? details,
     DateTime? dateTime,
     bool? completed,
+    List<String>? completedDates,
+    String? calendar,
     String? subtype,
     String? personId,
     double? amount,
@@ -129,31 +150,51 @@ class HomeEntry {
     String? linkedShoppingListId,
     String? projectId,
     ReminderPlan? reminder,
-  }) =>
-      HomeEntry(
-        id: id,
-        type: type,
-        title: title ?? this.title,
-        details: details ?? this.details,
-        dateTime: dateTime ?? this.dateTime,
-        completed: completed ?? this.completed,
-        subtype: subtype ?? this.subtype,
-        personId: personId ?? this.personId,
-        amount: amount ?? this.amount,
-        location: location ?? this.location,
-        address: address ?? this.address,
-        linkedShoppingListId:
-            linkedShoppingListId ?? this.linkedShoppingListId,
-        projectId: projectId ?? this.projectId,
-        reminder: reminder ?? this.reminder,
-      );
+  }) => HomeEntry(
+    id: id,
+    type: type,
+    title: title ?? this.title,
+    details: details ?? this.details,
+    dateTime: dateTime ?? this.dateTime,
+    completed: completed ?? this.completed,
+    completedDates: completedDates ?? this.completedDates,
+    calendar: calendar ?? this.calendar,
+    subtype: subtype ?? this.subtype,
+    personId: personId ?? this.personId,
+    amount: amount ?? this.amount,
+    location: location ?? this.location,
+    address: address ?? this.address,
+    linkedShoppingListId: linkedShoppingListId ?? this.linkedShoppingListId,
+    projectId: projectId ?? this.projectId,
+    reminder: reminder ?? this.reminder,
+  );
 
   bool occursOn(DateTime date) {
-    if (type == HomeEntryType.birthday) {
-      return date.month == dateTime.month && date.day == dateTime.day;
+    final start = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    final target = DateTime(date.year, date.month, date.day);
+    if (type != HomeEntryType.birthday && target.isBefore(start)) {
+      return false;
     }
-    return date.year == dateTime.year &&
-        date.month == dateTime.month &&
-        date.day == dateTime.day;
+    final repeat = type == HomeEntryType.birthday
+        ? ReminderRepeat.yearly
+        : (type == HomeEntryType.habit && reminder.repeat == ReminderRepeat.none
+              ? ReminderRepeat.daily
+              : reminder.repeat);
+    if (repeat == ReminderRepeat.daily) {
+      return true;
+    }
+    if (repeat == ReminderRepeat.weekly) {
+      return date.weekday == dateTime.weekday;
+    }
+    if (repeat == ReminderRepeat.monthly || repeat == ReminderRepeat.yearly) {
+      if (calendar == 'jalali') {
+        final a = Jalali.fromDateTime(dateTime), b = Jalali.fromDateTime(date);
+        return a.day == b.day &&
+            (repeat == ReminderRepeat.monthly || a.month == b.month);
+      }
+      return dateTime.day == date.day &&
+          (repeat == ReminderRepeat.monthly || dateTime.month == date.month);
+    }
+    return target == start;
   }
 }

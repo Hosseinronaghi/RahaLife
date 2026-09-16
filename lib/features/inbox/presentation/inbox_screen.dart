@@ -43,14 +43,44 @@ class InboxScreen extends ConsumerWidget {
                           leading: const Icon(Icons.inbox_rounded),
                           title: Text(item.text),
                           trailing: PopupMenuButton<String>(
-                            onSelected: (value) => _convert(context, ref, item.id, item.text, value),
+                            onSelected: (value) => _convert(
+                              context,
+                              ref,
+                              item.id,
+                              item.text,
+                              value,
+                            ),
                             itemBuilder: (_) => [
-                              PopupMenuItem(value: 'affair', child: Text('${l10n.convertTo}: ${l10n.tasks}')),
-                              PopupMenuItem(value: 'appointment', child: Text('${l10n.convertTo}: ${l10n.appointments}')),
-                              PopupMenuItem(value: 'note', child: Text('${l10n.convertTo}: ${l10n.notes}')),
-                              PopupMenuItem(value: 'shopping', child: Text('${l10n.convertTo}: ${l10n.shopping}')),
-                              PopupMenuItem(value: 'project', child: Text('${l10n.convertTo}: ${l10n.projects}')),
-                              PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
+                              PopupMenuItem(
+                                value: 'affair',
+                                child: Text('${l10n.convertTo}: ${l10n.tasks}'),
+                              ),
+                              PopupMenuItem(
+                                value: 'appointment',
+                                child: Text(
+                                  '${l10n.convertTo}: ${l10n.appointments}',
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'note',
+                                child: Text('${l10n.convertTo}: ${l10n.notes}'),
+                              ),
+                              PopupMenuItem(
+                                value: 'shopping',
+                                child: Text(
+                                  '${l10n.convertTo}: ${l10n.shopping}',
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'project',
+                                child: Text(
+                                  '${l10n.convertTo}: ${l10n.projects}',
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text(l10n.delete),
+                              ),
                             ],
                           ),
                         ),
@@ -63,22 +93,34 @@ class InboxScreen extends ConsumerWidget {
     );
   }
 
-  void _convert(BuildContext context, WidgetRef ref, String id, String text, String target) {
+  void _convert(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+    String text,
+    String target,
+  ) {
     if (target == 'delete') {
       ref.read(inboxProvider.notifier).remove(id);
       return;
     }
     if (target == 'affair' || target == 'appointment') {
-      ref.read(homeEntriesProvider.notifier).add(
-            type: target == 'affair' ? HomeEntryType.affair : HomeEntryType.appointment,
+      ref
+          .read(homeEntriesProvider.notifier)
+          .add(
+            type: target == 'affair'
+                ? HomeEntryType.affair
+                : HomeEntryType.appointment,
             title: text,
             dateTime: DateTime.now(),
           );
     } else if (target == 'note') {
-      ref.read(notesProvider.notifier).save(
+      ref
+          .read(notesProvider.notifier)
+          .save(
             title: text,
             deltaJson: jsonEncode([
-              {'insert': '$text\n'}
+              {'insert': '$text\n'},
             ]),
             plainText: text,
           );
@@ -88,7 +130,9 @@ class InboxScreen extends ConsumerWidget {
       ref.read(projectsProvider.notifier).add(title: text);
     }
     ref.read(inboxProvider.notifier).remove(id);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context).convertDone)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context).convertDone)),
+    );
   }
 }
 
@@ -111,23 +155,23 @@ class _CaptureBoxState extends State<_CaptureBox> {
 
   @override
   Widget build(BuildContext context) => TextField(
-        controller: controller,
-        minLines: 2,
-        maxLines: 4,
-        decoration: InputDecoration(
-          hintText: widget.hint,
-          prefixIcon: const Icon(Icons.bolt_rounded),
-          suffixIcon: IconButton(
-            onPressed: () {
-              widget.onAdd(controller.text);
-              controller.clear();
-            },
-            icon: const Icon(Icons.add_circle_rounded),
-          ),
-        ),
-        onSubmitted: (value) {
-          widget.onAdd(value);
+    controller: controller,
+    minLines: 2,
+    maxLines: 4,
+    decoration: InputDecoration(
+      hintText: widget.hint,
+      prefixIcon: const Icon(Icons.bolt_rounded),
+      suffixIcon: IconButton(
+        onPressed: () {
+          widget.onAdd(controller.text);
           controller.clear();
         },
-      );
+        icon: const Icon(Icons.add_circle_rounded),
+      ),
+    ),
+    onSubmitted: (value) {
+      widget.onAdd(value);
+      controller.clear();
+    },
+  );
 }

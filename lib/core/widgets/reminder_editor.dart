@@ -40,6 +40,23 @@ class ReminderEditor extends StatelessWidget {
               value: plan.enabled,
               onChanged: (value) => onChanged(plan.copyWith(enabled: value)),
             ),
+            if (!plan.enabled && repeatOptions.length > 1)
+              DropdownButtonFormField<ReminderRepeat>(
+                initialValue: repeatOptions.contains(plan.repeat)
+                    ? plan.repeat
+                    : repeatOptions.first,
+                decoration: InputDecoration(labelText: l10n.repeat),
+                items: [
+                  for (final repeat in repeatOptions)
+                    DropdownMenuItem(
+                      value: repeat,
+                      child: Text(_repeatLabel(l10n, repeat)),
+                    ),
+                ],
+                onChanged: (v) {
+                  if (v != null) onChanged(plan.copyWith(repeat: v));
+                },
+              ),
             if (plan.enabled) ...[
               const Divider(),
               SegmentedButton<ReminderKind>(
@@ -56,9 +73,8 @@ class ReminderEditor extends StatelessWidget {
                   ),
                 ],
                 selected: {plan.kind},
-                onSelectionChanged: (values) => onChanged(
-                  plan.copyWith(kind: values.first),
-                ),
+                onSelectionChanged: (values) =>
+                    onChanged(plan.copyWith(kind: values.first)),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
@@ -71,10 +87,7 @@ class ReminderEditor extends StatelessWidget {
                     DropdownMenuItem(
                       value: minutes,
                       child: Text(
-                        localizeDigits(
-                          _beforeLabel(l10n, minutes),
-                          locale,
-                        ),
+                        localizeDigits(_beforeLabel(l10n, minutes), locale),
                       ),
                     ),
                 ],

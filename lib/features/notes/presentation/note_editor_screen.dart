@@ -63,7 +63,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   void _save() {
     final l10n = AppLocalizations.of(context);
-    ref.read(notesProvider.notifier).save(
+    ref
+        .read(notesProvider.notifier)
+        .save(
           id: widget.noteId,
           title: _titleController.text,
           deltaJson: jsonEncode(_controller.document.toDelta().toJson()),
@@ -76,9 +78,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           projectId: _projectId,
           personId: _personId,
         );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.noteSaved)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.noteSaved)));
   }
 
   @override
@@ -95,7 +97,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             onPressed: () => shareTextFromContext(
               context,
               subject: _titleController.text,
-              text: '${_titleController.text}\n\n${_controller.document.toPlainText()}'.trim(),
+              text:
+                  '${_titleController.text}\n\n${_controller.document.toPlainText()}'
+                      .trim(),
             ),
             icon: const Icon(Icons.ios_share_rounded),
           ),
@@ -137,7 +141,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                       Expanded(
                         child: DropdownButtonFormField<String?>(
                           initialValue: _projectId,
-                          decoration: InputDecoration(labelText: l10n.noteProject),
+                          decoration: InputDecoration(
+                            labelText: l10n.noteProject,
+                          ),
                           items: [
                             DropdownMenuItem<String?>(
                               value: null,
@@ -150,7 +156,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                               ),
                             ),
                           ],
-                          onChanged: (value) => setState(() => _projectId = value),
+                          onChanged: (value) =>
+                              setState(() => _projectId = value),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -170,7 +177,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                               ),
                             ),
                           ],
-                          onChanged: (value) => setState(() => _personId = value),
+                          onChanged: (value) =>
+                              setState(() => _personId = value),
                         ),
                       ),
                     ],
@@ -213,7 +221,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     );
   }
 }
-
 
 RichNote? _noteById(Iterable<RichNote> notes, String id) {
   for (final note in notes) {

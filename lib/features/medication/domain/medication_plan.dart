@@ -39,35 +39,39 @@ class MedicationPlan {
   });
 
   factory MedicationPlan.fromJson(Map<String, Object?> json) => MedicationPlan(
-        id: json['id']! as String,
-        name: json['name']! as String,
-        form: MedicationForm.values.firstWhere(
-          (value) => value.name == json['form'],
-          orElse: () => MedicationForm.tablet,
-        ),
-        dosage: json['dosage']! as String,
-        time: json['time']! as String,
-        genericName: json['genericName'] as String?,
-        brandName: json['brandName'] as String?,
-        therapeuticGroup: json['therapeuticGroup'] as String?,
-        commonUse: json['commonUse'] as String?,
-        reasonForUse: json['reasonForUse'] as String?,
-        courseType: MedicationCourseType.values.firstWhere(
-          (value) => value.name == json['courseType'],
-          orElse: () => MedicationCourseType.continuous,
-        ),
-        startDate: json['startDate'] == null ? null : DateTime.tryParse(json['startDate']! as String),
-        endDate: json['endDate'] == null ? null : DateTime.tryParse(json['endDate']! as String),
-        courseDays: (json['courseDays'] as num?)?.toInt(),
-        instructions: json['instructions'] as String?,
-        stock: (json['stock'] as num?)?.toDouble(),
-        active: json['active'] as bool? ?? true,
-        reminder: ReminderPlan.fromJson(
-          json['reminder'] is Map
-              ? Map<String, Object?>.from(json['reminder']! as Map)
-              : null,
-        ),
-      );
+    id: json['id']! as String,
+    name: json['name']! as String,
+    form: MedicationForm.values.firstWhere(
+      (value) => value.name == json['form'],
+      orElse: () => MedicationForm.tablet,
+    ),
+    dosage: json['dosage']! as String,
+    time: json['time']! as String,
+    genericName: json['genericName'] as String?,
+    brandName: json['brandName'] as String?,
+    therapeuticGroup: json['therapeuticGroup'] as String?,
+    commonUse: json['commonUse'] as String?,
+    reasonForUse: json['reasonForUse'] as String?,
+    courseType: MedicationCourseType.values.firstWhere(
+      (value) => value.name == json['courseType'],
+      orElse: () => MedicationCourseType.continuous,
+    ),
+    startDate: json['startDate'] == null
+        ? null
+        : DateTime.tryParse(json['startDate']! as String),
+    endDate: json['endDate'] == null
+        ? null
+        : DateTime.tryParse(json['endDate']! as String),
+    courseDays: (json['courseDays'] as num?)?.toInt(),
+    instructions: json['instructions'] as String?,
+    stock: (json['stock'] as num?)?.toDouble(),
+    active: json['active'] as bool? ?? true,
+    reminder: ReminderPlan.fromJson(
+      json['reminder'] is Map
+          ? Map<String, Object?>.from(json['reminder']! as Map)
+          : null,
+    ),
+  );
 
   final String id;
   final String name;
@@ -90,8 +94,12 @@ class MedicationPlan {
 
   DateTime? get calculatedEndDate {
     if (endDate != null) return endDate;
-    if (courseType == MedicationCourseType.fixedDays && startDate != null && courseDays != null) {
-      return startDate!.add(Duration(days: courseDays!));
+    if (courseType == MedicationCourseType.fixedDays &&
+        startDate != null &&
+        courseDays != null) {
+      return startDate!.add(
+        Duration(days: courseDays! > 0 ? courseDays! - 1 : 0),
+      );
     }
     return null;
   }
@@ -104,51 +112,50 @@ class MedicationPlan {
   }
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'name': name,
-        'genericName': genericName,
-        'brandName': brandName,
-        'form': form.name,
-        'dosage': dosage,
-        'time': time,
-        'therapeuticGroup': therapeuticGroup,
-        'commonUse': commonUse,
-        'reasonForUse': reasonForUse,
-        'courseType': courseType.name,
-        'startDate': startDate?.toIso8601String(),
-        'endDate': endDate?.toIso8601String(),
-        'courseDays': courseDays,
-        'instructions': instructions,
-        'stock': stock,
-        'active': active,
-        'reminder': reminder.toJson(),
-      };
+    'id': id,
+    'name': name,
+    'genericName': genericName,
+    'brandName': brandName,
+    'form': form.name,
+    'dosage': dosage,
+    'time': time,
+    'therapeuticGroup': therapeuticGroup,
+    'commonUse': commonUse,
+    'reasonForUse': reasonForUse,
+    'courseType': courseType.name,
+    'startDate': startDate?.toIso8601String(),
+    'endDate': endDate?.toIso8601String(),
+    'courseDays': courseDays,
+    'instructions': instructions,
+    'stock': stock,
+    'active': active,
+    'reminder': reminder.toJson(),
+  };
 
   MedicationPlan copyWith({
     bool? active,
     double? stock,
     ReminderPlan? reminder,
-  }) =>
-      MedicationPlan(
-        id: id,
-        name: name,
-        genericName: genericName,
-        brandName: brandName,
-        form: form,
-        dosage: dosage,
-        time: time,
-        therapeuticGroup: therapeuticGroup,
-        commonUse: commonUse,
-        reasonForUse: reasonForUse,
-        courseType: courseType,
-        startDate: startDate,
-        endDate: endDate,
-        courseDays: courseDays,
-        instructions: instructions,
-        stock: stock ?? this.stock,
-        active: active ?? this.active,
-        reminder: reminder ?? this.reminder,
-      );
+  }) => MedicationPlan(
+    id: id,
+    name: name,
+    genericName: genericName,
+    brandName: brandName,
+    form: form,
+    dosage: dosage,
+    time: time,
+    therapeuticGroup: therapeuticGroup,
+    commonUse: commonUse,
+    reasonForUse: reasonForUse,
+    courseType: courseType,
+    startDate: startDate,
+    endDate: endDate,
+    courseDays: courseDays,
+    instructions: instructions,
+    stock: stock ?? this.stock,
+    active: active ?? this.active,
+    reminder: reminder ?? this.reminder,
+  );
 
   DateTime nextDoseDateTime([DateTime? now]) {
     final current = now ?? DateTime.now();
@@ -162,7 +169,24 @@ class MedicationPlan {
       hour,
       minute,
     );
-    if (!result.isAfter(current)) result = result.add(const Duration(days: 1));
+    if (!result.isAfter(current)) {
+      result = DateTime(
+        result.year,
+        result.month,
+        result.day + 1,
+        hour,
+        minute,
+      );
+    }
+    if (startDate != null && result.isBefore(startDate!)) {
+      result = DateTime(
+        startDate!.year,
+        startDate!.month,
+        startDate!.day,
+        hour,
+        minute,
+      );
+    }
     return result;
   }
 }

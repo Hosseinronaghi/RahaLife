@@ -14,7 +14,8 @@ const homeSectionOrder = <HomeEntryType>[
   HomeEntryType.finance,
 ];
 
-String homeEntryTypeLabel(AppLocalizations l10n, HomeEntryType type) => switch (type) {
+String homeEntryTypeLabel(AppLocalizations l10n, HomeEntryType type) =>
+    switch (type) {
       HomeEntryType.affair => l10n.tasks,
       HomeEntryType.appointment => l10n.appointments,
       HomeEntryType.shopping => l10n.shopping,
@@ -25,7 +26,8 @@ String homeEntryTypeLabel(AppLocalizations l10n, HomeEntryType type) => switch (
       HomeEntryType.finance => l10n.finance,
     };
 
-String addHomeEntryLabel(AppLocalizations l10n, HomeEntryType type) => switch (type) {
+String addHomeEntryLabel(AppLocalizations l10n, HomeEntryType type) =>
+    switch (type) {
       HomeEntryType.affair => l10n.addTask,
       HomeEntryType.appointment => l10n.addAppointment,
       HomeEntryType.shopping => l10n.newShoppingList,
@@ -37,17 +39,18 @@ String addHomeEntryLabel(AppLocalizations l10n, HomeEntryType type) => switch (t
     };
 
 IconData homeEntryTypeIcon(HomeEntryType type) => switch (type) {
-      HomeEntryType.affair => Icons.assignment_turned_in_rounded,
-      HomeEntryType.appointment => Icons.people_alt_rounded,
-      HomeEntryType.shopping => Icons.shopping_basket_rounded,
-      HomeEntryType.medication => Icons.medication_rounded,
-      HomeEntryType.birthday => Icons.cake_rounded,
-      HomeEntryType.habit => Icons.auto_graph_rounded,
-      HomeEntryType.note => Icons.sticky_note_2_rounded,
-      HomeEntryType.finance => Icons.account_balance_wallet_rounded,
-    };
+  HomeEntryType.affair => Icons.assignment_turned_in_rounded,
+  HomeEntryType.appointment => Icons.people_alt_rounded,
+  HomeEntryType.shopping => Icons.shopping_basket_rounded,
+  HomeEntryType.medication => Icons.medication_rounded,
+  HomeEntryType.birthday => Icons.cake_rounded,
+  HomeEntryType.habit => Icons.auto_graph_rounded,
+  HomeEntryType.note => Icons.sticky_note_2_rounded,
+  HomeEntryType.finance => Icons.account_balance_wallet_rounded,
+};
 
-Color homeEntryTypeColor(HomeEntryType type, ColorScheme scheme) => switch (type) {
+Color homeEntryTypeColor(HomeEntryType type, ColorScheme scheme) =>
+    switch (type) {
       HomeEntryType.affair => scheme.primary,
       HomeEntryType.appointment => const Color(0xFF8B5CF6),
       HomeEntryType.shopping => const Color(0xFFEC4899),
@@ -58,7 +61,8 @@ Color homeEntryTypeColor(HomeEntryType type, ColorScheme scheme) => switch (type
       HomeEntryType.finance => const Color(0xFF10B981),
     };
 
-String affairKindLabel(AppLocalizations l10n, AffairKind kind) => switch (kind) {
+String affairKindLabel(AppLocalizations l10n, AffairKind kind) =>
+    switch (kind) {
       AffairKind.personal => l10n.affairPersonal,
       AffairKind.work => l10n.affairWork,
       AffairKind.administrative => l10n.affairAdministrative,
@@ -72,7 +76,8 @@ String affairKindLabel(AppLocalizations l10n, AffairKind kind) => switch (kind) 
       AffairKind.custom => l10n.affairCustom,
     };
 
-String appointmentKindLabel(AppLocalizations l10n, AppointmentKind kind) => switch (kind) {
+String appointmentKindLabel(AppLocalizations l10n, AppointmentKind kind) =>
+    switch (kind) {
       AppointmentKind.meeting => l10n.appointmentMeeting,
       AppointmentKind.cafe => l10n.appointmentCafe,
       AppointmentKind.gathering => l10n.appointmentGathering,
@@ -82,7 +87,6 @@ String appointmentKindLabel(AppLocalizations l10n, AppointmentKind kind) => swit
       AppointmentKind.party => l10n.appointmentParty,
       AppointmentKind.custom => l10n.appointmentCustom,
     };
-
 
 String? homeEntrySubtypeLabel(AppLocalizations l10n, HomeEntry entry) {
   final subtype = entry.subtype;

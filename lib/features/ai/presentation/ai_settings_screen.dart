@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
@@ -45,24 +46,45 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     setState(() {
       _provider = provider;
       _apiKeyController.text = key ?? '';
-      _baseUrlController.text = preferences.getString(_baseUrlKey) ?? '';
+      _baseUrlController.text =
+          preferences.getString('$_baseUrlKey.${provider.name}') ??
+          preferences.getString(_baseUrlKey) ??
+          '';
       _modelController.text =
-          preferences.getString(_modelKey) ?? 'gpt-4.1-mini';
+          preferences.getString('$_modelKey.${provider.name}') ??
+          preferences.getString(_modelKey) ??
+          'gpt-4.1-mini';
       _loading = false;
     });
   }
 
   Future<void> _changeProvider(AiProviderType provider) async {
     final key = await _credentials.readApiKey(provider.name);
+    final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
       _provider = provider;
       _apiKeyController.text = key ?? '';
+      _modelController.text =
+          prefs.getString('$_modelKey.${provider.name}') ??
+          (provider == AiProviderType.gemini
+              ? 'gemini-2.5-flash'
+              : 'gpt-4.1-mini');
+      _baseUrlController.text =
+          prefs.getString('$_baseUrlKey.${provider.name}') ?? '';
     });
   }
 
   Future<void> _save() async {
     final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      '$_modelKey.${_provider.name}',
+      _modelController.text.trim(),
+    );
+    await preferences.setString(
+      '$_baseUrlKey.${_provider.name}',
+      _baseUrlController.text.trim(),
+    );
     await preferences.setString(_providerKey, _provider.name);
     await preferences.setString(_baseUrlKey, _baseUrlController.text.trim());
     await preferences.setString(_modelKey, _modelController.text.trim());
@@ -80,24 +102,44 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
 
   Future<void> _testConnection() async {
     final l10n = AppLocalizations.of(context);
-    if (_provider == AiProviderType.rahaFree ||
-        _provider == AiProviderType.gemini) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.featureNotReady)),
-      );
+    if (_provider == AiProviderType.rahaFree) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.featureNotReady)));
       return;
     }
     final apiKey = _apiKeyController.text.trim();
     if (apiKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.requiredField)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.requiredField)));
       return;
     }
     setState(() => _testing = true);
     final baseUrl = _provider == AiProviderType.openAi
         ? 'https://api.openai.com/v1'
         : _baseUrlController.text.trim();
+    if (_provider == AiProviderType.gemini) {
+      var success = false;
+      try {
+        await Dio().get(
+          'https://generativelanguage.googleapis.com/v1beta/models',
+          options: Options(headers: {'x-goog-api-key': apiKey}),
+        );
+        success = true;
+      } catch (_) {}
+      if (mounted) {
+        setState(() => _testing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success ? l10n.connectionSuccess : l10n.connectionFailed,
+            ),
+          ),
+        );
+      }
+      return;
+    }
     final provider = OpenAiCompatibleProvider(
       apiKey: apiKey,
       model: _modelController.text.trim().isEmpty
@@ -111,9 +153,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     setState(() => _testing = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          success ? l10n.connectionSuccess : l10n.connectionFailed,
-        ),
+        content: Text(success ? l10n.connectionSuccess : l10n.connectionFailed),
       ),
     );
   }
@@ -147,13 +187,14 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                           initialValue: _provider,
                           decoration: InputDecoration(
                             labelText: l10n.aiAssistant,
-                            prefixIcon:
-                                const Icon(Icons.auto_awesome_rounded),
+                            prefixIcon: const Icon(Icons.auto_awesome_rounded),
                           ),
                           items: [
                             DropdownMenuItem(
                               value: AiProviderType.rahaFree,
-                              child: Text('${l10n.rahaFreeAi} · ${l10n.comingSoon}'),
+                              child: Text(
+                                '${l10n.rahaFreeAi} · ${l10n.comingSoon}',
+                              ),
                             ),
                             DropdownMenuItem(
                               value: AiProviderType.openAi,
@@ -161,7 +202,9 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                             ),
                             DropdownMenuItem(
                               value: AiProviderType.gemini,
-                              child: Text('${l10n.geminiApi} · ${l10n.comingSoon}'),
+                              child: Text(
+                                '${l10n.geminiApi} · ${l10n.comingSoon}',
+                              ),
                             ),
                             DropdownMenuItem(
                               value: AiProviderType.customOpenAiCompatible,
@@ -245,7 +288,9 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                         icon: _testing
                             ? const SizedBox.square(
                                 dimension: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.wifi_tethering_rounded),
                         label: Text(l10n.testConnection),

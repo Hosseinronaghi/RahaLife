@@ -1,9 +1,25 @@
+import 'dart:convert';
+import '../../../core/database/database_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/presentation/auth_controller.dart';
+
+final _displayProfileProvider = StreamProvider<Map<String, dynamic>>(
+  (ref) =>
+      (appDatabase.select(appDatabase.entityDocuments)
+            ..where((row) => row.entityType.equals('user_preferences'))
+            ..where((row) => row.id.equals('profile'))
+            ..where((row) => row.deletedAt.isNull()))
+          .watchSingleOrNull()
+          .map(
+            (row) => row == null
+                ? <String, dynamic>{}
+                : Map<String, dynamic>.from(jsonDecode(row.payloadJson) as Map),
+          ),
+);
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -13,6 +29,9 @@ class ProfileScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final auth = ref.watch(authProvider);
     final user = auth.user;
+    final display = ref.watch(_displayProfileProvider).valueOrNull ?? {};
+    final displayName = (display['name'] as String? ?? '').trim();
+    final avatar = display['avatar'] as String?;
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profile)),
       body: ListView(
@@ -21,23 +40,72 @@ class ProfileScreen extends ConsumerWidget {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(22),
-              child: Column(children: [
-                CircleAvatar(radius: 42, backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: Text(user?.name.characters.first ?? '?', style: Theme.of(context).textTheme.headlineMedium)),
-                const SizedBox(height: 14),
-                Text(user?.name ?? l10n.guestMode, style: Theme.of(context).textTheme.titleLarge),
-                if (user != null) ...[const SizedBox(height: 6), Text(user.email)],
-                const SizedBox(height: 20),
-                FilledButton.icon(onPressed: () => context.push('/account'), icon: Icon(user == null ? Icons.login_rounded : Icons.manage_accounts_rounded), label: Text(user == null ? l10n.createAccount : l10n.account)),
-              ]),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 42,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer,
+                    child: Text(
+                      (avatar?.isNotEmpty == true
+                          ? avatar!
+                          : user?.name.isNotEmpty == true
+                          ? user!.name.characters.first
+                          : '?'),
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.edit_outlined),
+                    title: Text(l10n.profile),
+                    onTap: () => context.push('/profile/details'),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    displayName.isNotEmpty
+                        ? displayName
+                        : user?.name ?? l10n.guestMode,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  if (user != null) ...[
+                    const SizedBox(height: 6),
+                    Text(user.email),
+                  ],
+                  const SizedBox(height: 20),
+                  FilledButton.icon(
+                    onPressed: () => context.push('/account'),
+                    icon: Icon(
+                      user == null
+                          ? Icons.login_rounded
+                          : Icons.manage_accounts_rounded,
+                    ),
+                    label: Text(
+                      user == null ? l10n.createAccount : l10n.account,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 14),
           Card(
-            child: Column(children: [
-              ListTile(leading: const Icon(Icons.cloud_sync_rounded), title: Text(l10n.cloudBackup), subtitle: Text(l10n.syncNextVersion)),
-              const Divider(),
-              ListTile(leading: const Icon(Icons.shield_outlined), title: Text(l10n.privacy), trailing: const Icon(Icons.chevron_right_rounded), onTap: () => context.push('/coming-soon', extra: l10n.privacy)),
-            ]),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.cloud_sync_rounded),
+                  title: Text(l10n.cloudBackup),
+                  onTap: () => context.push('/sync'),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.shield_outlined),
+                  title: Text(l10n.privacy),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/profile/details'),
+                ),
+              ],
+            ),
           ),
         ],
       ),

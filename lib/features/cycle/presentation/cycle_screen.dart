@@ -23,7 +23,16 @@ class CycleScreen extends ConsumerWidget {
     final now = DateTime.now();
     final cycleDay = latest == null
         ? null
-        : now.difference(DateTime(latest.startDate.year, latest.startDate.month, latest.startDate.day)).inDays + 1;
+        : now
+                  .difference(
+                    DateTime(
+                      latest.startDate.year,
+                      latest.startDate.month,
+                      latest.startDate.day,
+                    ),
+                  )
+                  .inDays +
+              1;
 
     return Scaffold(
       appBar: AppBar(
@@ -32,7 +41,11 @@ class CycleScreen extends ConsumerWidget {
           IconButton(
             tooltip: l10n.privacy,
             onPressed: () => _showPrivacy(context, ref, hideSensitive),
-            icon: Icon(hideSensitive ? Icons.visibility_off_rounded : Icons.visibility_rounded),
+            icon: Icon(
+              hideSensitive
+                  ? Icons.visibility_off_rounded
+                  : Icons.visibility_rounded,
+            ),
           ),
         ],
       ),
@@ -52,7 +65,9 @@ class CycleScreen extends ConsumerWidget {
                   Theme.of(context).colorScheme.surface,
                 ],
               ),
-              border: Border.all(color: const Color(0xFFE11D48).withValues(alpha: 0.12)),
+              border: Border.all(
+                color: const Color(0xFFE11D48).withValues(alpha: 0.12),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,16 +81,25 @@ class CycleScreen extends ConsumerWidget {
                         color: const Color(0xFFE11D48).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: const Icon(Icons.water_drop_rounded, color: Color(0xFFE11D48), size: 30),
+                      child: const Icon(
+                        Icons.water_drop_rounded,
+                        color: Color(0xFFE11D48),
+                        size: 30,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(l10n.cycleToday, style: Theme.of(context).textTheme.titleLarge),
+                          Text(
+                            l10n.cycleToday,
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                           if (cycleDay != null && cycleDay > 0)
-                            Text('${l10n.cycleDay} ${localizeDigits(cycleDay.toString(), locale)}'),
+                            Text(
+                              '${l10n.cycleDay} ${localizeDigits(cycleDay.toString(), locale)}',
+                            ),
                         ],
                       ),
                     ),
@@ -86,19 +110,29 @@ class CycleScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.78),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.78),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.auto_awesome_rounded, color: Color(0xFFA855F7)),
+                        const Icon(
+                          Icons.auto_awesome_rounded,
+                          color: Color(0xFFA855F7),
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(l10n.estimatedNextCycle, style: Theme.of(context).textTheme.labelLarge),
-                              Text('${compactDualDate(predicted, locale)} • ${l10n.estimated}'),
+                              Text(
+                                l10n.estimatedNextCycle,
+                                style: Theme.of(context).textTheme.labelLarge,
+                              ),
+                              Text(
+                                '${compactDualDate(predicted, locale)} • ${l10n.estimated}',
+                              ),
                             ],
                           ),
                         ),
@@ -119,7 +153,10 @@ class CycleScreen extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Text(l10n.quickLog, style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        l10n.quickLog,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const Spacer(),
                       FilledButton.tonalIcon(
                         onPressed: () => _showCycleForm(context, ref),
@@ -133,10 +170,26 @@ class CycleScreen extends ConsumerWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _QuickChip(icon: Icons.water_drop_outlined, text: l10n.flowIntensity, onTap: () => _showCycleForm(context, ref)),
-                      _QuickChip(icon: Icons.monitor_heart_outlined, text: l10n.painLevel, onTap: () => _showCycleForm(context, ref)),
-                      _QuickChip(icon: Icons.mood_rounded, text: l10n.mood, onTap: () => _showCycleForm(context, ref)),
-                      _QuickChip(icon: Icons.health_and_safety_outlined, text: l10n.symptoms, onTap: () => _showCycleForm(context, ref)),
+                      _QuickChip(
+                        icon: Icons.water_drop_outlined,
+                        text: l10n.flowIntensity,
+                        onTap: () => _showCycleForm(context, ref),
+                      ),
+                      _QuickChip(
+                        icon: Icons.monitor_heart_outlined,
+                        text: l10n.painLevel,
+                        onTap: () => _showCycleForm(context, ref),
+                      ),
+                      _QuickChip(
+                        icon: Icons.mood_rounded,
+                        text: l10n.mood,
+                        onTap: () => _showCycleForm(context, ref),
+                      ),
+                      _QuickChip(
+                        icon: Icons.health_and_safety_outlined,
+                        text: l10n.symptoms,
+                        onTap: () => _showCycleForm(context, ref),
+                      ),
                     ],
                   ),
                 ],
@@ -158,32 +211,49 @@ class CycleScreen extends ConsumerWidget {
               ),
             )
           else ...[
-            Text(l10n.cycleInsights, style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              l10n.cycleInsights,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             for (final log in logs)
               Card(
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   leading: CircleAvatar(
-                    backgroundColor: const Color(0xFFE11D48).withValues(alpha: 0.12),
-                    child: const Icon(Icons.water_drop_rounded, color: Color(0xFFE11D48)),
+                    backgroundColor: const Color(
+                      0xFFE11D48,
+                    ).withValues(alpha: 0.12),
+                    child: const Icon(
+                      Icons.water_drop_rounded,
+                      color: Color(0xFFE11D48),
+                    ),
                   ),
                   title: Text(compactDualDate(log.startDate, locale)),
                   subtitle: hideSensitive
-                      ? Text(l10n.cyclePrivateHint, maxLines: 1, overflow: TextOverflow.ellipsis)
+                      ? Text(
+                          l10n.cyclePrivateHint,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
                       : Text(
                           [
                             _flowLabel(l10n, log.flow),
                             '${l10n.painLevel}: ${localizeDigits(log.painLevel.toString(), locale)}',
                             _moodLabel(l10n, log.mood),
-                            if (log.symptoms.isNotEmpty) log.symptoms.join('، '),
+                            if (log.symptoms.isNotEmpty)
+                              log.symptoms.join('، '),
                           ].join(' • '),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                   trailing: IconButton(
                     tooltip: l10n.delete,
-                    onPressed: () => ref.read(cycleProvider.notifier).delete(log.id),
+                    onPressed: () =>
+                        ref.read(cycleProvider.notifier).delete(log.id),
                     icon: const Icon(Icons.delete_outline_rounded),
                   ),
                 ),
@@ -198,7 +268,9 @@ class CycleScreen extends ConsumerWidget {
               subtitle: Text(l10n.cyclePrivateHint),
               trailing: Switch.adaptive(
                 value: hideSensitive,
-                onChanged: (value) => ref.read(cyclePrivacyProvider.notifier).setHideSensitive(value),
+                onChanged: (value) => ref
+                    .read(cyclePrivacyProvider.notifier)
+                    .setHideSensitive(value),
               ),
             ),
           ),
@@ -213,19 +285,27 @@ class CycleScreen extends ConsumerWidget {
 }
 
 class _QuickChip extends StatelessWidget {
-  const _QuickChip({required this.icon, required this.text, required this.onTap});
+  const _QuickChip({
+    required this.icon,
+    required this.text,
+    required this.onTap,
+  });
   final IconData icon;
   final String text;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => ActionChip(
-        avatar: Icon(icon, size: 18),
-        label: Text(text),
-        onPressed: onTap,
-      );
+    avatar: Icon(icon, size: 18),
+    label: Text(text),
+    onPressed: onTap,
+  );
 }
 
-Future<void> _showPrivacy(BuildContext context, WidgetRef ref, bool current) async {
+Future<void> _showPrivacy(
+  BuildContext context,
+  WidgetRef ref,
+  bool current,
+) async {
   final l10n = AppLocalizations.of(context);
   await showModalBottomSheet<void>(
     context: context,
@@ -255,19 +335,19 @@ Future<void> _showPrivacy(BuildContext context, WidgetRef ref, bool current) asy
 }
 
 String _flowLabel(AppLocalizations l10n, FlowIntensity flow) => switch (flow) {
-      FlowIntensity.light => l10n.flowLight,
-      FlowIntensity.medium => l10n.flowMedium,
-      FlowIntensity.heavy => l10n.flowHeavy,
-    };
+  FlowIntensity.light => l10n.flowLight,
+  FlowIntensity.medium => l10n.flowMedium,
+  FlowIntensity.heavy => l10n.flowHeavy,
+};
 
 String _moodLabel(AppLocalizations l10n, CycleMood mood) => switch (mood) {
-      CycleMood.calm => l10n.moodCalm,
-      CycleMood.sensitive => l10n.moodSensitive,
-      CycleMood.low => l10n.moodLow,
-      CycleMood.energetic => l10n.moodEnergetic,
-      CycleMood.irritable => l10n.moodIrritable,
-      CycleMood.other => l10n.other,
-    };
+  CycleMood.calm => l10n.moodCalm,
+  CycleMood.sensitive => l10n.moodSensitive,
+  CycleMood.low => l10n.moodLow,
+  CycleMood.energetic => l10n.moodEnergetic,
+  CycleMood.irritable => l10n.moodIrritable,
+  CycleMood.other => l10n.other,
+};
 
 Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
   final l10n = AppLocalizations.of(context);
@@ -282,7 +362,14 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
   final selectedSymptoms = <String>{};
   final symptomChoices = Localizations.localeOf(context).languageCode == 'fa'
       ? const ['سردرد', 'نفخ', 'خستگی', 'حساسیت سینه', 'کمردرد', 'تهوع']
-      : const ['Headache', 'Bloating', 'Fatigue', 'Breast tenderness', 'Back pain', 'Nausea'];
+      : const [
+          'Headache',
+          'Bloating',
+          'Fatigue',
+          'Breast tenderness',
+          'Back pain',
+          'Nausea',
+        ];
 
   await showModalBottomSheet<void>(
     context: context,
@@ -292,34 +379,58 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
       builder: (context, setState) {
         final locale = Localizations.localeOf(context);
         return Padding(
-          padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + MediaQuery.viewInsetsOf(context).bottom),
+          padding: EdgeInsets.fromLTRB(
+            20,
+            0,
+            20,
+            24 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(l10n.addCycleRecord, style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  l10n.addCycleRecord,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          final value = await showDatePicker(context: context, firstDate: DateTime(2000), lastDate: DateTime(2120), initialDate: start);
+                          final value = await showDatePicker(
+                            context: context,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2120),
+                            initialDate: start,
+                          );
                           if (value != null) setState(() => start = value);
                         },
                         icon: const Icon(Icons.play_arrow_rounded),
-                        label: Text('${l10n.startDate}: ${compactDualDate(start, locale)}'),
+                        label: Text(
+                          '${l10n.startDate}: ${compactDualDate(start, locale)}',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          final value = await showDatePicker(context: context, firstDate: start, lastDate: DateTime(2120), initialDate: end ?? start);
+                          final value = await showDatePicker(
+                            context: context,
+                            firstDate: start,
+                            lastDate: DateTime(2120),
+                            initialDate: end ?? start,
+                          );
                           if (value != null) setState(() => end = value);
                         },
                         icon: const Icon(Icons.stop_rounded),
-                        label: Text(end == null ? l10n.endDateOptional : compactDualDate(end!, locale)),
+                        label: Text(
+                          end == null
+                              ? l10n.endDateOptional
+                              : compactDualDate(end!, locale),
+                        ),
                       ),
                     ),
                   ],
@@ -328,24 +439,48 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
                 DropdownButtonFormField<FlowIntensity>(
                   initialValue: flow,
                   decoration: InputDecoration(labelText: l10n.flowIntensity),
-                  items: FlowIntensity.values.map((value) => DropdownMenuItem(value: value, child: Text(_flowLabel(l10n, value)))).toList(),
+                  items: FlowIntensity.values
+                      .map(
+                        (value) => DropdownMenuItem(
+                          value: value,
+                          child: Text(_flowLabel(l10n, value)),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (value) {
                     if (value != null) setState(() => flow = value);
                   },
                 ),
                 const SizedBox(height: 12),
-                Text('${l10n.painLevel}: ${localizeDigits(pain.round().toString(), locale)}'),
-                Slider(value: pain, max: 10, divisions: 10, onChanged: (value) => setState(() => pain = value)),
+                Text(
+                  '${l10n.painLevel}: ${localizeDigits(pain.round().toString(), locale)}',
+                ),
+                Slider(
+                  value: pain,
+                  max: 10,
+                  divisions: 10,
+                  onChanged: (value) => setState(() => pain = value),
+                ),
                 DropdownButtonFormField<CycleMood>(
                   initialValue: mood,
                   decoration: InputDecoration(labelText: l10n.mood),
-                  items: CycleMood.values.map((value) => DropdownMenuItem(value: value, child: Text(_moodLabel(l10n, value)))).toList(),
+                  items: CycleMood.values
+                      .map(
+                        (value) => DropdownMenuItem(
+                          value: value,
+                          child: Text(_moodLabel(l10n, value)),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (value) {
                     if (value != null) setState(() => mood = value);
                   },
                 ),
                 const SizedBox(height: 12),
-                Text(l10n.symptoms, style: Theme.of(context).textTheme.labelLarge),
+                Text(
+                  l10n.symptoms,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -366,7 +501,12 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
                   ],
                 ),
                 const SizedBox(height: 10),
-                TextField(controller: notes, minLines: 2, maxLines: 4, decoration: InputDecoration(labelText: l10n.notes)),
+                TextField(
+                  controller: notes,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(labelText: l10n.notes),
+                ),
                 const SizedBox(height: 14),
                 ReminderEditor(
                   plan: reminder,
@@ -378,18 +518,28 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
                     onPressed: () async {
-                      final selected = await showTimePicker(context: context, initialTime: reminderTime);
-                      if (selected != null) setState(() => reminderTime = selected);
+                      final selected = await showTimePicker(
+                        context: context,
+                        initialTime: reminderTime,
+                      );
+                      if (selected != null) {
+                        setState(() => reminderTime = selected);
+                      }
                     },
                     icon: const Icon(Icons.schedule_rounded),
-                    label: Text(localizeDigits(reminderTime.format(context), locale)),
+                    label: Text(
+                      localizeDigits(reminderTime.format(context), locale),
+                    ),
                   ),
                 ],
                 const SizedBox(height: 18),
                 FilledButton(
                   onPressed: () async {
-                    final timeText = '${reminderTime.hour.toString().padLeft(2, '0')}:${reminderTime.minute.toString().padLeft(2, '0')}';
-                    final log = ref.read(cycleProvider.notifier).add(
+                    final timeText =
+                        '${reminderTime.hour.toString().padLeft(2, '0')}:${reminderTime.minute.toString().padLeft(2, '0')}';
+                    ref
+                        .read(cycleProvider.notifier)
+                        .add(
                           startDate: start,
                           endDate: end,
                           flow: flow,
@@ -400,18 +550,12 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
                           predictionReminder: reminder,
                           predictionReminderTime: timeText,
                         );
-                    final predicted = ref.read(cycleProvider.notifier).predictedNextStart;
+                    final predicted = ref
+                        .read(cycleProvider.notifier)
+                        .predictedNextStart;
                     if (reminder.enabled && predicted != null) {
-                      final eventDateTime = DateTime(predicted.year, predicted.month, predicted.day, reminderTime.hour, reminderTime.minute);
                       await ReminderService.instance.requestPermissions();
-                      await ReminderService.instance.schedule(
-                        key: 'cycle:${log.id}',
-                        title: l10n.estimatedNextCycle,
-                        body: l10n.cycleReminderBody,
-                        eventDateTime: eventDateTime,
-                        plan: reminder,
-                        payload: 'cycle:${log.id}',
-                      );
+                      // Persisted data is reconciled by ReminderCoordinator.
                     }
                     if (sheetContext.mounted) Navigator.pop(sheetContext);
                   },

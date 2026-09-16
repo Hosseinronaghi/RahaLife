@@ -1,54 +1,58 @@
+import '../../../core/persistence/write_status.dart';
+
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/notifications/reminder_models.dart';
 import '../../../core/notifications/reminder_service.dart';
+import '../../../core/persistence/drift_entity_repository.dart';
 import '../domain/home_entry.dart';
 
 class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
-  HomeEntriesNotifier({this.persistenceEnabled = true}) : super(const []) {
-    if (persistenceEnabled) unawaited(_load());
+  HomeEntriesNotifier({
+    this.persistenceEnabled = true,
+    DriftEntityRepository? repository,
+  }) : _repository = repository ?? DriftEntityRepository(),
+       super(const []) {
+    if (persistenceEnabled) {
+      _ready = WriteStatus.load(_load);
+    }
   }
 
+  static const _entityType = 'home_entry';
   static const _uuid = Uuid();
-  static const _storageKey = 'home.entries.v1';
+  Future<void> _ready = Future<void>.value();
   final bool persistenceEnabled;
+  final DriftEntityRepository _repository;
 
   Future<void> _load() async {
     try {
-      final preferences = await SharedPreferences.getInstance();
-      final raw = preferences.getString(_storageKey);
-      if (raw == null || raw.isEmpty) return;
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      final restored = decoded
-          .map(
-            (item) => HomeEntry.fromJson(
-              Map<String, Object?>.from(item as Map<dynamic, dynamic>),
-            ),
-          )
-          .toList(growable: false)
-        ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+      await _repository.migrateLegacyList(
+        migrationKey: 'v0.7.home.entries.v1',
+        entityType: _entityType,
+        preferenceKeys: const ['home.entries.v1'],
+      );
+      final restored =
+          (await _repository.loadAll(
+              _entityType,
+            )).map(HomeEntry.fromJson).toList(growable: false)
+            ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
       state = restored;
-    } catch (_) {
-      // Keep the app usable if an old or damaged local payload cannot be read.
+    } catch (error) {
+      WriteStatus.report(error);
+      // A malformed legacy record must not prevent the app from opening.
     }
   }
 
   Future<void> _persist() async {
     if (!persistenceEnabled) return;
-    try {
-      final preferences = await SharedPreferences.getInstance();
-      await preferences.setString(
-        _storageKey,
-        jsonEncode(state.map((item) => item.toJson()).toList()),
-      );
-    } catch (_) {
-      // Persistence errors must not block local interaction.
-    }
+    await _ready;
+    await _repository.replaceAll(
+      _entityType,
+      state.map((item) => item.toJson()),
+    );
   }
 
   HomeEntry add({
@@ -63,6 +67,7 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
     String? address,
     String? linkedShoppingListId,
     String? projectId,
+    String calendar = 'gregorian',
     ReminderPlan reminder = const ReminderPlan(),
   }) {
     final entry = HomeEntry(
@@ -84,25 +89,46 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
           : address.trim(),
       linkedShoppingListId: linkedShoppingListId,
       projectId: projectId,
+      calendar: calendar,
       reminder: reminder,
     );
     state = [...state, entry]..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-    unawaited(_persist());
+    WriteStatus.track(_persist());
     return entry;
   }
 
-  void toggle(String id) {
+  void toggle(String id, {DateTime? date}) {
+    final day = date ?? DateTime.now();
     state = [
       for (final item in state)
-        if (item.id == id) item.copyWith(completed: !item.completed) else item,
+        if (item.id == id)
+          item.recurring
+              ? item.copyWith(
+                  completedDates: item.completedOn(day)
+                      ? item.completedDates
+                            .where((d) => d != item.dayKey(day))
+                            .toList()
+                      : [...item.completedDates, item.dayKey(day)],
+                )
+              : item.copyWith(completed: !item.completed)
+        else
+          item,
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
+  }
+
+  void update(HomeEntry entry) {
+    state = [
+      for (final item in state)
+        if (item.id == entry.id) entry else item,
+    ];
+    WriteStatus.track(_persist());
   }
 
   void delete(String id) {
     state = state.where((item) => item.id != id).toList(growable: false);
     unawaited(ReminderService.instance.cancel('home:$id'));
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   List<HomeEntry> forDate(DateTime date) =>
@@ -123,5 +149,5 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
 
 final homeEntriesProvider =
     StateNotifierProvider<HomeEntriesNotifier, List<HomeEntry>>(
-  (ref) => HomeEntriesNotifier(),
-);
+      (ref) => HomeEntriesNotifier(),
+    );

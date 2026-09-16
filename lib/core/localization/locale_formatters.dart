@@ -37,10 +37,7 @@ String primaryDateLabel(DateTime date, Locale locale) {
 
 String secondaryDateLabel(DateTime date, Locale locale) {
   if (locale.languageCode == 'fa') {
-    return localizeDigits(
-      DateFormat('yyyy/MM/dd', 'en').format(date),
-      locale,
-    );
+    return localizeDigits(DateFormat('yyyy/MM/dd', 'en').format(date), locale);
   }
   final jalali = Jalali.fromDateTime(date);
   final formatter = jalali.formatter;
