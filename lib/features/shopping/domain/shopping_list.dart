@@ -25,20 +25,20 @@ class ShoppingItemData {
   final bool checked;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'title': title,
-        'quantity': quantity,
-        'unit': unit,
-        'checked': checked,
-      };
+    'id': id,
+    'title': title,
+    'quantity': quantity,
+    'unit': unit,
+    'checked': checked,
+  };
 
   ShoppingItemData copyWith({bool? checked}) => ShoppingItemData(
-        id: id,
-        title: title,
-        quantity: quantity,
-        unit: unit,
-        checked: checked ?? this.checked,
-      );
+    id: id,
+    title: title,
+    quantity: quantity,
+    unit: unit,
+    checked: checked ?? this.checked,
+  );
 }
 
 class ShoppingListData {
@@ -54,30 +54,30 @@ class ShoppingListData {
     this.completed = false,
   });
 
-  factory ShoppingListData.fromJson(Map<String, Object?> json) =>
-      ShoppingListData(
-        id: json['id']! as String,
-        title: json['title']! as String,
-        items: (json['items'] as List<dynamic>? ?? const [])
-            .map(
-              (item) => ShoppingItemData.fromJson(
-                Map<String, Object?>.from(item as Map),
-              ),
-            )
-            .toList(),
-        scheduledAt: json['scheduledAt'] == null
-            ? null
-            : DateTime.parse(json['scheduledAt']! as String),
-        location: json['location'] as String?,
-        address: json['address'] as String?,
-        linkedAffairId: json['linkedAffairId'] as String?,
-        reminder: ReminderPlan.fromJson(
-          json['reminder'] is Map
-              ? Map<String, Object?>.from(json['reminder']! as Map)
-              : null,
-        ),
-        completed: json['completed'] as bool? ?? false,
-      );
+  factory ShoppingListData.fromJson(
+    Map<String, Object?> json,
+  ) => ShoppingListData(
+    id: json['id']! as String,
+    title: json['title']! as String,
+    items: (json['items'] as List<dynamic>? ?? const [])
+        .map(
+          (item) =>
+              ShoppingItemData.fromJson(Map<String, Object?>.from(item as Map)),
+        )
+        .toList(),
+    scheduledAt: json['scheduledAt'] == null
+        ? null
+        : DateTime.parse(json['scheduledAt']! as String),
+    location: json['location'] as String?,
+    address: json['address'] as String?,
+    linkedAffairId: json['linkedAffairId'] as String?,
+    reminder: ReminderPlan.fromJson(
+      json['reminder'] is Map
+          ? Map<String, Object?>.from(json['reminder']! as Map)
+          : null,
+    ),
+    completed: json['completed'] as bool? ?? false,
+  );
 
   final String id;
   final String title;
@@ -93,16 +93,16 @@ class ShoppingListData {
   bool get allChecked => items.isNotEmpty && checkedCount == items.length;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'title': title,
-        'items': items.map((item) => item.toJson()).toList(),
-        'scheduledAt': scheduledAt?.toIso8601String(),
-        'location': location,
-        'address': address,
-        'linkedAffairId': linkedAffairId,
-        'reminder': reminder.toJson(),
-        'completed': completed,
-      };
+    'id': id,
+    'title': title,
+    'items': items.map((item) => item.toJson()).toList(),
+    'scheduledAt': scheduledAt?.toIso8601String(),
+    'location': location,
+    'address': address,
+    'linkedAffairId': linkedAffairId,
+    'reminder': reminder.toJson(),
+    'completed': completed,
+  };
 
   ShoppingListData copyWith({
     List<ShoppingItemData>? items,
@@ -112,16 +112,15 @@ class ShoppingListData {
     String? linkedAffairId,
     ReminderPlan? reminder,
     bool? completed,
-  }) =>
-      ShoppingListData(
-        id: id,
-        title: title,
-        items: items ?? this.items,
-        scheduledAt: scheduledAt ?? this.scheduledAt,
-        location: location ?? this.location,
-        address: address ?? this.address,
-        linkedAffairId: linkedAffairId ?? this.linkedAffairId,
-        reminder: reminder ?? this.reminder,
-        completed: completed ?? this.completed,
-      );
+  }) => ShoppingListData(
+    id: id,
+    title: title,
+    items: items ?? this.items,
+    scheduledAt: scheduledAt ?? this.scheduledAt,
+    location: location ?? this.location,
+    address: address ?? this.address,
+    linkedAffairId: linkedAffairId ?? this.linkedAffairId,
+    reminder: reminder ?? this.reminder,
+    completed: completed ?? this.completed,
+  );
 }

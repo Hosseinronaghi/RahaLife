@@ -149,8 +149,9 @@ class ShoppingListScreen extends ConsumerWidget {
                     title: Text(
                       item.title,
                       style: TextStyle(
-                        decoration:
-                            item.checked ? TextDecoration.lineThrough : null,
+                        decoration: item.checked
+                            ? TextDecoration.lineThrough
+                            : null,
                       ),
                     ),
                     secondary: Icon(
@@ -185,14 +186,12 @@ class _InfoLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text('$label: $value'),
-          ),
-        ],
-      );
+    children: [
+      Icon(icon, size: 20),
+      const SizedBox(width: 10),
+      Expanded(child: Text('$label: $value')),
+    ],
+  );
 }
 
 String _shareText(String title, List<ShoppingItemData> items) {
@@ -253,7 +252,6 @@ Future<void> _addItems(
   controller.dispose();
 }
 
-
 class _SharedAccessCard extends ConsumerWidget {
   const _SharedAccessCard({required this.listId});
   final String listId;
@@ -263,7 +261,9 @@ class _SharedAccessCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final grants = ref
         .watch(sharingProvider)
-        .where((item) => item.entityType == 'shopping' && item.entityId == listId)
+        .where(
+          (item) => item.entityType == 'shopping' && item.entityId == listId,
+        )
         .toList();
     if (grants.isEmpty) return const SizedBox.shrink();
     final people = ref.watch(peopleProvider);
@@ -325,9 +325,9 @@ Future<void> _shareWithPeople(
   final l10n = AppLocalizations.of(context);
   final people = ref.read(peopleProvider);
   if (people.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.noPeople)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.noPeople)));
     return;
   }
   final existing = ref
@@ -400,7 +400,9 @@ Future<void> _shareWithPeople(
                 onPressed: selected.isEmpty
                     ? null
                     : () {
-                        ref.read(sharingProvider.notifier).share(
+                        ref
+                            .read(sharingProvider.notifier)
+                            .share(
                               entityType: 'shopping',
                               entityId: listId,
                               personIds: selected,

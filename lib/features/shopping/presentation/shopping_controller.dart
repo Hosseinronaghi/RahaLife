@@ -1,47 +1,43 @@
+import '../../../core/persistence/write_status.dart';
+
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/notifications/reminder_models.dart';
 import '../../../core/notifications/reminder_service.dart';
+import '../data/shopping_drift_repository.dart';
 import '../domain/shopping_list.dart';
 
 class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
-  ShoppingNotifier({this.persistenceEnabled = true}) : super(const []) {
-    if (persistenceEnabled) unawaited(_load());
+  ShoppingNotifier({
+    this.persistenceEnabled = true,
+    ShoppingDriftRepository? repository,
+  }) : _repository = repository ?? ShoppingDriftRepository(),
+       super(const []) {
+    if (persistenceEnabled) {
+      _ready = WriteStatus.load(_load);
+    }
   }
 
-  static const _key = 'shopping.lists.v2';
-  static const _legacyKey = 'shopping.lists.v1';
   static const _uuid = Uuid();
+  Future<void> _ready = Future<void>.value();
   final bool persistenceEnabled;
+  final ShoppingDriftRepository _repository;
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key) ?? prefs.getString(_legacyKey);
-    if (raw == null || raw.isEmpty) return;
     try {
-      state = (jsonDecode(raw) as List<dynamic>)
-          .map(
-            (item) => ShoppingListData.fromJson(
-              Map<String, Object?>.from(item as Map),
-            ),
-          )
-          .toList();
-      await _persist();
-    } catch (_) {}
+      state = await _repository.load();
+    } catch (error) {
+      WriteStatus.report(error);
+    }
   }
 
   Future<void> _persist() async {
     if (!persistenceEnabled) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _key,
-      jsonEncode(state.map((item) => item.toJson()).toList()),
-    );
+    await _ready;
+    await _repository.saveAll(state);
   }
 
   ShoppingListData addList(
@@ -66,7 +62,7 @@ class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
       reminder: reminder,
     );
     state = [...state, list];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
     return list;
   }
 
@@ -78,7 +74,7 @@ class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
         else
           list,
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   void addItems(String listId, List<String> itemTitles) {
@@ -91,17 +87,15 @@ class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
               ...itemTitles
                   .where((item) => item.trim().isNotEmpty)
                   .map(
-                    (item) => ShoppingItemData(
-                      id: _uuid.v4(),
-                      title: item.trim(),
-                    ),
+                    (item) =>
+                        ShoppingItemData(id: _uuid.v4(), title: item.trim()),
                   ),
             ],
           )
         else
           list,
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   void toggleItem(String listId, String itemId) {
@@ -116,7 +110,8 @@ class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
                 else
                   item,
             ],
-            completed: list.items.isNotEmpty &&
+            completed:
+                list.items.isNotEmpty &&
                 list.items.every(
                   (item) => item.id == itemId ? !item.checked : item.checked,
                 ),
@@ -124,17 +119,17 @@ class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
         else
           list,
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   void deleteList(String id) {
     state = state.where((list) => list.id != id).toList();
     unawaited(ReminderService.instance.cancel('shopping:$id'));
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 }
 
 final shoppingProvider =
     StateNotifierProvider<ShoppingNotifier, List<ShoppingListData>>(
-  (ref) => ShoppingNotifier(),
-);
+      (ref) => ShoppingNotifier(),
+    );

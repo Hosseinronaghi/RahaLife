@@ -1,42 +1,51 @@
+import '../../../core/persistence/write_status.dart';
+
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/persistence/drift_entity_repository.dart';
 import '../domain/project.dart';
 
 class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
-  ProjectsNotifier({this.persistenceEnabled = true}) : super(const []) {
-    if (persistenceEnabled) unawaited(_load());
+  ProjectsNotifier({
+    this.persistenceEnabled = true,
+    DriftEntityRepository? repository,
+  }) : _repository = repository ?? DriftEntityRepository(),
+       super(const []) {
+    if (persistenceEnabled) {
+      _ready = WriteStatus.load(_load);
+    }
   }
 
-  static const _key = 'projects.v1';
+  static const _entityType = 'project';
   static const _uuid = Uuid();
+  Future<void> _ready = Future<void>.value();
   final bool persistenceEnabled;
+  final DriftEntityRepository _repository;
 
   Future<void> _load() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_key);
-      if (raw == null || raw.isEmpty) return;
-      state = (jsonDecode(raw) as List<dynamic>)
-          .map(
-            (item) => ProjectData.fromJson(
-              Map<String, Object?>.from(item as Map),
-            ),
-          )
-          .toList(growable: false);
-    } catch (_) {}
+      await _repository.migrateLegacyList(
+        migrationKey: 'v0.7.projects.v1',
+        entityType: _entityType,
+        preferenceKeys: const ['projects.v1'],
+      );
+      state = (await _repository.loadAll(
+        _entityType,
+      )).map(ProjectData.fromJson).toList(growable: false);
+    } catch (error) {
+      WriteStatus.report(error);
+    }
   }
 
   Future<void> _persist() async {
     if (!persistenceEnabled) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _key,
-      jsonEncode(state.map((item) => item.toJson()).toList()),
+    await _ready;
+    await _repository.replaceAll(
+      _entityType,
+      state.map((item) => item.toJson()),
     );
   }
 
@@ -59,18 +68,21 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
       createdAt: DateTime.now().toUtc(),
     );
     state = [...state, project];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
     return project;
   }
 
   void update(ProjectData updated) {
-    state = [for (final item in state) if (item.id == updated.id) updated else item];
-    unawaited(_persist());
+    state = [
+      for (final item in state)
+        if (item.id == updated.id) updated else item,
+    ];
+    WriteStatus.track(_persist());
   }
 
   void delete(String id) {
     state = state.where((item) => item.id != id).toList(growable: false);
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   void addChecklist(String projectId, String title) {
@@ -88,7 +100,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
         else
           item,
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   void toggleChecklist(String projectId, String checklistId) {
@@ -107,7 +119,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
         else
           item,
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   void addAttachment(String projectId, ProjectAttachment attachment) {
@@ -118,7 +130,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
         else
           item,
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   void removeAttachment(String projectId, String attachmentId) {
@@ -133,11 +145,11 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
         else
           item,
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 }
 
 final projectsProvider =
     StateNotifierProvider<ProjectsNotifier, List<ProjectData>>(
-  (ref) => ProjectsNotifier(),
-);
+      (ref) => ProjectsNotifier(),
+    );

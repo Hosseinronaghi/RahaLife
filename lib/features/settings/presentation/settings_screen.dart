@@ -280,34 +280,34 @@ class _SettingsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: padding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: padding == EdgeInsets.zero
-                    ? const EdgeInsets.fromLTRB(18, 18, 18, 8)
-                    : EdgeInsets.zero,
-                child: Row(
-                  children: [
-                    Icon(icon, color: Theme.of(context).colorScheme.primary),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                  ],
+    child: Padding(
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: padding == EdgeInsets.zero
+                ? const EdgeInsets.fromLTRB(18, 18, 18, 8)
+                : EdgeInsets.zero,
+            child: Row(
+              children: [
+                Icon(icon, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              child,
-            ],
+              ],
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    ),
+  );
 }
 
 class _AccentButton extends StatelessWidget {
@@ -323,36 +323,36 @@ class _AccentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        button: true,
-        selected: selected,
-        child: InkWell(
+    button: true,
+    selected: selected,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 54,
+        height: 54,
+        decoration: BoxDecoration(
+          color: choice.color,
           borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: choice.color,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: selected
-                    ? Theme.of(context).colorScheme.onSurface
-                    : Colors.transparent,
-                width: 3,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: choice.color.withValues(alpha: 0.25),
-                  blurRadius: 14,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: selected
-                ? const Icon(Icons.check_rounded, color: Colors.white)
-                : null,
+          border: Border.all(
+            color: selected
+                ? Theme.of(context).colorScheme.onSurface
+                : Colors.transparent,
+            width: 3,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: choice.color.withValues(alpha: 0.25),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
-      );
+        child: selected
+            ? const Icon(Icons.check_rounded, color: Colors.white)
+            : null,
+      ),
+    ),
+  );
 }

@@ -14,20 +14,20 @@ class ShareGrant {
   });
 
   factory ShareGrant.fromJson(Map<String, Object?> json) => ShareGrant(
-        id: json['id']! as String,
-        entityType: json['entityType']! as String,
-        entityId: json['entityId']! as String,
-        personId: json['personId']! as String,
-        createdAt: DateTime.parse(json['createdAt']! as String),
-        permission: SharePermission.values.firstWhere(
-          (value) => value.name == json['permission'],
-          orElse: () => SharePermission.view,
-        ),
-        status: ShareStatus.values.firstWhere(
-          (value) => value.name == json['status'],
-          orElse: () => ShareStatus.queued,
-        ),
-      );
+    id: json['id']! as String,
+    entityType: json['entityType']! as String,
+    entityId: json['entityId']! as String,
+    personId: json['personId']! as String,
+    createdAt: DateTime.parse(json['createdAt']! as String),
+    permission: SharePermission.values.firstWhere(
+      (value) => value.name == json['permission'],
+      orElse: () => SharePermission.view,
+    ),
+    status: ShareStatus.values.firstWhere(
+      (value) => value.name == json['status'],
+      orElse: () => ShareStatus.queued,
+    ),
+  );
 
   final String id;
   final String entityType;
@@ -38,12 +38,12 @@ class ShareGrant {
   final DateTime createdAt;
 
   Map<String, Object?> toJson() => {
-        'id': id,
-        'entityType': entityType,
-        'entityId': entityId,
-        'personId': personId,
-        'permission': permission.name,
-        'status': status.name,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'entityType': entityType,
+    'entityId': entityId,
+    'personId': personId,
+    'permission': permission.name,
+    'status': status.name,
+    'createdAt': createdAt.toIso8601String(),
+  };
 }

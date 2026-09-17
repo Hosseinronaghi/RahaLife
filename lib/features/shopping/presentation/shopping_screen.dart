@@ -124,10 +124,9 @@ Future<void> showShoppingListForm(BuildContext context, WidgetRef ref) async {
                     controller: title,
                     autofocus: true,
                     decoration: InputDecoration(labelText: l10n.listName),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty
-                            ? l10n.requiredField
-                            : null,
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? l10n.requiredField
+                        : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -225,7 +224,9 @@ Future<void> showShoppingListForm(BuildContext context, WidgetRef ref) async {
                   FilledButton(
                     onPressed: () async {
                       if (!(formKey.currentState?.validate() ?? false)) return;
-                      final list = ref.read(shoppingProvider.notifier).addList(
+                      final list = ref
+                          .read(shoppingProvider.notifier)
+                          .addList(
                             title.text,
                             items.text.split('\n'),
                             scheduledAt: scheduledAt,
@@ -234,7 +235,9 @@ Future<void> showShoppingListForm(BuildContext context, WidgetRef ref) async {
                             reminder: reminder,
                           );
                       if (createAffair) {
-                        final affair = ref.read(homeEntriesProvider.notifier).add(
+                        final affair = ref
+                            .read(homeEntriesProvider.notifier)
+                            .add(
                               type: HomeEntryType.affair,
                               title: title.text,
                               details: l10n.shoppingAffairDescription,
@@ -251,14 +254,7 @@ Future<void> showShoppingListForm(BuildContext context, WidgetRef ref) async {
                       }
                       if (reminder.enabled) {
                         await ReminderService.instance.requestPermissions();
-                        await ReminderService.instance.schedule(
-                          key: 'shopping:${list.id}',
-                          title: list.title,
-                          body: l10n.shoppingReminderBody(list.items.length),
-                          eventDateTime: scheduledAt,
-                          plan: reminder,
-                          payload: 'shopping:${list.id}',
-                        );
+                        // Persisted data is reconciled by ReminderCoordinator.
                       }
                       if (sheetContext.mounted) Navigator.pop(sheetContext);
                     },
@@ -277,4 +273,3 @@ Future<void> showShoppingListForm(BuildContext context, WidgetRef ref) async {
   location.dispose();
   address.dispose();
 }
-

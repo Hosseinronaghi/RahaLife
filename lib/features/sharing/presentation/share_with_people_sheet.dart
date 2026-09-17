@@ -16,9 +16,9 @@ Future<void> showShareWithPeopleSheet(
   final l10n = AppLocalizations.of(context);
   final people = ref.read(peopleProvider);
   if (people.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.noPeople)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.noPeople)));
     return;
   }
 
@@ -29,7 +29,9 @@ Future<void> showShareWithPeopleSheet(
       )
       .toList();
   final selected = existing.map((item) => item.personId).toSet();
-  var permission = existing.isEmpty ? defaultPermission : existing.first.permission;
+  var permission = existing.isEmpty
+      ? defaultPermission
+      : existing.first.permission;
 
   await showModalBottomSheet<void>(
     context: context,
@@ -91,16 +93,18 @@ Future<void> showShareWithPeopleSheet(
               const SizedBox(height: 12),
               FilledButton.icon(
                 onPressed: () {
-                  ref.read(sharingProvider.notifier).share(
+                  ref
+                      .read(sharingProvider.notifier)
+                      .share(
                         entityType: entityType,
                         entityId: entityId,
                         personIds: selected,
                         permission: permission,
                       );
                   Navigator.pop(sheetContext);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.shareQueued)),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(l10n.shareQueued)));
                 },
                 icon: const Icon(Icons.group_add_rounded),
                 label: Text(l10n.save),
@@ -113,10 +117,7 @@ Future<void> showShareWithPeopleSheet(
   );
 }
 
-String _permissionLabel(
-  AppLocalizations l10n,
-  SharePermission permission,
-) =>
+String _permissionLabel(AppLocalizations l10n, SharePermission permission) =>
     switch (permission) {
       SharePermission.view => l10n.viewOnly,
       SharePermission.check => l10n.canCheckItems,

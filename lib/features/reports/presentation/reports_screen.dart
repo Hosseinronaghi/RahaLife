@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,17 +20,32 @@ class ReportsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context);
     final entries = ref.watch(homeEntriesProvider);
-    final completed = entries.where((item) => item.completed).length;
+    final completed = entries
+        .where((item) => item.completedOn(DateTime.now()))
+        .length;
     final pending = entries.length - completed;
     final progress = entries.isEmpty ? 0.0 : completed / entries.length;
     final finance = ref.watch(financeProvider);
     final peopleCount = ref.watch(peopleProvider).length;
     final medicationCount = ref.watch(medicationProvider).length;
-    final shoppingCount = ref.watch(shoppingProvider)
-        .fold<int>(0, (sum, list) => sum + list.items.where((item) => !item.checked).length);
+    final shoppingCount = ref
+        .watch(shoppingProvider)
+        .fold<int>(
+          0,
+          (sum, list) => sum + list.items.where((item) => !item.checked).length,
+        );
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.statistics)),
+      appBar: AppBar(
+        title: Text(l10n.statistics),
+        actions: [
+          IconButton(
+            tooltip: 'Reports / CSV',
+            icon: const Icon(Icons.analytics_outlined),
+            onPressed: () => context.push('/insights'),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
@@ -59,7 +75,12 @@ class ReportsScreen extends ConsumerWidget {
               _MetricCard(
                 icon: Icons.payments_rounded,
                 label: l10n.balance,
-                value: localizedNumber(finance.balance, locale),
+                value: finance.balanceByCurrency.entries
+                    .map(
+                      (e) =>
+                          '${localizedNumber(e.value / 100, locale)} ${e.key}',
+                    )
+                    .join(' / '),
               ),
               _MetricCard(
                 icon: Icons.people_alt_rounded,
@@ -103,7 +124,10 @@ class ReportsScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: LinearProgressIndicator(value: progress, minHeight: 12),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 12,
+                    ),
                   ),
                 ],
               ),
@@ -153,19 +177,19 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: Theme.of(context).colorScheme.primary),
-              const Spacer(),
-              Text(value, style: Theme.of(context).textTheme.headlineSmall),
-              Text(label, style: Theme.of(context).textTheme.labelMedium),
-            ],
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
+          const Spacer(),
+          Text(value, style: Theme.of(context).textTheme.headlineSmall),
+          Text(label, style: Theme.of(context).textTheme.labelMedium),
+        ],
+      ),
+    ),
+  );
 }
 
 class _TypeBar extends StatelessWidget {

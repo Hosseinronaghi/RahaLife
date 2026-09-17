@@ -1,36 +1,52 @@
+import '../../../core/persistence/write_status.dart';
+
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/persistence/drift_entity_repository.dart';
 import '../domain/share_models.dart';
 
 class SharingNotifier extends StateNotifier<List<ShareGrant>> {
-  SharingNotifier({this.persistenceEnabled = true}) : super(const []) {
-    if (persistenceEnabled) unawaited(_load());
+  SharingNotifier({
+    this.persistenceEnabled = true,
+    DriftEntityRepository? repository,
+  }) : _repository = repository ?? DriftEntityRepository(),
+       super(const []) {
+    if (persistenceEnabled) {
+      _ready = WriteStatus.load(_load);
+    }
   }
 
-  static const _key = 'sharing.grants.v1';
+  static const _entityType = 'share_grant';
   static const _uuid = Uuid();
+  Future<void> _ready = Future<void>.value();
   final bool persistenceEnabled;
+  final DriftEntityRepository _repository;
 
   Future<void> _load() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_key);
-      if (raw == null || raw.isEmpty) return;
-      state = (jsonDecode(raw) as List<dynamic>)
-          .map((item) => ShareGrant.fromJson(Map<String, Object?>.from(item as Map)))
-          .toList(growable: false);
-    } catch (_) {}
+      await _repository.migrateLegacyList(
+        migrationKey: 'v0.7.sharing.grants.v1',
+        entityType: _entityType,
+        preferenceKeys: const ['sharing.grants.v1'],
+      );
+      state = (await _repository.loadAll(
+        _entityType,
+      )).map(ShareGrant.fromJson).toList(growable: false);
+    } catch (error) {
+      WriteStatus.report(error);
+    }
   }
 
   Future<void> _persist() async {
     if (!persistenceEnabled) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, jsonEncode(state.map((item) => item.toJson()).toList()));
+    await _ready;
+    await _repository.replaceAll(
+      _entityType,
+      state.map((item) => item.toJson()),
+    );
   }
 
   void share({
@@ -54,15 +70,16 @@ class SharingNotifier extends StateNotifier<List<ShareGrant>> {
           createdAt: DateTime.now().toUtc(),
         ),
     ];
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 
   void revoke(String id) {
     state = state.where((item) => item.id != id).toList(growable: false);
-    unawaited(_persist());
+    WriteStatus.track(_persist());
   }
 }
 
-final sharingProvider = StateNotifierProvider<SharingNotifier, List<ShareGrant>>(
-  (ref) => SharingNotifier(),
-);
+final sharingProvider =
+    StateNotifierProvider<SharingNotifier, List<ShareGrant>>(
+      (ref) => SharingNotifier(),
+    );

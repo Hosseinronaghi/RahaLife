@@ -1,4 +1,5 @@
-import 'package:file_picker/file_picker.dart';
+import '../../../core/persistence/attachments.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -48,7 +49,8 @@ class ProjectDetailsScreen extends ConsumerWidget {
                 subject: value.title,
                 text: [
                   value.title,
-                  if (value.description?.isNotEmpty ?? false) value.description!,
+                  if (value.description?.isNotEmpty ?? false)
+                    value.description!,
                   '${l10n.projectProgress}: ${localizeDigits((value.checklistProgress * 100).round().toString(), Localizations.localeOf(context))}٪',
                 ].join('\n'),
               ),
@@ -120,7 +122,10 @@ class _Overview extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(project.title, style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                project.title,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               if (project.description?.isNotEmpty ?? false) ...[
                 const SizedBox(height: 8),
                 Text(project.description!),
@@ -143,11 +148,33 @@ class _Overview extends ConsumerWidget {
               runSpacing: 12,
               children: [
                 if (project.startDate != null)
-                  _Meta(icon: Icons.flag_outlined, label: l10n.projectStart, value: compactDualDate(project.startDate!, locale)),
+                  _Meta(
+                    icon: Icons.flag_outlined,
+                    label: l10n.projectStart,
+                    value: compactDualDate(project.startDate!, locale),
+                  ),
                 if (project.dueDate != null)
-                  _Meta(icon: Icons.event_available_outlined, label: l10n.projectDue, value: compactDualDate(project.dueDate!, locale)),
-                _Meta(icon: Icons.checklist_rounded, label: l10n.projectChecklist, value: localizeDigits(project.checklist.length.toString(), locale)),
-                _Meta(icon: Icons.attach_file_rounded, label: l10n.projectFiles, value: localizeDigits(project.attachments.length.toString(), locale)),
+                  _Meta(
+                    icon: Icons.event_available_outlined,
+                    label: l10n.projectDue,
+                    value: compactDualDate(project.dueDate!, locale),
+                  ),
+                _Meta(
+                  icon: Icons.checklist_rounded,
+                  label: l10n.projectChecklist,
+                  value: localizeDigits(
+                    project.checklist.length.toString(),
+                    locale,
+                  ),
+                ),
+                _Meta(
+                  icon: Icons.attach_file_rounded,
+                  label: l10n.projectFiles,
+                  value: localizeDigits(
+                    project.attachments.length.toString(),
+                    locale,
+                  ),
+                ),
               ],
             ),
           ),
@@ -165,13 +192,13 @@ class _Meta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18),
-          const SizedBox(width: 6),
-          Text('$label: $value'),
-        ],
-      );
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 18),
+      const SizedBox(width: 6),
+      Text('$label: $value'),
+    ],
+  );
 }
 
 class _Affairs extends ConsumerWidget {
@@ -181,7 +208,10 @@ class _Affairs extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final entries = ref.watch(homeEntriesProvider).where((item) => item.projectId == project.id).toList();
+    final entries = ref
+        .watch(homeEntriesProvider)
+        .where((item) => item.projectId == project.id)
+        .toList();
     return Column(
       children: [
         Padding(
@@ -198,9 +228,18 @@ class _Affairs extends ConsumerWidget {
               : ListView.builder(
                   itemCount: entries.length,
                   itemBuilder: (_, index) => ListTile(
-                    leading: Icon(entries[index].completed ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded),
+                    leading: Icon(
+                      entries[index].completed
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                    ),
                     title: Text(entries[index].title),
-                    subtitle: Text(compactDualDate(entries[index].dateTime, Localizations.localeOf(context))),
+                    subtitle: Text(
+                      compactDualDate(
+                        entries[index].dateTime,
+                        Localizations.localeOf(context),
+                      ),
+                    ),
                   ),
                 ),
         ),
@@ -216,13 +255,17 @@ class _Notes extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final notes = ref.watch(notesProvider).where((item) => item.projectId == project.id && !item.archived).toList();
+    final notes = ref
+        .watch(notesProvider)
+        .where((item) => item.projectId == project.id && !item.archived)
+        .toList();
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(12),
           child: FilledButton.icon(
-            onPressed: () => context.push('/notes/edit', extra: {'projectId': project.id}),
+            onPressed: () =>
+                context.push('/notes/edit', extra: {'projectId': project.id}),
             icon: const Icon(Icons.note_add_rounded),
             label: Text(l10n.newNote),
           ),
@@ -235,8 +278,13 @@ class _Notes extends ConsumerWidget {
                   itemBuilder: (_, index) => ListTile(
                     leading: const Icon(Icons.notes_rounded),
                     title: Text(notes[index].title),
-                    subtitle: Text(notes[index].plainText, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    onTap: () => context.push('/notes/edit', extra: notes[index].id),
+                    subtitle: Text(
+                      notes[index].plainText,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () =>
+                        context.push('/notes/edit', extra: notes[index].id),
                   ),
                 ),
         ),
@@ -263,7 +311,9 @@ class _Checklist extends ConsumerWidget {
                 controller: controller,
                 decoration: InputDecoration(labelText: l10n.addChecklistItem),
                 onSubmitted: (value) {
-                  ref.read(projectsProvider.notifier).addChecklist(project.id, value);
+                  ref
+                      .read(projectsProvider.notifier)
+                      .addChecklist(project.id, value);
                   controller.clear();
                 },
               ),
@@ -271,7 +321,9 @@ class _Checklist extends ConsumerWidget {
             const SizedBox(width: 8),
             IconButton.filledTonal(
               onPressed: () {
-                ref.read(projectsProvider.notifier).addChecklist(project.id, controller.text);
+                ref
+                    .read(projectsProvider.notifier)
+                    .addChecklist(project.id, controller.text);
                 controller.clear();
               },
               icon: const Icon(Icons.add_rounded),
@@ -283,7 +335,9 @@ class _Checklist extends ConsumerWidget {
           CheckboxListTile(
             value: item.done,
             title: Text(item.title),
-            onChanged: (_) => ref.read(projectsProvider.notifier).toggleChecklist(project.id, item.id),
+            onChanged: (_) => ref
+                .read(projectsProvider.notifier)
+                .toggleChecklist(project.id, item.id),
           ),
       ],
     );
@@ -302,16 +356,18 @@ class _Files extends ConsumerWidget {
       children: [
         FilledButton.icon(
           onPressed: () async {
-            final file = await FilePicker.pickFile();
+            final file = await AttachmentStore().pick();
             if (file == null) return;
-            final fileSize = await file.length();
-            ref.read(projectsProvider.notifier).addAttachment(
+            final fileSize = file['size'] as int;
+            ref
+                .read(projectsProvider.notifier)
+                .addAttachment(
                   project.id,
                   ProjectAttachment(
                     id: const Uuid().v4(),
-                    name: file.name,
+                    name: file['name'] as String,
                     size: fileSize,
-                    path: file.path,
+                    path: file['path'] as String,
                   ),
                 );
           },
@@ -323,10 +379,15 @@ class _Files extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.insert_drive_file_rounded),
             title: Text(attachment.name),
-            subtitle: Text('${localizeDigits((attachment.size / 1024).ceil().toString(), Localizations.localeOf(context))} ${l10n.kilobytes}'),
+            onTap: () => AttachmentStore().save(attachment.path),
+            subtitle: Text(
+              '${localizeDigits((attachment.size / 1024).ceil().toString(), Localizations.localeOf(context))} ${l10n.kilobytes}',
+            ),
             trailing: IconButton(
               tooltip: l10n.removeAttachment,
-              onPressed: () => ref.read(projectsProvider.notifier).removeAttachment(project.id, attachment.id),
+              onPressed: () => ref
+                  .read(projectsProvider.notifier)
+                  .removeAttachment(project.id, attachment.id),
               icon: const Icon(Icons.delete_outline_rounded),
             ),
           ),
@@ -341,14 +402,19 @@ class _People extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final people = ref.watch(peopleProvider).where((item) => project.personIds.contains(item.id)).toList();
+    final people = ref
+        .watch(peopleProvider)
+        .where((item) => project.personIds.contains(item.id))
+        .toList();
     final l10n = AppLocalizations.of(context);
     return people.isEmpty
         ? Center(child: Text(l10n.noPeople))
         : ListView.builder(
             itemCount: people.length,
             itemBuilder: (_, index) => ListTile(
-              leading: CircleAvatar(child: Text(people[index].name.characters.first)),
+              leading: CircleAvatar(
+                child: Text(people[index].name.characters.first),
+              ),
               title: Text(people[index].name),
               subtitle: Text(people[index].relationship ?? ''),
             ),
@@ -363,15 +429,23 @@ class _Finance extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final transactions = ref.watch(financeProvider).transactions.where((item) => item.projectId == project.id).toList();
-    final total = transactions.fold<double>(0, (sum, item) => sum + item.amount);
+    final transactions = ref
+        .watch(financeProvider)
+        .transactions
+        .where((item) => item.projectId == project.id)
+        .toList();
+    final total = transactions.fold<double>(
+      0,
+      (sum, item) => sum + item.amount,
+    );
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: FilledButton.icon(
-            onPressed: () => showFinanceForm(context, ref, projectId: project.id),
+            onPressed: () =>
+                showFinanceForm(context, ref, projectId: project.id),
             icon: const Icon(Icons.add_card_rounded),
             label: Text(l10n.addFinance),
           ),
@@ -381,13 +455,25 @@ class _Finance extends ConsumerWidget {
           child: ListTile(
             leading: const Icon(Icons.account_balance_wallet_rounded),
             title: Text(l10n.projectFinance),
-            subtitle: Text(localizeDigits(total.toStringAsFixed(0), Localizations.localeOf(context))),
+            subtitle: Text(
+              localizeDigits(
+                total.toStringAsFixed(0),
+                Localizations.localeOf(context),
+              ),
+            ),
           ),
         ),
         for (final item in transactions)
           ListTile(
-            title: Text(item.note?.isNotEmpty ?? false ? item.note! : item.type.name),
-            trailing: Text(localizeDigits(item.amount.toStringAsFixed(0), Localizations.localeOf(context))),
+            title: Text(
+              item.note?.isNotEmpty ?? false ? item.note! : item.type.name,
+            ),
+            trailing: Text(
+              localizeDigits(
+                item.amount.toStringAsFixed(0),
+                Localizations.localeOf(context),
+              ),
+            ),
           ),
       ],
     );

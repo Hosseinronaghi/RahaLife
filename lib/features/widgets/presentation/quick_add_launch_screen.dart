@@ -23,7 +23,6 @@ class _QuickAddLaunchScreenState extends State<QuickAddLaunchScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: CircularProgressIndicator()));
 }

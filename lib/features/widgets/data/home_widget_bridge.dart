@@ -50,7 +50,8 @@ class RahaHomeWidgetBridge {
   static const iosName = 'RahaTodayWidget';
   static const appGroupId = 'group.com.raha.rahaLife';
 
-  static bool get _isSupportedNativePlatform => !kIsWeb &&
+  static bool get _isSupportedNativePlatform =>
+      !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
 

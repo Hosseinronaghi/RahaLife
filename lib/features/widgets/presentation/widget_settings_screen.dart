@@ -11,9 +11,10 @@ import '../../medication/presentation/medication_controller.dart';
 import '../../shopping/presentation/shopping_controller.dart';
 import '../data/home_widget_bridge.dart';
 
-final widgetPrivacyProvider = StateNotifierProvider<WidgetPrivacyNotifier, bool>(
-  (ref) => WidgetPrivacyNotifier(),
-);
+final widgetPrivacyProvider =
+    StateNotifierProvider<WidgetPrivacyNotifier, bool>(
+      (ref) => WidgetPrivacyNotifier(),
+    );
 
 class WidgetPrivacyNotifier extends StateNotifier<bool> {
   WidgetPrivacyNotifier() : super(false) {
@@ -39,7 +40,8 @@ class WidgetSettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context);
-    final widgetBridgeSupported = !kIsWeb &&
+    final widgetBridgeSupported =
+        !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
     final hideSensitive = ref.watch(widgetPrivacyProvider);
@@ -53,25 +55,33 @@ class WidgetSettingsScreen extends ConsumerWidget {
     final affairs = today
         .where((item) => item.type == HomeEntryType.affair && !item.completed)
         .toList();
-    final appointments = today
-        .where((item) => item.type == HomeEntryType.appointment && !item.completed)
-        .toList()
-      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    final appointments =
+        today
+            .where(
+              (item) =>
+                  item.type == HomeEntryType.appointment && !item.completed,
+            )
+            .toList()
+          ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
     final birthdays = today
         .where((item) => item.type == HomeEntryType.birthday)
         .toList();
-    final activeMedication = medicationPlans
-        .where((item) => item.active && !item.isCourseFinished(now))
-        .toList()
-      ..sort((a, b) => a.time.compareTo(b.time));
-    final activeShopping = shoppingLists.where((item) => !item.completed).toList();
+    final activeMedication =
+        medicationPlans
+            .where((item) => item.active && !item.isCourseFinished(now))
+            .toList()
+          ..sort((a, b) => a.time.compareTo(b.time));
+    final activeShopping = shoppingLists
+        .where((item) => !item.completed)
+        .toList();
     final remainingShoppingItems = activeShopping.fold<int>(
       0,
       (total, list) => total + list.items.where((item) => !item.checked).length,
     );
 
     Future<void> refreshWidgets() async {
-      final countItems = '${localizeDigits(today.length, locale)} ${l10n.items}';
+      final countItems =
+          '${localizeDigits(today.length, locale)} ${l10n.items}';
       final affairsSummary = affairs.isEmpty
           ? l10n.noItems
           : '${localizeDigits(affairs.length, locale)} ${l10n.items} • ${affairs.first.title}';
@@ -84,7 +94,9 @@ class WidgetSettingsScreen extends ConsumerWidget {
       final shoppingSummary = remainingShoppingItems == 0
           ? l10n.noShoppingItems
           : '${localizeDigits(remainingShoppingItems, locale)} ${l10n.items} • ${activeShopping.first.title}';
-      final birthdaySummary = birthdays.isEmpty ? l10n.noItems : birthdays.first.title;
+      final birthdaySummary = birthdays.isEmpty
+          ? l10n.noItems
+          : birthdays.first.title;
 
       await RahaHomeWidgetBridge.updateDashboard(
         RahaWidgetDashboardData(
@@ -137,19 +149,20 @@ class WidgetSettingsScreen extends ConsumerWidget {
                     title: Text(l10n.hideSensitiveWidgetData),
                     subtitle: Text(l10n.widgetPrivacy),
                     value: hideSensitive,
-                    onChanged: (value) =>
-                        ref.read(widgetPrivacyProvider.notifier).setValue(value),
+                    onChanged: (value) => ref
+                        .read(widgetPrivacyProvider.notifier)
+                        .setValue(value),
                   ),
                   const SizedBox(height: 8),
                   FilledButton.icon(
                     onPressed: widgetBridgeSupported
                         ? () async {
-                      await refreshWidgets();
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.widgetUpdated)),
-                      );
-                    }
+                            await refreshWidgets();
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.widgetUpdated)),
+                            );
+                          }
                         : null,
                     icon: const Icon(Icons.refresh_rounded),
                     label: Text(l10n.refreshWidget),
@@ -227,7 +240,6 @@ class WidgetSettingsScreen extends ConsumerWidget {
   }
 }
 
-
 class _WidgetActionChip extends StatelessWidget {
   const _WidgetActionChip({
     required this.label,
@@ -241,7 +253,8 @@ class _WidgetActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    final isAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     final l10n = AppLocalizations.of(context);
     return ActionChip(
       avatar: Icon(icon, size: 17),
@@ -250,9 +263,9 @@ class _WidgetActionChip extends StatelessWidget {
           ? () async {
               await RahaHomeWidgetBridge.requestPinAndroid(androidName);
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(l10n.widgetPinRequested)),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(l10n.widgetPinRequested)));
             }
           : null,
     );

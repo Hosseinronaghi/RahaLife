@@ -62,7 +62,9 @@ class ProjectsScreen extends ConsumerWidget {
                                 width: 44,
                                 height: 44,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF0F766E).withValues(alpha: 0.12),
+                                  color: const Color(
+                                    0xFF0F766E,
+                                  ).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                                 child: const Icon(
@@ -77,12 +79,16 @@ class ProjectsScreen extends ConsumerWidget {
                                   children: [
                                     Text(
                                       project.title,
-                                      style: Theme.of(context).textTheme.titleMedium,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
                                     ),
                                     if (project.dueDate != null)
                                       Text(
                                         '${l10n.projectDue}: ${compactDualDate(project.dueDate!, Localizations.localeOf(context))}',
-                                        style: Theme.of(context).textTheme.bodySmall,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
                                       ),
                                   ],
                                 ),
@@ -90,11 +96,16 @@ class ProjectsScreen extends ConsumerWidget {
                               PopupMenuButton<String>(
                                 onSelected: (value) {
                                   if (value == 'delete') {
-                                    ref.read(projectsProvider.notifier).delete(project.id);
+                                    ref
+                                        .read(projectsProvider.notifier)
+                                        .delete(project.id);
                                   }
                                 },
                                 itemBuilder: (_) => [
-                                  PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text(l10n.delete),
+                                  ),
                                 ],
                               ),
                             ],
@@ -153,7 +164,10 @@ Future<void> showProjectForm(BuildContext context, WidgetRef ref) async {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(l10n.addProject, style: Theme.of(context).textTheme.titleLarge),
+                  Text(
+                    l10n.addProject,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: title,
@@ -168,7 +182,9 @@ Future<void> showProjectForm(BuildContext context, WidgetRef ref) async {
                     controller: description,
                     minLines: 2,
                     maxLines: 5,
-                    decoration: InputDecoration(labelText: l10n.projectDescription),
+                    decoration: InputDecoration(
+                      labelText: l10n.projectDescription,
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -182,12 +198,19 @@ Future<void> showProjectForm(BuildContext context, WidgetRef ref) async {
                               lastDate: DateTime(2120),
                               initialDate: startDate ?? DateTime.now(),
                             );
-                            if (value != null) setState(() => startDate = value);
+                            if (value != null) {
+                              setState(() => startDate = value);
+                            }
                           },
                           icon: const Icon(Icons.flag_outlined),
-                          label: Text(startDate == null
-                              ? l10n.projectStart
-                              : compactDualDate(startDate!, Localizations.localeOf(context))),
+                          label: Text(
+                            startDate == null
+                                ? l10n.projectStart
+                                : compactDualDate(
+                                    startDate!,
+                                    Localizations.localeOf(context),
+                                  ),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -198,21 +221,30 @@ Future<void> showProjectForm(BuildContext context, WidgetRef ref) async {
                               context: context,
                               firstDate: startDate ?? DateTime.now(),
                               lastDate: DateTime(2120),
-                              initialDate: dueDate ?? startDate ?? DateTime.now(),
+                              initialDate:
+                                  dueDate ?? startDate ?? DateTime.now(),
                             );
                             if (value != null) setState(() => dueDate = value);
                           },
                           icon: const Icon(Icons.event_available_outlined),
-                          label: Text(dueDate == null
-                              ? l10n.projectDue
-                              : compactDualDate(dueDate!, Localizations.localeOf(context))),
+                          label: Text(
+                            dueDate == null
+                                ? l10n.projectDue
+                                : compactDualDate(
+                                    dueDate!,
+                                    Localizations.localeOf(context),
+                                  ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                   if (people.isNotEmpty) ...[
                     const SizedBox(height: 14),
-                    Text(l10n.projectPeople, style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      l10n.projectPeople,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -237,7 +269,9 @@ Future<void> showProjectForm(BuildContext context, WidgetRef ref) async {
                   FilledButton(
                     onPressed: () {
                       if (!(formKey.currentState?.validate() ?? false)) return;
-                      final project = ref.read(projectsProvider.notifier).add(
+                      final project = ref
+                          .read(projectsProvider.notifier)
+                          .add(
                             title: title.text,
                             description: description.text,
                             startDate: startDate,
