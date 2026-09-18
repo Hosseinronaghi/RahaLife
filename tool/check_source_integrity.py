@@ -18,6 +18,9 @@ def tracked():
     yield ROOT / 'pubspec.yaml'
     yield ROOT / 'pubspec.lock'
 
+if (ROOT / 'lib/app/app').exists():
+    sys.exit('WRONG NESTING: lib/app/app exists. Use tool/repair_nested_app.py to review and repair it.')
+
 if '--refresh' in sys.argv:
     MANIFEST.write_text(json.dumps({p.relative_to(ROOT).as_posix(): digest(p)
                                   for p in sorted(tracked())}, indent=2) + '\n')
@@ -25,6 +28,11 @@ if '--refresh' in sys.argv:
 else:
     errors = []
     entries = json.loads(MANIFEST.read_text())
+    for folder in ('lib', 'test'):
+        for path in (ROOT / folder).rglob('*.dart'):
+            name = path.relative_to(ROOT).as_posix()
+            if name not in entries:
+                errors.append('UNEXPECTED DART FILE: ' + name)
     for name, expected in entries.items():
         path = ROOT / name
         if not path.is_file():
