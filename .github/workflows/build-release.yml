@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+env:
+  CI: 'true'
+  DASH__SUPPRESS_ANALYTICS: 'true'
+
 jobs:
   android:
     name: Android APK and AAB
@@ -35,6 +39,8 @@ jobs:
 
       - name: Generate Android platform
         run: flutter create --platforms=android --org com.raha --project-name raha_life .
+      - name: Apply Raha Life name and icon
+        run: python tool/configure_branding.py
 
       - name: Remove generated default widget test
         run: rm -f test/widget_test.dart
@@ -243,6 +249,7 @@ jobs:
         run: |
           flutter config --enable-windows-desktop
           flutter create --platforms=windows --org com.raha --project-name raha_life .
+          python tool/configure_branding.py
 
       - name: Remove generated default widget test
         shell: pwsh
@@ -309,6 +316,8 @@ jobs:
 
       - name: Generate Web platform
         run: flutter create --platforms=web --org com.raha --project-name raha_life .
+      - name: Apply Raha Life name and icon
+        run: python tool/configure_branding.py
 
       - name: Remove generated default widget test
         run: rm -f test/widget_test.dart

@@ -1,0 +1,1 @@
+PASS selective pull, account isolation, exact retry ACK, causal conflict, friendship, message deduplication, share permissions, CAS, revocation, logout

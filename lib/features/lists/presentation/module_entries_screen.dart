@@ -20,7 +20,7 @@ class ModuleEntriesScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final items =
         ref
-            .watch(homeEntriesProvider)
+            .watch(effectiveHomeEntriesProvider)
             .where(
               (item) =>
                   item.type == type &&
@@ -81,12 +81,14 @@ class ModuleEntriesScreen extends ConsumerWidget {
                       horizontal: 16,
                       vertical: 8,
                     ),
-                    leading: Checkbox(
-                      value: entry.completedOn(DateTime.now()),
-                      onChanged: (_) => ref
-                          .read(homeEntriesProvider.notifier)
-                          .toggle(entry.id),
-                    ),
+                    leading: entry.type == HomeEntryType.birthday
+                        ? const Icon(Icons.cake_outlined)
+                        : Checkbox(
+                            value: entry.completedOn(DateTime.now()),
+                            onChanged: (_) => ref
+                                .read(homeEntriesProvider.notifier)
+                                .toggle(entry.id),
+                          ),
                     title: Text(
                       entry.title,
                       style: TextStyle(

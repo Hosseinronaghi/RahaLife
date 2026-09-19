@@ -1,3 +1,4 @@
+import '../../../core/widgets/retained_popup.dart';
 import '../../workspace/record_editor.dart';
 
 import 'package:go_router/go_router.dart';
@@ -34,12 +35,17 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         title: Text(l10n.finance),
         actions: [
           IconButton(
-            tooltip: 'Edit / Restore',
+            tooltip: tr(context, 'گزارش و بودجه', 'Reports and budgets'),
+            icon: const Icon(Icons.insights),
+            onPressed: () => context.push('/insights'),
+          ),
+          IconButton(
+            tooltip: tr(context, 'ویرایش و بازیابی', 'Edit / restore'),
             icon: const Icon(Icons.edit_note),
             onPressed: () => context.push('/records'),
           ),
           IconButton(
-            onPressed: () => _showAccountForm(context, ref),
+            onPressed: () => showAccountForm(context, ref),
             tooltip: l10n.addAccount,
             icon: const Icon(Icons.account_balance_rounded),
           ),
@@ -51,7 +57,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
           if (state.currencies.length <= 1) _Summary(state: state),
           for (final entry in state.balanceByCurrency.entries)
             ListTile(
-              title: Text(entry.key),
+              title: Text(financeCurrencyLabel(context, entry.key)),
               trailing: Text(
                 localizeDigits(
                   (entry.value / 100).toStringAsFixed(2),
@@ -64,8 +70,14 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
               margin: const EdgeInsets.only(top: 8),
               child: ListTile(
                 leading: const Icon(Icons.account_balance_wallet_outlined),
-                title: Text(account.name),
-                subtitle: Text(account.currencyCode),
+                title: Text(
+                  account.name == 'Cash'
+                      ? tr(context, 'پول نقد', 'Cash')
+                      : account.name,
+                ),
+                subtitle: Text(
+                  '${financeCurrencyLabel(context, account.currencyCode)} · ${financeAccountKindLabel(context, account.kind)}${account.archived ? ' · ${tr(context, 'بایگانی', 'Archived')}' : ''}',
+                ),
                 trailing: Text(
                   localizeDigits(
                     (state.accountBalanceMinor(account.id) / 100)
@@ -73,12 +85,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                     Localizations.localeOf(context),
                   ),
                 ),
-                onTap: () => recordActions(
-                  context,
-                  ref,
-                  'finance_account',
-                  account.toJson(),
-                ),
+                onTap: () => showAccountForm(context, ref, account: account),
               ),
             ),
           const SizedBox(height: 14),
@@ -125,20 +132,30 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                     subtitle: Text(
                       [
                         if (item.category?.isNotEmpty ?? false)
-                          _categoryLabel(l10n, item.category!),
+                          financeCategoryLabel(l10n, item.category!),
                         compactDualDate(
                           item.dueDate ?? item.dateTime,
                           Localizations.localeOf(context),
                         ),
-                        if (item.isBill) item.paid ? l10n.paid : l10n.unpaid,
+                        if (item.isBill ||
+                            item.type == FinanceTransactionType.debt ||
+                            item.type == FinanceTransactionType.receivable)
+                          item.paid ? l10n.paid : l10n.unpaid,
                       ].join(' • '),
                     ),
                     trailing: SizedBox(
-                      width: item.isBill ? 148 : 112,
+                      width:
+                          (item.isBill ||
+                              item.type == FinanceTransactionType.debt ||
+                              item.type == FinanceTransactionType.receivable)
+                          ? 148
+                          : 112,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (item.isBill)
+                          if (item.isBill ||
+                              item.type == FinanceTransactionType.debt ||
+                              item.type == FinanceTransactionType.receivable)
                             IconButton(
                               tooltip: item.paid
                                   ? l10n.markUnpaid
@@ -171,12 +188,7 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                       'finance_transaction',
                       item.toJson(),
                     ),
-                    onTap: () => recordActions(
-                      context,
-                      ref,
-                      'finance_transaction',
-                      item.toJson(),
-                    ),
+                    onTap: () => showFinanceForm(context, ref, existing: item),
                   ),
                 ),
               ),
@@ -214,7 +226,10 @@ class _Summary extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             for (final currency in state.currencies) ...[
-              Text(currency, style: Theme.of(context).textTheme.labelLarge),
+              Text(
+                financeCurrencyLabel(context, currency),
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
               Builder(
                 builder: (context) {
                   final selected = state.accounts
@@ -328,33 +343,47 @@ Future<void> showFinanceForm(
   BuildContext context,
   WidgetRef ref, {
   String? projectId,
+  FinanceTransaction? existing,
 }) async {
   final l10n = AppLocalizations.of(context);
   final formKey = GlobalKey<FormState>();
-  final amount = TextEditingController();
-  final note = TextEditingController();
-  final billIdentifier = TextEditingController();
-  final paymentIdentifier = TextEditingController();
-  var type = FinanceTransactionType.expense;
+  final amount = TextEditingController(text: existing?.amount.toString() ?? '');
+  final note = TextEditingController(text: existing?.note ?? '');
+  final billIdentifier = TextEditingController(
+    text: existing?.billIdentifier ?? '',
+  );
+  final paymentIdentifier = TextEditingController(
+    text: existing?.paymentIdentifier ?? '',
+  );
+  var type = existing?.type ?? FinanceTransactionType.expense;
   final available = ref
       .read(financeProvider)
       .accounts
-      .where((a) => !a.archived)
+      .where(
+        (a) =>
+            !a.archived ||
+            a.id == existing?.accountId ||
+            a.id == existing?.toAccountId,
+      )
       .toList();
-  var accountId = available.isEmpty ? '' : available.first.id;
-  String? toAccountId;
-  var date = DateTime.now();
-  var dueDate = DateTime.now().add(const Duration(days: 3));
-  var category = defaultExpenseCategories.first;
-  var billType = defaultBillTypes.first;
-  var reminder = const ReminderPlan(
-    enabled: true,
-    kind: ReminderKind.notification,
-    minutesBefore: 1440,
-    repeat: ReminderRepeat.monthly,
-  );
+  var accountId =
+      existing?.accountId ?? (available.isEmpty ? '' : available.first.id);
+  String? toAccountId = existing?.toAccountId;
+  var date = existing?.dateTime ?? DateTime.now();
+  var dueDate =
+      existing?.dueDate ?? DateTime.now().add(const Duration(days: 3));
+  var category = existing?.category ?? defaultExpenseCategories.first;
+  var billType = existing?.billType ?? defaultBillTypes.first;
+  var reminder =
+      existing?.reminder ??
+      const ReminderPlan(
+        enabled: true,
+        kind: ReminderKind.notification,
+        minutesBefore: 1440,
+        repeat: ReminderRepeat.monthly,
+      );
 
-  await showModalBottomSheet<void>(
+  await showRetainedBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     builder: (sheetContext) => StatefulBuilder(
@@ -362,12 +391,21 @@ Future<void> showFinanceForm(
         final accounts = ref
             .read(financeProvider)
             .accounts
-            .where((a) => !a.archived)
+            .where(
+              (a) =>
+                  !a.archived ||
+                  a.id == existing?.accountId ||
+                  a.id == existing?.toAccountId,
+            )
             .toList();
         if (accountId.isEmpty && accounts.isNotEmpty) {
           accountId = accounts.first.id;
         }
         final isBill = type == FinanceTransactionType.bill;
+        final hasDueDate =
+            isBill ||
+            type == FinanceTransactionType.debt ||
+            type == FinanceTransactionType.receivable;
         return Padding(
           padding: EdgeInsets.fromLTRB(
             20,
@@ -410,23 +448,42 @@ Future<void> showFinanceForm(
                       decimal: true,
                     ),
                     decoration: InputDecoration(labelText: l10n.amount),
-                    validator: (value) =>
-                        double.tryParse(
-                              toEnglishDigits(value ?? '').replaceAll(',', ''),
-                            ) ==
-                            null
-                        ? l10n.requiredField
-                        : null,
+                    validator: (value) {
+                      final parsed = double.tryParse(
+                        toEnglishDigits(value ?? '')
+                            .replaceAll(',', '')
+                            .replaceAll('٬', '')
+                            .replaceAll('٫', '.'),
+                      );
+                      return parsed == null ||
+                              !parsed.isFinite ||
+                              parsed <= 0 ||
+                              parsed > 90071992547409
+                          ? tr(
+                              context,
+                              'مبلغ مثبت و معتبر وارد کنید.',
+                              'Enter a valid positive amount.',
+                            )
+                          : null;
+                    },
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
-                    initialValue: accountId.isEmpty ? null : accountId,
+                    initialValue: accounts.any((a) => a.id == accountId)
+                        ? accountId
+                        : null,
+                    isExpanded: true,
+                    validator: (v) => v == null ? l10n.requiredField : null,
                     decoration: InputDecoration(labelText: l10n.account),
                     items: accounts
                         .map(
                           (item) => DropdownMenuItem(
                             value: item.id,
-                            child: Text(item.name),
+                            child: Text(
+                              item.name == 'Cash'
+                                  ? tr(context, 'پول نقد', 'Cash')
+                                  : item.name,
+                            ),
                           ),
                         )
                         .toList(),
@@ -481,7 +538,7 @@ Future<void> showFinanceForm(
                     DropdownButtonFormField<String>(
                       initialValue: billType,
                       decoration: InputDecoration(labelText: l10n.billType),
-                      items: defaultBillTypes
+                      items: {billType, ...defaultBillTypes}
                           .map(
                             (value) => DropdownMenuItem(
                               value: value,
@@ -574,11 +631,11 @@ Future<void> showFinanceForm(
                     DropdownButtonFormField<String>(
                       initialValue: category,
                       decoration: InputDecoration(labelText: l10n.category),
-                      items: defaultExpenseCategories
+                      items: {category, ...defaultExpenseCategories}
                           .map(
                             (value) => DropdownMenuItem(
                               value: value,
-                              child: Text(_categoryLabel(l10n, value)),
+                              child: Text(financeCategoryLabel(l10n, value)),
                             ),
                           )
                           .toList(),
@@ -588,6 +645,28 @@ Future<void> showFinanceForm(
                     ),
                   ],
                   const SizedBox(height: 10),
+                  if (hasDueDate && !isBill) ...[
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.event),
+                      label: Text(
+                        '${l10n.dueDate}: ${compactDualDate(dueDate, Localizations.localeOf(context))}',
+                      ),
+                      onPressed: () async {
+                        final value = await showDatePicker(
+                          context: context,
+                          initialDate: dueDate,
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime(2200),
+                        );
+                        if (value != null) setState(() => dueDate = value);
+                      },
+                    ),
+                    ReminderEditor(
+                      plan: reminder,
+                      onChanged: (v) => setState(() => reminder = v),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   TextFormField(
                     controller: note,
                     minLines: 2,
@@ -618,42 +697,61 @@ Future<void> showFinanceForm(
                             if (!(formKey.currentState?.validate() ?? false)) {
                               return;
                             }
-                            final activeReminder = isBill
+                            final activeReminder = hasDueDate
                                 ? reminder
                                 : const ReminderPlan();
-                            final transaction = ref
-                                .read(financeProvider.notifier)
-                                .addTransaction(
-                                  type: type,
-                                  amount: double.parse(
-                                    toEnglishDigits(
-                                      amount.text,
-                                    ).replaceAll(',', ''),
+                            try {
+                              final transaction = ref
+                                  .read(financeProvider.notifier)
+                                  .addTransaction(
+                                    id: existing?.id,
+                                    paid: existing?.paid ?? false,
+                                    type: type,
+                                    amount: double.parse(
+                                      toEnglishDigits(amount.text)
+                                          .replaceAll(',', '')
+                                          .replaceAll('٬', '')
+                                          .replaceAll('٫', '.'),
+                                    ),
+                                    dateTime: date,
+                                    accountId: accountId,
+                                    toAccountId: toAccountId,
+                                    category: isBill ? 'bills' : category,
+                                    note: note.text,
+                                    dueDate: hasDueDate ? dueDate : null,
+                                    billType: isBill ? billType : null,
+                                    billIdentifier: isBill
+                                        ? billIdentifier.text
+                                        : null,
+                                    paymentIdentifier: isBill
+                                        ? paymentIdentifier.text
+                                        : null,
+                                    reminder: activeReminder,
+                                    projectId: projectId ?? existing?.projectId,
+                                  );
+                              if (activeReminder.enabled &&
+                                  transaction.dueDate != null) {
+                                await ReminderService.instance
+                                    .requestPermissions();
+                                // Persisted data is reconciled by ReminderCoordinator.
+                              }
+                              if (sheetContext.mounted) {
+                                Navigator.pop(sheetContext);
+                              }
+                            } catch (_) {
+                              if (sheetContext.mounted) {
+                                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      tr(
+                                        sheetContext,
+                                        'حساب و مبلغ را بررسی کنید؛ حساب مقصد باید متفاوت و هم‌ارز باشد.',
+                                        'Check amount and accounts. Destination must differ and use the same currency.',
+                                      ),
+                                    ),
                                   ),
-                                  dateTime: date,
-                                  accountId: accountId,
-                                  toAccountId: toAccountId,
-                                  category: isBill ? 'bills' : category,
-                                  note: note.text,
-                                  dueDate: isBill ? dueDate : null,
-                                  billType: isBill ? billType : null,
-                                  billIdentifier: isBill
-                                      ? billIdentifier.text
-                                      : null,
-                                  paymentIdentifier: isBill
-                                      ? paymentIdentifier.text
-                                      : null,
-                                  reminder: activeReminder,
-                                  projectId: projectId,
                                 );
-                            if (activeReminder.enabled &&
-                                transaction.dueDate != null) {
-                              await ReminderService.instance
-                                  .requestPermissions();
-                              // Persisted data is reconciled by ReminderCoordinator.
-                            }
-                            if (sheetContext.mounted) {
-                              Navigator.pop(sheetContext);
+                              }
                             }
                           },
                     child: Text(l10n.save),
@@ -672,57 +770,194 @@ Future<void> showFinanceForm(
   paymentIdentifier.dispose();
 }
 
-Future<void> _showAccountForm(BuildContext context, WidgetRef ref) async {
+String financeCurrencyLabel(BuildContext context, String value) =>
+    switch (value) {
+      'IRT' => tr(context, 'تومان', 'Toman'),
+      'IRR' => tr(context, 'ریال', 'Rial'),
+      'USD' => tr(context, 'دلار آمریکا', 'US dollar'),
+      'EUR' => tr(context, 'یورو', 'Euro'),
+      _ => value,
+    };
+String financeAccountKindLabel(BuildContext context, String value) =>
+    switch (value) {
+      'cash' => tr(context, 'پول نقد', 'Cash'),
+      'bank' => tr(context, 'حساب بانکی', 'Bank'),
+      'saving' => tr(context, 'پس‌انداز', 'Savings'),
+      'wallet' => tr(context, 'کیف پول', 'Wallet'),
+      _ => tr(context, 'سایر', 'Other'),
+    };
+Future<void> showAccountForm(
+  BuildContext context,
+  WidgetRef ref, {
+  FinanceAccount? account,
+}) async {
   final l10n = AppLocalizations.of(context);
-  final name = TextEditingController();
-  final balance = TextEditingController();
-  await showDialog<void>(
+  final name = TextEditingController(
+    text: account?.name == 'Cash'
+        ? tr(context, 'پول نقد', 'Cash')
+        : account?.name ?? '',
+  );
+  final balance = TextEditingController(
+    text: (account?.openingBalance ?? 0).toString(),
+  );
+  final bank = TextEditingController(text: account?.bankName ?? '');
+  final number = TextEditingController(text: account?.accountNumber ?? '');
+  var currency = account?.currencyCode ?? 'IRT';
+  var kind = account?.kind ?? 'cash';
+  var archived = account?.archived ?? false;
+  String? error;
+  await showRetainedDialog<void>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: Text(l10n.addAccount),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: name,
-            autofocus: true,
-            decoration: InputDecoration(labelText: l10n.accountName),
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: Text(account == null ? l10n.addAccount : l10n.edit),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: name,
+                  decoration: InputDecoration(labelText: l10n.accountName),
+                ),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  initialValue: kind,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: tr(context, 'نوع حساب', 'Account type'),
+                  ),
+                  items: {kind, 'cash', 'bank', 'saving', 'wallet'}
+                      .map(
+                        (v) => DropdownMenuItem(
+                          value: v,
+                          child: Text(financeAccountKindLabel(context, v)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => kind = v!),
+                ),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  initialValue: currency,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: tr(context, 'واحد پول', 'Currency'),
+                  ),
+                  items: {currency, 'IRT', 'IRR', 'USD', 'EUR'}
+                      .map(
+                        (v) => DropdownMenuItem(
+                          value: v,
+                          child: Text(financeCurrencyLabel(context, v)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(() => currency = v!),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: balance,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  decoration: InputDecoration(labelText: l10n.openingBalance),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: bank,
+                  decoration: InputDecoration(
+                    labelText: tr(context, 'نام بانک', 'Bank name'),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: number,
+                  decoration: InputDecoration(
+                    labelText: tr(context, 'شماره حساب', 'Account number'),
+                  ),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(tr(context, 'بایگانی حساب', 'Archive account')),
+                  value: archived,
+                  onChanged: (v) => setState(() => archived = v),
+                ),
+                if (error != null)
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: balance,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: l10n.openingBalance),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final opening = double.tryParse(
+                toEnglishDigits(balance.text)
+                    .replaceAll(',', '')
+                    .replaceAll('٬', '')
+                    .replaceAll('٫', '.')
+                    .replaceAll('٬', '')
+                    .replaceAll('٫', '.'),
+              );
+              if (name.text.trim().isEmpty ||
+                  opening == null ||
+                  !opening.isFinite) {
+                setState(
+                  () => error = tr(
+                    context,
+                    'نام و مبلغ معتبر وارد کنید.',
+                    'Enter a name and valid amount.',
+                  ),
+                );
+                return;
+              }
+              try {
+                ref
+                    .read(financeProvider.notifier)
+                    .addAccount(
+                      name.text,
+                      id: account?.id,
+                      openingBalance: opening,
+                      currencyCode: currency,
+                      kind: kind,
+                      bankName: bank.text,
+                      accountNumber: number.text,
+                      archived: archived,
+                    );
+                Navigator.pop(dialogContext);
+              } catch (_) {
+                setState(
+                  () => error = tr(
+                    context,
+                    'واحد پول حساب دارای تراکنش قابل تغییر نیست.',
+                    'Currency of an account with transactions cannot change.',
+                  ),
+                );
+              }
+            },
+            child: Text(l10n.save),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: Text(l10n.cancel),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (name.text.trim().isEmpty) return;
-            ref
-                .read(financeProvider.notifier)
-                .addAccount(
-                  name.text,
-                  openingBalance:
-                      double.tryParse(toEnglishDigits(balance.text)) ?? 0,
-                );
-            Navigator.pop(dialogContext);
-          },
-          child: Text(l10n.save),
-        ),
-      ],
     ),
   );
-  name.dispose();
-  balance.dispose();
+  for (final c in [name, balance, bank, number]) {
+    c.dispose();
+  }
 }
 
-String _categoryLabel(AppLocalizations l10n, String key) => switch (key) {
+String financeCategoryLabel(AppLocalizations l10n, String key) => switch (key) {
   'bills' => l10n.categoryBills,
   'rentHousing' => l10n.categoryRentHousing,
   'groceries' => l10n.categoryGroceries,

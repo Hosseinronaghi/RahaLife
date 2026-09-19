@@ -9,6 +9,10 @@ on:
     tags-ignore:
       - 'v*'
 
+env:
+  CI: 'true'
+  DASH__SUPPRESS_ANALYTICS: 'true'
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -23,6 +27,8 @@ jobs:
           cache: true
       - name: Generate temporary platform files
         run: flutter create --platforms=android --org com.raha --project-name raha_life .
+      - name: Apply Raha Life name and icon
+        run: python tool/configure_branding.py
       - name: Remove generated default widget test
         run: rm -f test/widget_test.dart
       - run: flutter clean

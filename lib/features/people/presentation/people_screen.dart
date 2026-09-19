@@ -1,10 +1,12 @@
+import '../../../core/widgets/retained_popup.dart';
+import '../../../core/widgets/calendar_date_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/localization/locale_formatters.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../home/domain/home_entry.dart';
-import '../../home/presentation/home_controller.dart';
+import '../domain/person.dart';
+
 import 'people_controller.dart';
 
 class PeopleScreen extends ConsumerWidget {
@@ -17,11 +19,11 @@ class PeopleScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.people)),
       body: people.isEmpty
-          ? _EmptyPeople(onAdd: () => _showPersonForm(context, ref))
+          ? _EmptyPeople(onAdd: () => showPersonForm(context, ref))
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
               itemCount: people.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 20),
               itemBuilder: (context, index) {
                 final person = people[index];
                 return Card(
@@ -43,18 +45,22 @@ class PeopleScreen extends ConsumerWidget {
                     ),
                     trailing: PopupMenuButton<String>(
                       onSelected: (value) {
+                        if (value == 'edit') {
+                          showPersonForm(context, ref, person: person);
+                        }
                         if (value == 'delete') {
                           ref.read(peopleProvider.notifier).delete(person.id);
                         }
                       },
                       itemBuilder: (_) => [
+                        PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
                         PopupMenuItem(
                           value: 'delete',
                           child: Text(l10n.delete),
                         ),
                       ],
                     ),
-                    onTap: () => showModalBottomSheet<void>(
+                    onTap: () => showRetainedBottomSheet<void>(
                       context: context,
                       showDragHandle: true,
                       builder: (_) => Padding(
@@ -92,7 +98,7 @@ class PeopleScreen extends ConsumerWidget {
               },
             ),
       floatingActionButton: FloatingActionButton.small(
-        onPressed: () => _showPersonForm(context, ref),
+        onPressed: () => showPersonForm(context, ref),
         child: const Icon(Icons.person_add_alt_1_rounded),
       ),
     );
@@ -128,16 +134,48 @@ class _EmptyPeople extends StatelessWidget {
   }
 }
 
-Future<void> _showPersonForm(BuildContext context, WidgetRef ref) async {
+Future<void> showPersonForm(
+  BuildContext context,
+  WidgetRef ref, {
+  Person? person,
+}) async {
   final l10n = AppLocalizations.of(context);
   final formKey = GlobalKey<FormState>();
-  final name = TextEditingController();
-  final relationship = TextEditingController();
-  final phone = TextEditingController();
-  final email = TextEditingController();
-  final notes = TextEditingController();
-  DateTime? birthDate;
-  await showModalBottomSheet<void>(
+  final name = TextEditingController(text: person?.name ?? '');
+  final relationship = TextEditingController(text: person?.relationship ?? '');
+  final phone = TextEditingController(text: person?.phone ?? '');
+  final email = TextEditingController(text: person?.email ?? '');
+  final notes = TextEditingController(text: person?.notes ?? '');
+  DateTime? birthDate = person?.birthDate;
+  final fa = Localizations.localeOf(context).languageCode == 'fa';
+  String birthCalendar = person?.birthCalendar ?? (fa ? 'jalali' : 'gregorian');
+  const relationships = [
+    'پدر',
+    'مادر',
+    'همسر',
+    'فرزند',
+    'خواهر',
+    'برادر',
+    'دوست',
+    'همکار',
+    'مدیر',
+    'مشتری',
+    'بستگان',
+  ];
+  const english = [
+    'Father',
+    'Mother',
+    'Spouse',
+    'Child',
+    'Sister',
+    'Brother',
+    'Friend',
+    'Colleague',
+    'Manager',
+    'Client',
+    'Relative',
+  ];
+  await showRetainedBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     builder: (sheetContext) => StatefulBuilder(
@@ -155,7 +193,7 @@ Future<void> _showPersonForm(BuildContext context, WidgetRef ref) async {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  l10n.addPerson,
+                  person == null ? l10n.addPerson : l10n.edit,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
@@ -166,28 +204,55 @@ Future<void> _showPersonForm(BuildContext context, WidgetRef ref) async {
                   validator: (v) =>
                       v == null || v.trim().isEmpty ? l10n.requiredField : null,
                 ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: relationship,
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  initialValue: relationships.contains(relationship.text)
+                      ? relationship.text
+                      : 'other',
+                  isExpanded: true,
                   decoration: InputDecoration(labelText: l10n.relationship),
+                  items: [
+                    for (var i = 0; i < relationships.length; i++)
+                      DropdownMenuItem(
+                        value: relationships[i],
+                        child: Text(fa ? relationships[i] : english[i]),
+                      ),
+                    DropdownMenuItem(
+                      value: 'other',
+                      child: Text(fa ? 'سایر / دلخواه' : 'Other / custom'),
+                    ),
+                  ],
+                  onChanged: (v) => setState(
+                    () => relationship.text = v == 'other' ? '' : v ?? '',
+                  ),
                 ),
-                const SizedBox(height: 10),
+                if (!relationships.contains(relationship.text)) ...[
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: relationship,
+                    decoration: InputDecoration(
+                      labelText: fa ? 'نسبت دلخواه' : 'Custom relationship',
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
                 TextFormField(
                   controller: phone,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(labelText: l10n.phone),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
                 TextFormField(
                   controller: email,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(labelText: l10n.email),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final selected = await showDatePicker(
-                      context: context,
+                    final selected = await showCalendarDatePicker(
+                      context,
+                      calendar: birthCalendar,
                       firstDate: DateTime(1920),
                       lastDate: DateTime.now(),
                       initialDate: birthDate ?? DateTime(1990),
@@ -204,7 +269,32 @@ Future<void> _showPersonForm(BuildContext context, WidgetRef ref) async {
                           ),
                   ),
                 ),
-                const SizedBox(height: 10),
+                if (birthDate != null)
+                  TextButton(
+                    onPressed: () => setState(() => birthDate = null),
+                    child: Text(fa ? 'حذف تاریخ تولد' : 'Clear birthday'),
+                  ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: birthCalendar,
+                  decoration: InputDecoration(
+                    labelText: fa
+                        ? 'مبنای تکرار سالانهٔ تولد'
+                        : 'Birthday calendar',
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'jalali',
+                      child: Text(fa ? 'شمسی' : 'Jalali'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'gregorian',
+                      child: Text(fa ? 'میلادی' : 'Gregorian'),
+                    ),
+                  ],
+                  onChanged: (v) => setState(() => birthCalendar = v!),
+                ),
+                const SizedBox(height: 20),
                 TextFormField(
                   controller: notes,
                   minLines: 2,
@@ -215,27 +305,18 @@ Future<void> _showPersonForm(BuildContext context, WidgetRef ref) async {
                 FilledButton(
                   onPressed: () {
                     if (!(formKey.currentState?.validate() ?? false)) return;
-                    final personId = ref
+                    ref
                         .read(peopleProvider.notifier)
                         .add(
+                          id: person?.id,
                           name: name.text,
                           relationship: relationship.text,
                           phone: phone.text,
                           email: email.text,
                           birthDate: birthDate,
+                          birthCalendar: birthCalendar,
                           notes: notes.text,
                         );
-                    if (birthDate != null) {
-                      ref
-                          .read(homeEntriesProvider.notifier)
-                          .add(
-                            type: HomeEntryType.birthday,
-                            title: name.text,
-                            dateTime: birthDate!,
-                            details: relationship.text,
-                            personId: personId,
-                          );
-                    }
                     Navigator.pop(sheetContext);
                   },
                   child: Text(l10n.save),

@@ -50,28 +50,32 @@ class PeopleNotifier extends StateNotifier<List<Person>> {
   }
 
   String add({
+    String? id,
     required String name,
     String? relationship,
     String? phone,
     String? email,
     DateTime? birthDate,
+    String birthCalendar = 'gregorian',
     String? notes,
   }) {
-    final id = _uuid.v4();
+    final personId = id ?? _uuid.v4();
+    if (name.trim().isEmpty) throw ArgumentError('Name is required');
     state = [
-      ...state,
+      ...state.where((p) => p.id != personId),
       Person(
-        id: id,
+        id: personId,
         name: name.trim(),
         relationship: relationship?.trim(),
         phone: phone?.trim(),
         email: email?.trim(),
         birthDate: birthDate,
+        birthCalendar: birthCalendar,
         notes: notes?.trim(),
       ),
     ]..sort((a, b) => a.name.compareTo(b.name));
     WriteStatus.track(_persist());
-    return id;
+    return personId;
   }
 
   void delete(String id) {

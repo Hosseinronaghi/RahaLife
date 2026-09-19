@@ -1,3 +1,7 @@
+import '../../../core/widgets/retained_popup.dart';
+import '../../../core/notifications/agenda.dart';
+import '../domain/cycle_forecast.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,6 +23,20 @@ class CycleScreen extends ConsumerWidget {
     final logs = ref.watch(cycleProvider);
     final hideSensitive = ref.watch(cyclePrivacyProvider);
     final predicted = ref.read(cycleProvider.notifier).predictedNextStart;
+    final fa = locale.languageCode == 'fa';
+    final forecast = CycleForecast.fromLogs(logs);
+    final conflicts =
+        (ref.watch(agendaProvider).asData?.value ?? <AgendaItem>[])
+            .where(
+              (e) =>
+                  !e.done &&
+                  e.type != 'cycle' &&
+                  e.type != 'cycle_conflict' &&
+                  e.type != 'birthday' &&
+                  e.type != 'medication' &&
+                  (forecast?.overlaps(e.at) ?? false),
+            )
+            .toList();
     final latest = logs.isEmpty ? null : logs.first;
     final now = DateTime.now();
     final cycleDay = latest == null
@@ -52,6 +70,72 @@ class CycleScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
+          if (forecast != null)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fa
+                          ? 'برآورد بر پایهٔ سوابق شما'
+                          : 'Estimate from your records',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      localizeDigits(
+                        fa
+                            ? 'فاصله: ${forecast.intervalDays} روز · مدت: ${forecast.durationDays} روز · تعداد فاصله‌های ثبت‌شده: ${forecast.samples}'
+                            : 'Interval: ${forecast.intervalDays} days · Duration: ${forecast.durationDays} days · Samples: ${forecast.samples}',
+                        locale,
+                      ),
+                    ),
+                    Text(
+                      fa
+                          ? 'این تاریخ تقریبی است؛ هم‌زمانی برنامه‌ها به معنی تداخل پزشکی نیست.'
+                          : 'Dates are approximate. Schedule overlap does not imply a medical interaction.',
+                    ),
+                    if (forecast.start.isBefore(
+                      DateTime(now.year, now.month, now.day),
+                    ))
+                      Text(
+                        fa
+                            ? 'تاریخ برآورد گذشته است؛ برای برآورد تازه، سابقه را به‌روز کنید.'
+                            : 'Estimate is in the past. Update records for a new forecast.',
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          if (conflicts.isNotEmpty)
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.event_busy_outlined),
+                    title: Text(
+                      fa ? 'هم‌زمانی با برنامه‌ها' : 'Schedule overlaps',
+                    ),
+                    subtitle: Text(
+                      hideSensitive
+                          ? (fa
+                                ? 'برای دیدن جزئیات، نمایش اطلاعات خصوصی را فعال کنید.'
+                                : 'Reveal private details to view overlaps.')
+                          : localizeDigits('${conflicts.length}', locale),
+                    ),
+                  ),
+                  if (!hideSensitive)
+                    for (final event in conflicts)
+                      ListTile(
+                        title: Text(event.title),
+                        subtitle: Text(compactDualDate(event.at, locale)),
+                        onTap: () => context.push(event.route),
+                      ),
+                ],
+              ),
+            ),
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -151,15 +235,17 @@ class CycleScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         l10n.quickLog,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const Spacer(),
                       FilledButton.tonalIcon(
-                        onPressed: () => _showCycleForm(context, ref),
+                        onPressed: () => showCycleForm(context, ref),
                         icon: const Icon(Icons.add_rounded),
                         label: Text(l10n.addCycleRecord),
                       ),
@@ -173,22 +259,22 @@ class CycleScreen extends ConsumerWidget {
                       _QuickChip(
                         icon: Icons.water_drop_outlined,
                         text: l10n.flowIntensity,
-                        onTap: () => _showCycleForm(context, ref),
+                        onTap: () => showCycleForm(context, ref),
                       ),
                       _QuickChip(
                         icon: Icons.monitor_heart_outlined,
                         text: l10n.painLevel,
-                        onTap: () => _showCycleForm(context, ref),
+                        onTap: () => showCycleForm(context, ref),
                       ),
                       _QuickChip(
                         icon: Icons.mood_rounded,
                         text: l10n.mood,
-                        onTap: () => _showCycleForm(context, ref),
+                        onTap: () => showCycleForm(context, ref),
                       ),
                       _QuickChip(
                         icon: Icons.health_and_safety_outlined,
                         text: l10n.symptoms,
-                        onTap: () => _showCycleForm(context, ref),
+                        onTap: () => showCycleForm(context, ref),
                       ),
                     ],
                   ),
@@ -232,6 +318,7 @@ class CycleScreen extends ConsumerWidget {
                       color: Color(0xFFE11D48),
                     ),
                   ),
+                  onTap: () => showCycleForm(context, ref, log: log),
                   title: Text(compactDualDate(log.startDate, locale)),
                   subtitle: hideSensitive
                       ? Text(
@@ -277,7 +364,7 @@ class CycleScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.small(
-        onPressed: () => _showCycleForm(context, ref),
+        onPressed: () => showCycleForm(context, ref),
         child: const Icon(Icons.add_rounded),
       ),
     );
@@ -307,7 +394,7 @@ Future<void> _showPrivacy(
   bool current,
 ) async {
   final l10n = AppLocalizations.of(context);
-  await showModalBottomSheet<void>(
+  await showRetainedBottomSheet<void>(
     context: context,
     showDragHandle: true,
     builder: (_) => Padding(
@@ -349,17 +436,26 @@ String _moodLabel(AppLocalizations l10n, CycleMood mood) => switch (mood) {
   CycleMood.other => l10n.other,
 };
 
-Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
+Future<void> showCycleForm(
+  BuildContext context,
+  WidgetRef ref, {
+  CycleLog? log,
+}) async {
   final l10n = AppLocalizations.of(context);
-  var start = DateTime.now();
-  DateTime? end;
-  var flow = FlowIntensity.medium;
-  var pain = 0.0;
-  var mood = CycleMood.calm;
-  var reminder = const ReminderPlan();
-  var reminderTime = const TimeOfDay(hour: 9, minute: 0);
-  final notes = TextEditingController();
-  final selectedSymptoms = <String>{};
+  var start = log?.startDate ?? DateTime.now();
+  DateTime? end = log?.endDate;
+  var flow = log?.flow ?? FlowIntensity.medium;
+  var pain = log?.painLevel.toDouble() ?? 0.0;
+  var mood = log?.mood ?? CycleMood.calm;
+  var reminder = log?.predictionReminder ?? const ReminderPlan();
+  var conflictReminders = log?.conflictReminders ?? false;
+  final parts = (log?.predictionReminderTime ?? '09:00').split(':');
+  var reminderTime = TimeOfDay(
+    hour: int.tryParse(parts.first) ?? 9,
+    minute: int.tryParse(parts.last) ?? 0,
+  );
+  final notes = TextEditingController(text: log?.notes ?? '');
+  final selectedSymptoms = <String>{...?log?.symptoms};
   final symptomChoices = Localizations.localeOf(context).languageCode == 'fa'
       ? const ['سردرد', 'نفخ', 'خستگی', 'حساسیت سینه', 'کمردرد', 'تهوع']
       : const [
@@ -371,7 +467,7 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
           'Nausea',
         ];
 
-  await showModalBottomSheet<void>(
+  await showRetainedBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
@@ -508,6 +604,21 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
                   decoration: InputDecoration(labelText: l10n.notes),
                 ),
                 const SizedBox(height: 14),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    locale.languageCode == 'fa'
+                        ? 'یادآوری خصوصیِ هم‌زمانی برنامه‌ها'
+                        : 'Private overlap reminders',
+                  ),
+                  subtitle: Text(
+                    locale.languageCode == 'fa'
+                        ? 'یک روز قبل؛ عنوان اعلان بدون جزئیات چرخه است.'
+                        : 'One day before, with a discreet notification title.',
+                  ),
+                  value: conflictReminders,
+                  onChanged: (v) => setState(() => conflictReminders = v),
+                ),
                 ReminderEditor(
                   plan: reminder,
                   allowedBeforeMinutes: const [0, 1440, 2880, 4320, 10080],
@@ -535,11 +646,25 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
                 const SizedBox(height: 18),
                 FilledButton(
                   onPressed: () async {
+                    if (end != null && calendarDays(end!, start) < 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            locale.languageCode == 'fa'
+                                ? 'پایان نباید قبل از شروع باشد.'
+                                : 'End cannot precede start.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
                     final timeText =
                         '${reminderTime.hour.toString().padLeft(2, '0')}:${reminderTime.minute.toString().padLeft(2, '0')}';
                     ref
                         .read(cycleProvider.notifier)
                         .add(
+                          id: log?.id,
+                          conflictReminders: conflictReminders,
                           startDate: start,
                           endDate: end,
                           flow: flow,
@@ -553,7 +678,8 @@ Future<void> _showCycleForm(BuildContext context, WidgetRef ref) async {
                     final predicted = ref
                         .read(cycleProvider.notifier)
                         .predictedNextStart;
-                    if (reminder.enabled && predicted != null) {
+                    if ((reminder.enabled || conflictReminders) &&
+                        predicted != null) {
                       await ReminderService.instance.requestPermissions();
                       // Persisted data is reconciled by ReminderCoordinator.
                     }

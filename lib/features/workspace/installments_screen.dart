@@ -1,3 +1,4 @@
+import '../finance/presentation/finance_screen.dart' show financeCurrencyLabel;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -132,7 +133,9 @@ class _InstallmentsState extends ConsumerState<InstallmentsScreen> {
               for (final a in accounts)
                 DropdownMenuItem(
                   value: a.id,
-                  child: Text('${a.name} · ${a.currencyCode}'),
+                  child: Text(
+                    '${a.name == 'Cash' ? tr(c, 'پول نقد', 'Cash') : a.name} · ${financeCurrencyLabel(c, a.currencyCode)}',
+                  ),
                 ),
             ],
             onChanged: busy ? null : (v) => setState(() => account = v),

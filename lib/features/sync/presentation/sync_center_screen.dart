@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -290,6 +291,13 @@ class SyncCenterScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(_t(context, 'داده و همگام‌سازی', 'Data & sync')),
+        actions: [
+          IconButton(
+            tooltip: _t(context, 'انتخاب بخش‌ها', 'Select modules'),
+            onPressed: () => context.push('/sync/modules'),
+            icon: const Icon(Icons.tune),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),

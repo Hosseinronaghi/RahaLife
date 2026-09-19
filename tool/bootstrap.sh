@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 flutter create --platforms=android,ios,windows,macos,linux,web --org com.raha --project-name raha_life .
+python3 tool/configure_branding.py
 rm -f test/widget_test.dart
 python3 tool/configure_apple_platforms.py
 flutter clean

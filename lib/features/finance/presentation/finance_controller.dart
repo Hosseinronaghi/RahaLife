@@ -50,7 +50,11 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
         includeArchived: true,
       )).map(FinanceAccount.fromJson).toList();
       if (accounts.isEmpty) {
-        accounts = [FinanceAccount(id: _uuid.v4(), name: 'Cash')];
+        accounts = [const FinanceAccount(id: 'default-cash', name: 'Cash')];
+        await _repository.replaceAll(
+          _accountEntityType,
+          accounts.map((a) => a.toJson()),
+        );
       }
       final transactions =
           (await _repository.loadAll(
@@ -78,12 +82,37 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     });
   }
 
-  void addAccount(String name, {double openingBalance = 0}) {
+  void addAccount(
+    String name, {
+    double openingBalance = 0,
+    String? id,
+    String currencyCode = 'IRT',
+    String kind = 'cash',
+    String? bankName,
+    String? accountNumber,
+    bool archived = false,
+  }) {
+    if (name.trim().isEmpty || !openingBalance.isFinite) {
+      throw ArgumentError('Invalid account');
+    }
+    final existing = state.accounts.where((a) => a.id == id).firstOrNull;
+    if (existing != null &&
+        existing.currencyCode != currencyCode &&
+        state.transactions.any(
+          (t) => t.accountId == id || t.toAccountId == id,
+        )) {
+      throw ArgumentError('Currency cannot change after transactions.');
+    }
     state = FinanceState(
       accounts: [
-        ...state.accounts,
+        ...state.accounts.where((a) => a.id != id),
         FinanceAccount(
-          id: _uuid.v4(),
+          id: id ?? _uuid.v4(),
+          currencyCode: currencyCode,
+          kind: kind,
+          bankName: bankName,
+          accountNumber: accountNumber,
+          archived: archived,
           name: name.trim(),
           openingBalance: openingBalance,
         ),
@@ -94,6 +123,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
   }
 
   FinanceTransaction addTransaction({
+    String? id,
     required FinanceTransactionType type,
     required double amount,
     required DateTime dateTime,
@@ -109,11 +139,13 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     ReminderPlan reminder = const ReminderPlan(),
     String? projectId,
   }) {
-    if (!amount.isFinite || amount <= 0) {
+    if (!amount.isFinite || amount <= 0 || amount > 90071992547409) {
       throw ArgumentError('Amount must be positive.');
     }
+    final previous = state.transactions.where((t) => t.id == id).firstOrNull;
     final account = state.accounts.where((a) => a.id == accountId).firstOrNull;
-    if (account == null || account.archived) {
+    if (account == null ||
+        (account.archived && previous?.accountId != accountId)) {
       throw ArgumentError('Select an active account.');
     }
     if (type == FinanceTransactionType.transfer ||
@@ -122,14 +154,14 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
           .where((a) => a.id == toAccountId)
           .firstOrNull;
       if (target == null ||
-          target.archived ||
+          (target.archived && previous?.toAccountId != toAccountId) ||
           target.id == accountId ||
           target.currencyCode != account.currencyCode) {
         throw ArgumentError('Select a different account in the same currency.');
       }
     }
     final transaction = FinanceTransaction(
-      id: _uuid.v4(),
+      id: id ?? _uuid.v4(),
       type: type,
       amount: amount,
       dateTime: dateTime,
@@ -147,8 +179,10 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     );
     state = FinanceState(
       accounts: state.accounts,
-      transactions: [...state.transactions, transaction]
-        ..sort((a, b) => b.dateTime.compareTo(a.dateTime)),
+      transactions: [
+        ...state.transactions.where((t) => t.id != transaction.id),
+        transaction,
+      ]..sort((a, b) => b.dateTime.compareTo(a.dateTime)),
     );
     WriteStatus.track(_persist());
     return transaction;

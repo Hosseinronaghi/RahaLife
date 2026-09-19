@@ -1,3 +1,4 @@
+import '../../people/presentation/people_screen.dart';
 import '../../workspace/record_editor.dart';
 
 import 'package:flutter/material.dart';
@@ -162,8 +163,14 @@ class _EntryDetailsSheet extends ConsumerWidget {
               ),
             ],
             TextButton.icon(
-              onPressed: () =>
-                  recordActions(context, ref, 'home_entry', entry.toJson()),
+              onPressed: () {
+                if (entry.type == HomeEntryType.birthday &&
+                    relatedPerson != null) {
+                  showPersonForm(context, ref, person: relatedPerson);
+                } else {
+                  recordActions(context, ref, 'home_entry', entry.toJson());
+                }
+              },
               icon: const Icon(Icons.edit_outlined),
               label: Text(tr(context, 'ویرایش و مدیریت', 'Edit and manage')),
             ),
@@ -194,44 +201,46 @@ class _EntryDetailsSheet extends ConsumerWidget {
               label: Text(l10n.shareWithPeople),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      ref.read(homeEntriesProvider.notifier).delete(entry.id);
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(l10n.itemDeleted)));
-                    },
-                    icon: const Icon(Icons.delete_outline_rounded),
-                    label: Text(l10n.delete),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      ref
-                          .read(homeEntriesProvider.notifier)
-                          .toggle(entry.id, date: occurrenceDate);
-                      Navigator.pop(context);
-                    },
-                    icon: Icon(
-                      entry.completedOn(occurrenceDate ?? DateTime.now())
-                          ? Icons.undo_rounded
-                          : Icons.check_rounded,
-                    ),
-                    label: Text(
-                      entry.completedOn(occurrenceDate ?? DateTime.now())
-                          ? l10n.markUndone
-                          : l10n.markDone,
+            if (!(entry.type == HomeEntryType.birthday &&
+                entry.personId != null))
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        ref.read(homeEntriesProvider.notifier).delete(entry.id);
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(l10n.itemDeleted)),
+                        );
+                      },
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      label: Text(l10n.delete),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        ref
+                            .read(homeEntriesProvider.notifier)
+                            .toggle(entry.id, date: occurrenceDate);
+                        Navigator.pop(context);
+                      },
+                      icon: Icon(
+                        entry.completedOn(occurrenceDate ?? DateTime.now())
+                            ? Icons.undo_rounded
+                            : Icons.check_rounded,
+                      ),
+                      label: Text(
+                        entry.completedOn(occurrenceDate ?? DateTime.now())
+                            ? l10n.markUndone
+                            : l10n.markDone,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

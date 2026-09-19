@@ -1,3 +1,10 @@
+import '../../core/widgets/retained_popup.dart';
+import '../finance/presentation/finance_screen.dart';
+import '../finance/domain/finance_models.dart';
+import '../people/presentation/people_screen.dart';
+import '../people/domain/person.dart';
+import '../cycle/presentation/cycle_screen.dart';
+import '../cycle/domain/cycle_log.dart';
 import '../../core/widgets/reminder_editor.dart';
 import '../../core/notifications/reminder_models.dart';
 import 'dart:convert';
@@ -53,6 +60,30 @@ Future<void> editRecord(
   String type,
   Map<String, Object?> source,
 ) async {
+  if (type == 'finance_transaction') {
+    await showFinanceForm(
+      context,
+      ref,
+      existing: FinanceTransaction.fromJson(source),
+    );
+    return;
+  }
+  if (type == 'finance_account') {
+    await showAccountForm(
+      context,
+      ref,
+      account: FinanceAccount.fromJson(source),
+    );
+    return;
+  }
+  if (type == 'person') {
+    await showPersonForm(context, ref, person: Person.fromJson(source));
+    return;
+  }
+  if (type == 'cycle_log') {
+    await showCycleForm(context, ref, log: CycleLog.fromJson(source));
+    return;
+  }
   if (type == 'rich_note') {
     context.push('/notes/edit', extra: source['id']);
     return;
@@ -74,7 +105,7 @@ Future<void> editRecord(
   };
   String? error;
   var busy = false;
-  await showModalBottomSheet<void>(
+  await showRetainedBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -328,7 +359,7 @@ Future<void> recordActions(
   String type,
   Map<String, Object?> data,
 ) async {
-  final action = await showModalBottomSheet<String>(
+  final action = await showRetainedBottomSheet<String>(
     context: context,
     useSafeArea: true,
     builder: (c) => Column(

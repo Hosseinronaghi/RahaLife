@@ -1,0 +1,10 @@
+feat: refresh Raha Life branding, forms and selective sync
+
+- Add Raha Life display assets while preserving application identifiers.
+- Fix note layout, repeat saves and popup controller lifetime.
+- Link person birthdays and add relationship presets and Jalali input.
+- Expand financial forms and cycle schedule-overlap reminders.
+- Add selective sync and durable account-scoped offline message retries.
+- Scope server change/message IDs and provide the v0.9 SQL migration.
+- Add opt-in Matrix/Mastodon previews; Matrix E2EE remains unsupported.
+- Add regression, layout, transport and branding checks.

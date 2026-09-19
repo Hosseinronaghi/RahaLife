@@ -45,7 +45,7 @@ class WidgetSettingsScreen extends ConsumerWidget {
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
     final hideSensitive = ref.watch(widgetPrivacyProvider);
-    final entries = ref.watch(homeEntriesProvider);
+    final entries = ref.watch(effectiveHomeEntriesProvider);
     final medicationPlans = ref.watch(medicationProvider);
     final shoppingLists = ref.watch(shoppingProvider);
     final now = DateTime.now();

@@ -1,3 +1,4 @@
+import '../../../core/persistence/write_status.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -25,12 +26,17 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final TextEditingController _titleController;
   late QuillController _controller;
   final _tagsController = TextEditingController();
+  String? _savedId;
+  bool _metadataOpen = false;
+  bool _invalidDocument = false;
+  bool _saving = false;
   String? _projectId;
   String? _personId;
 
   @override
   void initState() {
     super.initState();
+    _savedId = widget.noteId;
     final note = widget.noteId == null
         ? null
         : _noteById(ref.read(notesProvider), widget.noteId!);
@@ -49,6 +55,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               selection: const TextSelection.collapsed(offset: 0),
             );
     } catch (_) {
+      _invalidDocument = true;
       _controller = QuillController.basic();
     }
   }
@@ -61,26 +68,48 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_invalidDocument || _saving) return;
+    setState(() => _saving = true);
     final l10n = AppLocalizations.of(context);
-    ref
+    final saved = ref
         .read(notesProvider.notifier)
         .save(
-          id: widget.noteId,
+          id: _savedId,
           title: _titleController.text,
           deltaJson: jsonEncode(_controller.document.toDelta().toJson()),
           plainText: _controller.document.toPlainText(),
           tags: _tagsController.text
-              .split(',')
+              .split(RegExp('[,،]'))
               .map((item) => item.trim())
               .where((item) => item.isNotEmpty)
               .toList(growable: false),
           projectId: _projectId,
           personId: _personId,
         );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.noteSaved)));
+    setState(() => _savedId = saved.id);
+    try {
+      await WriteStatus.flush();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.noteSaved)));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Localizations.localeOf(context).languageCode == 'fa'
+                  ? 'ذخیره تأیید نشد؛ دوباره تلاش کنید.'
+                  : 'Save was not confirmed. Please retry.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -90,7 +119,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final people = ref.watch(peopleProvider);
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.noteId == null ? l10n.newNote : l10n.editNote),
+        title: Text(_savedId == null ? l10n.newNote : l10n.editNote),
         actions: [
           IconButton(
             tooltip: l10n.systemShare,
@@ -103,19 +132,19 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
             ),
             icon: const Icon(Icons.ios_share_rounded),
           ),
-          if (widget.noteId != null)
+          if (_savedId != null)
             IconButton(
               tooltip: l10n.shareWithPeople,
               onPressed: () => showShareWithPeopleSheet(
                 context,
                 ref,
                 entityType: 'note',
-                entityId: widget.noteId!,
+                entityId: _savedId!,
               ),
               icon: const Icon(Icons.group_add_rounded),
             ),
           IconButton(
-            onPressed: _save,
+            onPressed: _saving || _invalidDocument ? null : _save,
             tooltip: l10n.save,
             icon: const Icon(Icons.check_rounded),
           ),
@@ -124,74 +153,102 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _titleController,
-                    style: Theme.of(context).textTheme.titleLarge,
-                    decoration: InputDecoration(
-                      hintText: l10n.noteTitle,
-                      border: InputBorder.none,
-                    ),
+            if (_invalidDocument)
+              MaterialBanner(
+                content: Text(
+                  Localizations.localeOf(context).languageCode == 'fa'
+                      ? 'متن یادداشت قابل خواندن نیست؛ برای حفظ اطلاعات، ذخیره غیرفعال شده است.'
+                      : 'The note cannot be read. Saving is disabled to protect its content.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.maybePop(context),
+                    child: Text(l10n.cancel),
                   ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String?>(
-                          initialValue: _projectId,
-                          decoration: InputDecoration(
-                            labelText: l10n.noteProject,
-                          ),
-                          items: [
-                            DropdownMenuItem<String?>(
-                              value: null,
-                              child: Text(l10n.none),
-                            ),
-                            ...projects.map(
-                              (project) => DropdownMenuItem<String?>(
-                                value: project.id,
-                                child: Text(project.title),
-                              ),
-                            ),
-                          ],
-                          onChanged: (value) =>
-                              setState(() => _projectId = value),
-                        ),
+                ],
+              ),
+            Flexible(
+              flex: _metadataOpen ? 2 : 1,
+              fit: FlexFit.loose,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _titleController,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      maxLines: 2,
+                      minLines: 1,
+                      decoration: InputDecoration(hintText: l10n.noteTitle),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: () =>
+                          setState(() => _metadataOpen = !_metadataOpen),
+                      icon: Icon(
+                        _metadataOpen ? Icons.expand_less : Icons.expand_more,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: DropdownButtonFormField<String?>(
-                          initialValue: _personId,
-                          decoration: InputDecoration(labelText: l10n.people),
-                          items: [
-                            DropdownMenuItem<String?>(
-                              value: null,
-                              child: Text(l10n.none),
-                            ),
-                            ...people.map(
-                              (person) => DropdownMenuItem<String?>(
-                                value: person.id,
-                                child: Text(person.name),
+                      label: Text(
+                        '${l10n.noteProject} · ${l10n.people} · ${l10n.noteTags}',
+                      ),
+                    ),
+                    if (_metadataOpen) ...[
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: projects.any((p) => p.id == _projectId)
+                            ? _projectId
+                            : null,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          labelText: l10n.noteProject,
+                        ),
+                        items: [
+                          DropdownMenuItem(value: null, child: Text(l10n.none)),
+                          ...projects.map(
+                            (p) => DropdownMenuItem(
+                              value: p.id,
+                              child: Text(
+                                p.title,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ],
-                          onChanged: (value) =>
-                              setState(() => _personId = value),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _projectId = v),
+                      ),
+                      const SizedBox(height: 20),
+                      DropdownButtonFormField<String>(
+                        initialValue: people.any((p) => p.id == _personId)
+                            ? _personId
+                            : null,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: l10n.people),
+                        items: [
+                          DropdownMenuItem(value: null, child: Text(l10n.none)),
+                          ...people.map(
+                            (p) => DropdownMenuItem(
+                              value: p.id,
+                              child: Text(
+                                p.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _personId = v),
+                      ),
+                      const SizedBox(height: 20),
+                      TextField(
+                        controller: _tagsController,
+                        decoration: InputDecoration(
+                          labelText: l10n.noteTags,
+                          prefixIcon: const Icon(Icons.sell_outlined),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _tagsController,
-                    decoration: InputDecoration(
-                      labelText: l10n.noteTags,
-                      prefixIcon: const Icon(Icons.sell_outlined),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const Divider(height: 1),

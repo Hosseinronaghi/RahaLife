@@ -87,7 +87,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context);
-    final original = ref.watch(homeEntriesProvider);
+    final original = ref.watch(effectiveHomeEntriesProvider);
     final specialized =
         (ref.watch(agendaProvider).valueOrNull ?? <AgendaItem>[]).where(
           (e) => !e.key.startsWith('home:'),

@@ -1,3 +1,6 @@
+import '../../features/cycle/domain/cycle_forecast.dart';
+import '../../features/people/domain/person.dart';
+import '../../features/home/domain/linked_birthdays.dart';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/database_provider.dart';
@@ -27,6 +30,7 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
       (appDatabase.select(appDatabase.entityDocuments)..where(
             (r) => r.entityType.isIn([
               'home_entry',
+              'person',
               'medication_plan',
               'shopping_list',
               'finance_transaction',
@@ -40,6 +44,54 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
             final result = <AgendaItem>[], cycles = <CycleLog>[];
             final now = DateTime.now();
             final day = DateTime(now.year, now.month, now.day);
+            final people = <Person>[];
+            final home = <HomeEntry>[];
+            for (final row in rows) {
+              if (row.deletedAt != null) continue;
+              try {
+                final data = Map<String, Object?>.from(
+                  jsonDecode(row.payloadJson) as Map,
+                );
+                if (data['archived'] == true) continue;
+                if (row.entityType == 'person') {
+                  people.add(Person.fromJson(data));
+                }
+                if (row.entityType == 'home_entry') {
+                  home.add(HomeEntry.fromJson(data));
+                }
+              } catch (_) {
+                /* Isolate malformed records. */
+              }
+            }
+            for (final entry in withPeopleBirthdays(home, people)) {
+              for (
+                var i = entry.recurring ? -365 : 0;
+                i < (entry.recurring ? 366 : 1);
+                i++
+              ) {
+                final date = entry.recurring
+                    ? DateTime(day.year, day.month, day.day + i)
+                    : entry.dateTime;
+                if (entry.recurring && !entry.occursOn(date)) continue;
+                result.add(
+                  AgendaItem(
+                    'home:${entry.id}:${date.year}-${date.month}-${date.day}',
+                    entry.title,
+                    DateTime(
+                      date.year,
+                      date.month,
+                      date.day,
+                      entry.dateTime.hour,
+                      entry.dateTime.minute,
+                    ),
+                    '/module/${entry.type.name}',
+                    entry.reminder,
+                    done: entry.completedOn(date),
+                    type: entry.type.name,
+                  ),
+                );
+              }
+            }
             for (final row in rows) {
               if (row.deletedAt != null) {
                 continue;
@@ -55,39 +107,11 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
                   cycles.add(CycleLog.fromJson(data));
                   continue;
                 }
-                if (row.entityType == 'home_entry') {
-                  final entry = HomeEntry.fromJson(data);
-                  void add(DateTime date) {
-                    result.add(
-                      AgendaItem(
-                        'home:${row.id}:${date.year}-${date.month}-${date.day}',
-                        entry.title,
-                        DateTime(
-                          date.year,
-                          date.month,
-                          date.day,
-                          entry.dateTime.hour,
-                          entry.dateTime.minute,
-                        ),
-                        '/module/${entry.type.name}',
-                        entry.reminder,
-                        done: entry.completedOn(date),
-                        type: entry.type.name,
-                      ),
-                    );
-                  }
-
-                  if (!entry.recurring) {
-                    add(entry.dateTime);
-                  } else {
-                    for (var i = -365; i < 366; i++) {
-                      final date = DateTime(day.year, day.month, day.day + i);
-                      if (entry.occursOn(date)) {
-                        add(date);
-                      }
-                    }
-                  }
-                } else if (row.entityType == 'medication_plan') {
+                if (row.entityType == 'home_entry' ||
+                    row.entityType == 'person') {
+                  continue;
+                }
+                if (row.entityType == 'medication_plan') {
                   final medicine = MedicationPlan.fromJson(data);
                   if (!medicine.active ||
                       medicine.courseType == MedicationCourseType.asNeeded) {
@@ -163,21 +187,31 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
             }
             cycles.sort((a, b) => a.startDate.compareTo(b.startDate));
             if (cycles.isNotEmpty) {
-              var days = 28;
-              if (cycles.length > 1) {
-                var total = 0;
-                for (var i = 1; i < cycles.length; i++) {
-                  total += cycles[i].startDate
-                      .difference(cycles[i - 1].startDate)
-                      .inDays;
+              final forecast = CycleForecast.fromLogs(cycles)!;
+              final last = cycles.last, predicted = forecast.start;
+              if (last.conflictReminders) {
+                final conflicts = result
+                    .where(
+                      (e) =>
+                          !e.done &&
+                          e.type != 'birthday' &&
+                          e.type != 'medication' &&
+                          forecast.overlaps(e.at),
+                    )
+                    .toList();
+                for (final event in conflicts) {
+                  result.add(
+                    AgendaItem(
+                      'cycle-conflict:${event.key}',
+                      'مدیریت زندگی رها',
+                      event.at,
+                      '/cycle',
+                      const ReminderPlan(enabled: true, minutesBefore: 1440),
+                      type: 'cycle_conflict',
+                    ),
+                  );
                 }
-                days = (total / (cycles.length - 1))
-                    .round()
-                    .clamp(21, 45)
-                    .toInt();
               }
-              final last = cycles.last,
-                  predicted = last.startDate.add(Duration(days: days));
               final parts = last.predictionReminderTime.split(':');
               result.add(
                 AgendaItem(

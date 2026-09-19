@@ -10,10 +10,14 @@ import 'causal_clock.dart';
 import 'sync_contract.dart';
 
 class DriftSyncStore implements SyncStore {
-  DriftSyncStore({required this.providerId, AppDatabase? database})
-    : db = database ?? appDatabase;
+  DriftSyncStore({
+    required this.providerId,
+    this.entityTypes,
+    AppDatabase? database,
+  }) : db = database ?? appDatabase;
 
   final String providerId;
+  final Set<String>? entityTypes;
   final AppDatabase db;
   static const _uuid = Uuid();
 
@@ -124,7 +128,13 @@ class DriftSyncStore implements SyncStore {
   Future<List<SyncEnvelope>> pendingChanges() async {
     final rows =
         await (db.select(db.syncChanges)
-              ..where((row) => row.uploaded.equals(false))
+              ..where(
+                (row) =>
+                    row.uploaded.equals(false) &
+                    (entityTypes == null
+                        ? const Constant(true)
+                        : row.entityType.isIn(entityTypes!)),
+              )
               ..orderBy([(row) => OrderingTerm.asc(row.sequence)])
               ..limit(100))
             .get();
@@ -218,9 +228,15 @@ class DriftSyncStore implements SyncStore {
   Future<void> markUploaded(Iterable<String> changeIdsOrIdentities) async {
     final acknowledgements = changeIdsOrIdentities.toSet();
     if (acknowledgements.isEmpty) return;
-    final pending = await (db.select(
-      db.syncChanges,
-    )..where((row) => row.uploaded.equals(false))).get();
+    final pending =
+        await (db.select(db.syncChanges)..where(
+              (row) =>
+                  row.uploaded.equals(false) &
+                  (entityTypes == null
+                      ? const Constant(true)
+                      : row.entityType.isIn(entityTypes!)),
+            ))
+            .get();
     final sequenceIds = <int>[];
     for (final row in pending) {
       if (acknowledgements.contains(row.changeId)) {

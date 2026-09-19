@@ -209,7 +209,7 @@ class _Affairs extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final entries = ref
-        .watch(homeEntriesProvider)
+        .watch(effectiveHomeEntriesProvider)
         .where((item) => item.projectId == project.id)
         .toList();
     return Column(

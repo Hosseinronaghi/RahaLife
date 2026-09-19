@@ -1,3 +1,4 @@
+import '../../../core/sync/sync_scope.dart';
 import 'dart:async';
 
 import '../../../core/persistence/write_status.dart';
@@ -193,7 +194,8 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
     Map<String, String>? credentials,
   }) async {
     final old = state.connectionById(profile.id);
-    if (old?.config['baseUrl'] != profile.config['baseUrl']) {
+    if (old?.config['baseUrl'] != profile.config['baseUrl'] ||
+        old?.config['modules'] != profile.config['modules']) {
       _activeRecordProviderId = null;
     }
     if (credentials != null) {
@@ -420,12 +422,13 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
     // server, replay the durable change log; repeated changeIds are idempotent
     // on protocol-v2 servers, while changes the new provider has never seen are
     // seeded without replacing any remote database snapshot.
-    if (_activeRecordProviderId != id) {
-      final switchStore = DriftSyncStore(providerId: id);
+    final scopeId = '$id:${profile.config['modules'] ?? '*'}';
+    if (_activeRecordProviderId != scopeId) {
+      final switchStore = DriftSyncStore(providerId: scopeId);
       await switchStore.requeueAllChanges();
-      _activeRecordProviderId = id;
+      _activeRecordProviderId = scopeId;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_activeRecordProviderKey, id);
+      await prefs.setString(_activeRecordProviderKey, scopeId);
     }
 
     state = state.copyWith(busyConnectionId: id, clearActionMessage: true);
@@ -435,9 +438,13 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
       final token = credentials['token'] ?? '';
       final allowInsecureHttp =
           profile.config['allowInsecureHttp']?.toLowerCase() == 'true';
-      final store = DriftSyncStore(providerId: profile.id);
+      final store = DriftSyncStore(
+        providerId: scopeId,
+        entityTypes: syncTypes(profile.config),
+      );
       final transport = RahaHttpSyncTransport(
         baseUrl: baseUrl,
+        entityTypes: syncTypes(profile.config),
         token: token,
         allowInsecureHttp: allowInsecureHttp,
       );

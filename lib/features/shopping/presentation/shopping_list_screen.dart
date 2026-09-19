@@ -31,7 +31,7 @@ class ShoppingListScreen extends ConsumerWidget {
     final list = matches.first;
     final sorted = [...list.items]
       ..sort((a, b) => a.checked == b.checked ? 0 : (a.checked ? 1 : -1));
-    final entries = ref.watch(homeEntriesProvider);
+    final entries = ref.watch(effectiveHomeEntriesProvider);
     final related = list.linkedAffairId == null
         ? null
         : entries.where((item) => item.id == list.linkedAffairId).firstOrNull;

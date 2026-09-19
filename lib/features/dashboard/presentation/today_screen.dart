@@ -211,7 +211,11 @@ class _TodayState extends ConsumerState<TodayScreen> {
         .toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Raha Life'),
+        title: Text(
+          l10n.appName,
+          maxLines: 2,
+          style: Theme.of(c).textTheme.titleMedium,
+        ),
         actions: [
           IconButton(
             tooltip: l10n.search,

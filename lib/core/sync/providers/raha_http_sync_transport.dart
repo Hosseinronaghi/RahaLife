@@ -8,6 +8,7 @@ class RahaHttpSyncTransport implements SyncTransport {
     required String token,
     bool allowInsecureHttp = false,
     Dio? dio,
+    this.entityTypes,
   }) : _baseUrl = _validatedBaseUrl(baseUrl, allowInsecureHttp),
        _token = token,
        _dio =
@@ -20,6 +21,7 @@ class RahaHttpSyncTransport implements SyncTransport {
              ),
            );
 
+  final Set<String>? entityTypes;
   final String _baseUrl;
   final String _token;
   final Dio _dio;
@@ -42,7 +44,7 @@ class RahaHttpSyncTransport implements SyncTransport {
   Map<String, String> get _headers => <String, String>{
     if (_token.isNotEmpty) 'Authorization': 'Bearer $_token',
     'Content-Type': 'application/json',
-    'X-Raha-Client': 'Raha-Life/0.8.0',
+    'X-Raha-Client': 'Raha-Life/0.9.0',
   };
 
   bool _verified = false;
@@ -72,6 +74,7 @@ class RahaHttpSyncTransport implements SyncTransport {
       '$_baseUrl/v1/sync/pull',
       queryParameters: {
         'deviceId': deviceId,
+        if (entityTypes != null) 'types': entityTypes!.join(','),
         if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
       },
       options: Options(headers: _headers),
@@ -90,6 +93,9 @@ class RahaHttpSyncTransport implements SyncTransport {
       changes: raw
           .map(
             (e) => SyncEnvelope.fromJson(Map<String, Object?>.from(e as Map)),
+          )
+          .where(
+            (e) => entityTypes == null || entityTypes!.contains(e.entityType),
           )
           .toList(),
       nextCursor: data['nextCursor'].toString(),

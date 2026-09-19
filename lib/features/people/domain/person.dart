@@ -6,6 +6,7 @@ class Person {
     this.phone,
     this.email,
     this.birthDate,
+    this.birthCalendar = 'gregorian',
     this.notes,
   });
 
@@ -18,6 +19,7 @@ class Person {
     birthDate: json['birthDate'] == null
         ? null
         : DateTime.parse(json['birthDate']! as String),
+    birthCalendar: json['birthCalendar'] as String? ?? 'gregorian',
     notes: json['notes'] as String?,
   );
 
@@ -27,6 +29,7 @@ class Person {
   final String? phone;
   final String? email;
   final DateTime? birthDate;
+  final String birthCalendar;
   final String? notes;
 
   Map<String, Object?> toJson() => {
@@ -36,6 +39,7 @@ class Person {
     'phone': phone,
     'email': email,
     'birthDate': birthDate?.toIso8601String(),
+    'birthCalendar': birthCalendar,
     'notes': notes,
   };
 }

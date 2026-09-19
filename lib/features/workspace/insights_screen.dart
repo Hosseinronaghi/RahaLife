@@ -1,3 +1,6 @@
+import '../finance/presentation/finance_screen.dart'
+    show financeCategoryLabel, financeCurrencyLabel;
+import '../../l10n/generated/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -45,7 +48,7 @@ class _InsightsState extends ConsumerState<InsightsScreen> {
     }
     final max = grouped.values.fold<int>(1, (a, b) => a > b ? a : b);
     final habits = ref
-        .watch(homeEntriesProvider)
+        .watch(effectiveHomeEntriesProvider)
         .where((e) => e.type.name == 'habit')
         .toList();
     return Scaffold(
@@ -68,7 +71,7 @@ class _InsightsState extends ConsumerState<InsightsScreen> {
               }
 
               final csv =
-                  '\ufeffdate,type,account,currency,amount,category,note\n${rows.map((e) => [e.dateTime.toIso8601String(), e.type.name, e.accountId, e.amount, e.category, e.note].map(cell).join(',')).join('\n')}';
+                  '\ufeffdate,type,account,currency,amount,category,note\n${rows.map((e) => [e.dateTime.toIso8601String(), e.type.name, e.accountId, finance.accounts.where((a) => a.id == e.accountId).firstOrNull?.currencyCode ?? '', e.amount, e.category, e.note].map(cell).join(',')).join('\n')}';
               await FilePicker.saveFile(
                 fileName: 'Raha-Report.csv',
                 bytes: Uint8List.fromList(utf8.encode(csv)),
@@ -105,7 +108,9 @@ class _InsightsState extends ConsumerState<InsightsScreen> {
               for (final a in finance.accounts)
                 DropdownMenuItem(
                   value: a.id,
-                  child: Text('${a.name} · ${a.currencyCode}'),
+                  child: Text(
+                    '${a.name == 'Cash' ? tr(c, 'پول نقد', 'Cash') : a.name} · ${financeCurrencyLabel(c, a.currencyCode)}',
+                  ),
                 ),
             ],
             onChanged: (v) => setState(() => account = v),
@@ -132,7 +137,7 @@ class _InsightsState extends ConsumerState<InsightsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      '${e.key} · ${localizedNumber(e.value / 100, Localizations.localeOf(c))}',
+                      '${financeCategoryLabel(AppLocalizations.of(c), e.key)} · ${localizedNumber(e.value / 100, Localizations.localeOf(c))}',
                     ),
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
@@ -255,7 +260,7 @@ class _InsightsState extends ConsumerState<InsightsScreen> {
                                   contentPadding: EdgeInsets.zero,
                                   title: Text(data['title'].toString()),
                                   subtitle: Text(
-                                    '${localizedNumber(current, Localizations.localeOf(c))} / ${localizedNumber(limit, Localizations.localeOf(c))} $currency',
+                                    '${localizedNumber(current, Localizations.localeOf(c))} / ${localizedNumber(limit, Localizations.localeOf(c))} ${financeCurrencyLabel(c, currency)}',
                                   ),
                                   trailing: const Icon(Icons.edit_outlined),
                                   onTap: () async {

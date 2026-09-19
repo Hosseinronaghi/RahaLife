@@ -70,7 +70,10 @@ function collaborationRoute(array $config,string $path,string $method,string $me
             if(!mutualFriend($db,$me,$other))respond(403,['error'=>'friendship_required']);
             if($text===''||strlen($text)>20000)respond(400,['error'=>'invalid_message']);
             $id=(string)($b['id']??'');if(!preg_match('/^[a-zA-Z0-9-]{16,64}$/',$id))respond(400,['error'=>'invalid_message_id']);
-            $db->prepare('INSERT IGNORE INTO direct_messages(id,sender_id,recipient_id,body) VALUES(?,?,?,?)')->execute([$id,$me,$other,$text]);respond(200,['ok'=>true]);
+            $db->prepare('INSERT IGNORE INTO direct_messages(id,sender_id,recipient_id,body) VALUES(?,?,?,?)')->execute([$id,$me,$other,$text]);
+            $q=$db->prepare('SELECT recipient_id,body FROM direct_messages WHERE sender_id=? AND id=?');$q->execute([$me,$id]);$stored=$q->fetch();
+            if(!$stored || $stored['recipient_id']!==$other || $stored['body']!==$text)respond(409,['error'=>'message_id_reused']);
+            respond(200,['ok'=>true]);
         }
         $other=(string)($_GET['peer']??'');if(!mutualFriend($db,$me,$other))respond(403,['error'=>'friendship_required']);
         $q=$db->prepare('SELECT * FROM direct_messages WHERE (sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?) ORDER BY created_at DESC,id DESC LIMIT 200');$q->execute([$me,$other,$other,$me]);respond(200,['messages'=>array_reverse($q->fetchAll())]);

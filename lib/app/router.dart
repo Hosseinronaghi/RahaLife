@@ -1,3 +1,5 @@
+import '../features/sync/presentation/sync_modules_screen.dart';
+import '../features/federation/federation_screen.dart';
 import '../features/workspace/installments_screen.dart';
 import '../features/workspace/insights_screen.dart';
 import '../features/workspace/connections_screen.dart';
@@ -81,6 +83,10 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/search',
             builder: (_, _) => const GlobalSearchScreen(),
           ),
+          GoRoute(
+            path: '/networks',
+            builder: (_, _) => const FederationScreen(),
+          ),
           GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
           GoRoute(
             path: '/settings/ai',
@@ -88,6 +94,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/profile', builder: (_, _) => const ProfileScreen()),
           GoRoute(path: '/account', builder: (_, _) => const AccountScreen()),
+          GoRoute(
+            path: '/sync/modules',
+            builder: (_, _) => const SyncModulesScreen(),
+          ),
           GoRoute(path: '/sync', builder: (_, _) => const SyncCenterScreen()),
           GoRoute(
             path: '/widgets',

@@ -27,6 +27,13 @@ php -l public/protocol.php
 php ../tests/protocol_test.php
 ```
 
-`.github/workflows/server-ci.yml` configures MySQL and the HTTP smoke suite. Account isolation, retry ACKs, causal conflicts, friendship permissions, sharing CAS, block revocation and logout are covered by that prepared integration suite. It has not been executed against a real MySQL service in this delivery environment.
+`.github/workflows/server-ci.yml` configures MySQL and the HTTP smoke suite. Account isolation, retry ACKs, causal conflicts, friendship permissions, sharing CAS, block revocation and logout are covered by that prepared integration suite. The v0.9 test suite has been executed against a disposable local MariaDB 10.11/PHP 8.3 service. Production hosting and MySQL 8 on CI still need their own deployment checks.
 
 The account layer provides registration, login/logout, friends, messages and independent shared-record snapshots. Password reset, session refresh, delivery notifications and offline message outbox are follow-up work.
+
+
+## v0.9 upgrade
+
+After reaching v0.8, pause writes, back up the database, apply `upgrade_v0.9.sql` once, and deploy all PHP files together. This scopes change IDs and message IDs to the authenticated owner/sender. Fresh installations already have these keys in install.sql. Do not import install.sql over an existing installation.
+
+The optional `types` query parameter on `/v1/sync/pull` is a comma-separated entity-type selection. Empty selection returns no payloads while advancing the cursor. The client replays from a separate scope cursor when the selection changes. A selection does not delete previously uploaded server data. Backups remain complete encrypted snapshots and do not inherit the module selection.

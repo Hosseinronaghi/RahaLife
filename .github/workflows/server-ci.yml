@@ -1,5 +1,9 @@
 name: Server protocol and account tests
 on: [push, pull_request, workflow_dispatch]
+env:
+  CI: 'true'
+  DASH__SUPPRESS_ANALYTICS: 'true'
+
 jobs:
   integration:
     runs-on: ubuntu-latest

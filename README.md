@@ -1,3 +1,7 @@
+# Raha Life 0.9.0 — review build
+
+Start with [START_HERE_FA.txt](START_HERE_FA.txt) and [RELEASE_0.9_FA.md](RELEASE_0.9_FA.md). This is not a claim that all requested features or native release validation are complete.
+
 # Raha Life — 0.8.0+15 (review candidate)
 
 Persian/English, local-first life organizer built with Flutter. This source delivery includes a working release web build configuration, upgraded record synchronization, revised responsive UI and expanded feature screens. It is a development review candidate, not a certified production release.

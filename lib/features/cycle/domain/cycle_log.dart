@@ -16,10 +16,12 @@ class CycleLog {
     this.symptoms = const [],
     this.predictionReminder = const ReminderPlan(),
     this.predictionReminderTime = '09:00',
+    this.conflictReminders = false,
   });
 
   factory CycleLog.fromJson(Map<String, Object?> json) => CycleLog(
     id: json['id']! as String,
+    conflictReminders: json['conflictReminders'] as bool? ?? false,
     startDate: DateTime.parse(json['startDate']! as String),
     endDate: json['endDate'] == null
         ? null
@@ -47,6 +49,7 @@ class CycleLog {
   );
 
   final String id;
+  final bool conflictReminders;
   final DateTime startDate;
   final DateTime? endDate;
   final FlowIntensity flow;
@@ -59,6 +62,7 @@ class CycleLog {
 
   Map<String, Object?> toJson() => {
     'id': id,
+    'conflictReminders': conflictReminders,
     'startDate': startDate.toIso8601String(),
     'endDate': endDate?.toIso8601String(),
     'flow': flow.name,

@@ -1,0 +1,8 @@
+PASS independent edits with unequal scalar versions
+PASS descendant
+PASS ancestor
+PASS key order
+PASS legacy fallback
+PASS delete timestamp normalized
+PASS acknowledgement identity preserved
+PASS negative clock rejected

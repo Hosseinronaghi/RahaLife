@@ -1,3 +1,5 @@
+import '../domain/linked_birthdays.dart';
+import '../../people/presentation/people_controller.dart';
 import '../../../core/persistence/write_status.dart';
 
 import 'dart:async';
@@ -151,3 +153,10 @@ final homeEntriesProvider =
     StateNotifierProvider<HomeEntriesNotifier, List<HomeEntry>>(
       (ref) => HomeEntriesNotifier(),
     );
+
+final effectiveHomeEntriesProvider = Provider<List<HomeEntry>>(
+  (ref) => withPeopleBirthdays(
+    ref.watch(homeEntriesProvider),
+    ref.watch(peopleProvider),
+  ),
+);

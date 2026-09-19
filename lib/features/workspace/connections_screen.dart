@@ -1,3 +1,6 @@
+import 'collaboration_outbox.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/sync/sync_scope.dart';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -5,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../core/database/database_provider.dart';
 import '../sync/presentation/sync_controller.dart';
@@ -28,9 +30,14 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
   String token = '', account = '', error = '';
   bool busy = false, register = false;
   List<Map<String, dynamic>> friends = [], shared = [];
+  CollaborationOutbox get outbox => CollaborationOutbox(
+    url.text.trim().replaceAll(RegExp(r'/+$'), ''),
+    account,
+  );
   Dio get client => Dio(
     BaseOptions(
       baseUrl: url.text.trim().replaceAll(RegExp(r'/+$'), ''),
+      followRedirects: false,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
       headers: {if (token.isNotEmpty) 'Authorization': 'Bearer $token'},
@@ -48,6 +55,8 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
     account = prefs.getString('collab.account') ?? '';
     token = await secure.read(key: 'collab.token') ?? '';
     if (token.isNotEmpty) {
+      friends = await outbox.read('friends');
+      shared = await outbox.read('shared');
       try {
         await refresh();
       } catch (e) {
@@ -74,6 +83,9 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
   }
 
   Future<void> refresh() async {
+    await outbox.retry((item) async {
+      await client.post('/v1/collab/messages', data: item);
+    });
     final a = await client.get<Map<String, dynamic>>('/v1/collab/friends');
     final b = await client.get<Map<String, dynamic>>('/v1/collab/shared');
     friends = (a.data?['friends'] as List? ?? [])
@@ -82,6 +94,8 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
     shared = (b.data?['records'] as List? ?? [])
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
+    await outbox.write('friends', friends);
+    await outbox.write('shared', shared);
   }
 
   Future<void> authenticate() async {
@@ -122,13 +136,40 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
     String? problem;
     bool sending = false;
     Future<void> fetch() async {
-      final response = await client.get<Map<String, dynamic>>(
-        '/v1/collab/messages',
-        queryParameters: {'peer': person['id']},
-      );
-      rows = (response.data?['messages'] as List? ?? [])
-          .map((e) => Map<String, dynamic>.from(e as Map))
-          .toList();
+      rows = await outbox.read('messages.${person['id']}');
+      try {
+        await outbox.retry((item) async {
+          await client.post('/v1/collab/messages', data: item);
+        });
+        final response = await client.get<Map<String, dynamic>>(
+          '/v1/collab/messages',
+          queryParameters: {'peer': person['id']},
+        );
+        rows = (response.data?['messages'] as List? ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        await outbox.write('messages.${person['id']}', rows);
+        problem = null;
+      } catch (_) {
+        if (mounted) {
+          problem = tr(
+            context,
+            'آفلاین یا دسترسی نامعتبر؛ پیام‌های در انتظار تا تأیید سرور نگه داشته می‌شوند.',
+            'Offline or access denied. Pending messages stay queued until acknowledged.',
+          );
+        }
+      }
+      final queued = await outbox.read('outbox');
+      rows = [
+        ...rows,
+        for (final item in queued.where((e) => e['to'] == person['id']))
+          {
+            'id': item['id'],
+            'sender_id': account,
+            'body': item['text'],
+            'pending': true,
+          },
+      ];
     }
 
     await fetch();
@@ -150,7 +191,7 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
                     icon: const Icon(Icons.refresh),
                     onPressed: () async {
                       await fetch();
-                      set(() {});
+                      if (c.mounted) set(() {});
                     },
                   ),
                 ),
@@ -167,7 +208,32 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
                             margin: const EdgeInsets.only(bottom: 8),
                             child: Padding(
                               padding: const EdgeInsets.all(12),
-                              child: Text(row['body'].toString()),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(row['body'].toString()),
+                                  if (row['pending'] == true)
+                                    Text(
+                                      tr(
+                                        c,
+                                        'در انتظار ارسال؛ لمس برای لغو',
+                                        'Pending; tap to cancel',
+                                      ),
+                                      style: Theme.of(c).textTheme.labelSmall,
+                                    ),
+                                  if (row['pending'] == true)
+                                    IconButton(
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () async {
+                                        await outbox.acknowledge(
+                                          row['id'] as String,
+                                        );
+                                        await fetch();
+                                        if (c.mounted) set(() {});
+                                      },
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -195,20 +261,16 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
                                 if (message.text.trim().isEmpty) return;
                                 set(() => sending = true);
                                 try {
-                                  await client.post(
-                                    '/v1/collab/messages',
-                                    data: {
-                                      'id': const Uuid().v4(),
-                                      'to': person['id'],
-                                      'text': message.text.trim(),
-                                    },
+                                  await outbox.enqueue(
+                                    person['id'] as String,
+                                    message.text.trim(),
                                   );
                                   message.clear();
                                   await fetch();
                                 } catch (e) {
                                   problem = e.toString();
                                 } finally {
-                                  set(() => sending = false);
+                                  if (c.mounted) set(() => sending = false);
                                 }
                               },
                       ),
@@ -341,6 +403,11 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
           maxLines: 8,
         ),
         actions: [
+          IconButton(
+            tooltip: tr(c, 'شبکه‌های مستقل', 'Independent networks'),
+            icon: const Icon(Icons.hub_outlined),
+            onPressed: () => c.push('/networks'),
+          ),
           if (row['owner_id'] == account)
             TextButton(
               onPressed: () async {
@@ -505,7 +572,10 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
                     name: 'Raha account',
                     kind: SyncProviderKind.rahaServer,
                     purpose: SyncTargetPurpose.sync,
-                    config: {'baseUrl': url.text.trim()},
+                    config: {
+                      'baseUrl': url.text.trim(),
+                      'modules': defaultSyncModules.join(','),
+                    },
                     credentials: {'token': token},
                   );
             }),

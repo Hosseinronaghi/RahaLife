@@ -28,6 +28,11 @@ def main():
     for _ in range(2): assert request('/v1/sync/push',{'deviceId':'A','changes':[first]},at)['accepted']==[first['changeId']]
     assert request('/v1/sync/pull?cursor=0&deviceId=B',token=at)['changes'][0]['payload']['title']=='A title'
     assert request('/v1/sync/pull?cursor=0&deviceId=B',token=bt)['changes']==[]
+    selected=request('/v1/sync/pull?cursor=0&deviceId=B&types=rich_note',token=at)
+    assert selected['changes']==[] and int(selected['nextCursor'])>0
+    assert request('/v1/sync/pull?cursor=0&deviceId=B&types=',token=at)['changes']==[]
+    assert len(request('/v1/sync/pull?cursor=0&deviceId=B&types=home_entry',token=at)['changes'])==1
+    assert request('/v1/sync/push',{'deviceId':'A','changes':[first]},bt)['accepted']==[first['changeId']]
     conflict=request('/v1/sync/push',{'deviceId':'B','changes':[change('B',{'A':1,'B':1},'B title')]},at)
     assert len(conflict['conflicts'])==1 and conflict['accepted']==[]
     request('/v1/collab/messages',{'id':str(uuid.uuid4()),'to':bid,'text':'not friends'},at,status=403)
@@ -37,6 +42,8 @@ def main():
     message={'id':str(uuid.uuid4()),'to':bid,'text':'hello'}
     request('/v1/collab/messages',message,at);request('/v1/collab/messages',message,at)
     assert len(request('/v1/collab/messages?peer='+aid,token=bt)['messages'])==1
+    request('/v1/collab/messages',{**message,'text':'different'},at,status=409)
+    request('/v1/collab/messages',{'id':message['id'],'to':aid,'text':'reply'},bt)
     sid=request('/v1/collab/shared',{'to':bid,'permission':'read','payload':{'title':'Private'}},at)['id']
     edit={'action':'update','id':sid,'version':1,'payload':{'title':'Changed'}}
     request('/v1/collab/shared',edit,bt,status=403);request('/v1/collab/shared',edit,ct,status=403)
@@ -45,5 +52,5 @@ def main():
     assert request('/v1/collab/shared',token=bt)['records']==[]
     request('/v1/collab/messages',{'id':str(uuid.uuid4()),'to':aid,'text':'blocked'},bt,status=403)
     request('/v1/account/logout',{},at);request('/health',token=at,status=401)
-    print('PASS account isolation, exact retry ACK, causal conflict, friendship, message deduplication, share permissions, CAS, revocation, logout')
+    print('PASS selective pull, account isolation, exact retry ACK, causal conflict, friendship, message deduplication, share permissions, CAS, revocation, logout')
 if __name__=='__main__':main()

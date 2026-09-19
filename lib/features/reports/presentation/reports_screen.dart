@@ -1,3 +1,5 @@
+import '../../finance/presentation/finance_screen.dart'
+    show financeCurrencyLabel;
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,7 +21,7 @@ class ReportsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final locale = Localizations.localeOf(context);
-    final entries = ref.watch(homeEntriesProvider);
+    final entries = ref.watch(effectiveHomeEntriesProvider);
     final completed = entries
         .where((item) => item.completedOn(DateTime.now()))
         .length;
@@ -78,7 +80,7 @@ class ReportsScreen extends ConsumerWidget {
                 value: finance.balanceByCurrency.entries
                     .map(
                       (e) =>
-                          '${localizedNumber(e.value / 100, locale)} ${e.key}',
+                          '${localizedNumber(e.value / 100, locale)} ${financeCurrencyLabel(context, e.key)}',
                     )
                     .join(' / '),
               ),

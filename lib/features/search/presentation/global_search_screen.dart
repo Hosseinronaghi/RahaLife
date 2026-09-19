@@ -50,7 +50,7 @@ class _GlobalSearchScreenState extends ConsumerState<GlobalSearchScreen> {
 
     if (query.isNotEmpty) {
       if (filter == _SearchKind.all || filter == _SearchKind.schedule) {
-        for (final entry in ref.watch(homeEntriesProvider)) {
+        for (final entry in ref.watch(effectiveHomeEntriesProvider)) {
           if (entry.title.normalizedForSearch.contains(query) ||
               (entry.details?.normalizedForSearch.contains(query) ?? false)) {
             results.add(

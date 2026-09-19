@@ -1,3 +1,4 @@
+import '../../../../core/sync/sync_scope.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/sync/providers/backup_target.dart';
@@ -56,6 +57,7 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
   final _sessionToken = TextEditingController();
   final _host = TextEditingController();
   final _port = TextEditingController(text: '22');
+  final _modules = defaultSyncModules.toSet();
   var _purpose = SyncTargetPurpose.backup;
   var _pathStyle = true;
   var _allowInsecureHttp = false;
@@ -271,7 +273,9 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
 
   void _save() {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    final config = <String, String>{};
+    final config = <String, String>{
+      if (_supportsRecordSync) 'modules': (_modules.toList()..sort()).join(','),
+    };
     final credentials = <String, String>{};
     switch (widget.kind) {
       case SyncProviderKind.webDav:
@@ -382,6 +386,41 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
             ),
             const SizedBox(height: 12),
             if (_supportsRecordSync) ...[
+              Text(t('بخش‌های مجاز برای همگام‌سازی', 'Modules to synchronize')),
+              Text(
+                t(
+                  'انتخاب‌ها فقط مربوط به سینک است؛ بکاپ همچنان کامل است. اطلاعات سلامت و مالی پیش‌فرض انتخاب نشده‌اند.',
+                  'These choices affect sync, not full backups. Health and finance are off by default.',
+                ),
+              ),
+              for (final module in syncModuleTypes.keys)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: _modules.contains(module),
+                  title: Text(
+                    t(
+                      const {
+                        'notes': 'یادداشت‌ها',
+                        'tasks': 'کارها و رویدادها',
+                        'shopping': 'خرید',
+                        'projects': 'پروژه‌ها',
+                        'people': 'افراد',
+                        'finance': 'امور مالی',
+                        'health': 'چرخه و دارو',
+                        'bookmarks': 'نشانک‌ها',
+                      }[module]!,
+                      module,
+                    ),
+                  ),
+                  onChanged: (v) => setState(() {
+                    if (v == true) {
+                      _modules.add(module);
+                    } else {
+                      _modules.remove(module);
+                    }
+                  }),
+                ),
+
               Text(
                 t('کاربرد اتصال', 'Connection purpose'),
                 style: Theme.of(context).textTheme.titleSmall,

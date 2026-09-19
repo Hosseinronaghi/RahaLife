@@ -200,6 +200,7 @@ if (routeEndsWith($path, '/v1/sync/pull') && $method === 'GET') {
     );
     $statement->execute(['cursor' => $cursor, 'owner'=>$scopeId]);
     $rows = $statement->fetchAll();
+    $types = isset($_GET['types']) ? array_filter(explode(',', (string)$_GET['types'])) : null;
     $changes = [];
     $nextCursor = $cursor;
     foreach ($rows as $row) {
@@ -207,6 +208,7 @@ if (routeEndsWith($path, '/v1/sync/pull') && $method === 'GET') {
         if ((string) $row['device_id'] === $deviceId) {
             continue;
         }
+        if ($types !== null && !in_array($row['entity_type'], $types, true)) continue;
         $changes[] = rowToEnvelope($row);
     }
     respond(200, [

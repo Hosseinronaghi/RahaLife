@@ -1,0 +1,101 @@
+00:00 +0: loading /workspace/scratch/4d9e15b8ae99/raha-next/test/sync_engine_test.dart
+00:00 +0: /workspace/scratch/4d9e15b8ae99/raha-next/test/sync_engine_test.dart: record sync downloads remote changes and uploads local queue
+00:00 +1: /workspace/scratch/4d9e15b8ae99/raha-next/test/sync_engine_test.dart: same-version edits from different devices are kept as conflict
+00:00 +2: /workspace/scratch/4d9e15b8ae99/raha-next/test/sharing_models_test.dart: share grant keeps permission through json round-trip
+00:00 +3: /workspace/scratch/4d9e15b8ae99/raha-next/test/sync_provider_models_test.dart: sync connection profile survives json round-trip
+00:00 +4: /workspace/scratch/4d9e15b8ae99/raha-next/test/sync_provider_models_test.dart: HTTP requires an explicit trusted-network override
+00:00 +5: /workspace/scratch/4d9e15b8ae99/raha-next/test/selective_sync_test.dart: excluded pending rows cannot starve selected changes and remain unsent
+00:01 +6: /workspace/scratch/4d9e15b8ae99/raha-next/test/cycle_controller_test.dart: estimates next cycle from recorded intervals
+00:01 +7: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: different edit counts do not imply causality
+00:01 +8: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +9: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +10: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +11: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +12: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +13: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +14: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +15: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +16: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +17: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: stale controller does not delete a remotely added record
+00:01 +18: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: non-overlapping stale fields merge but overlapping edits fail
+00:01 +19: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: legacy import never overwrites current or deletes unrelated data
+00:01 +20: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: record identity cannot acknowledge untransmitted changes
+00:02 +21: /workspace/scratch/4d9e15b8ae99/raha-next/test/causal_safety_test.dart: new provider seeds records received from another provider
+00:02 +22: /workspace/scratch/4d9e15b8ae99/raha-next/test/recurrence_test.dart: habit completion is specific to one day without requiring notifications
+00:02 +23: /workspace/scratch/4d9e15b8ae99/raha-next/test/recurrence_test.dart: weekly recurrence never creates events before its start
+00:02 +24: /workspace/scratch/4d9e15b8ae99/raha-next/test/recurrence_test.dart: Solar Hijri birthdays follow the selected calendar across years
+00:02 +25: /workspace/scratch/4d9e15b8ae99/raha-next/test/recurrence_test.dart: monthly day 31 does not overflow into a different month
+00:02 +26: /workspace/scratch/4d9e15b8ae99/raha-next/test/finance_bill_test.dart: unpaid bill is not counted as expense until marked paid
+00:03 +27: /workspace/scratch/4d9e15b8ae99/raha-next/test/people_controller_test.dart: adds and removes a person
+00:03 +28: /workspace/scratch/4d9e15b8ae99/raha-next/test/ui_capture_test.dart: Render mobile-light with bundled Persian font
+00:04 +28: /workspace/scratch/4d9e15b8ae99/raha-next/test/home_controller_test.dart: adds, toggles, searches, and deletes an entry
+Reminder initialization failed: LateInitializationError: Field '_instance@1669271368' has not been initialized.
+#0      FlutterLocalNotificationsPlatform._instance (package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart)
+#1      FlutterLocalNotificationsPlatform.instance (package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart:20:60)
+#2      FlutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation (package:flutter_local_notifications/src/flutter_local_notifications_plugin.dart:54:43)
+#3      FlutterLocalNotificationsPlugin.initialize (package:flutter_local_notifications/src/flutter_local_notifications_plugin.dart:129:14)
+#4      ReminderService.initialize (package:raha_life/core/notifications/reminder_service.dart:46:21)
+<asynchronous suspension>
+#5      ReminderService.cancel (package:raha_life/core/notifications/reminder_service.dart:183:5)
+<asynchronous suspension>
+Reminder cancellation failed: LateInitializationError: Field '_instance@1669271368' has not been initialized.
+00:04 +29: /workspace/scratch/4d9e15b8ae99/raha-next/test/ui_capture_test.dart: Render mobile-light with bundled Persian font
+00:04 +30: /workspace/scratch/4d9e15b8ae99/raha-next/test/ui_capture_test.dart: Render mobile-light with bundled Persian font
+00:04 +30: /workspace/scratch/4d9e15b8ae99/raha-next/test/medication_controller_test.dart: adds and toggles a medication plan
+Reminder initialization failed: LateInitializationError: Field '_instance@1669271368' has not been initialized.
+#0      FlutterLocalNotificationsPlatform._instance (package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart)
+#1      FlutterLocalNotificationsPlatform.instance (package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart:20:60)
+#2      FlutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation (package:flutter_local_notifications/src/flutter_local_notifications_plugin.dart:54:43)
+#3      FlutterLocalNotificationsPlugin.initialize (package:flutter_local_notifications/src/flutter_local_notifications_plugin.dart:129:14)
+#4      ReminderService.initialize (package:raha_life/core/notifications/reminder_service.dart:46:21)
+<asynchronous suspension>
+#5      ReminderService.cancel (package:raha_life/core/notifications/reminder_service.dart:183:5)
+<asynchronous suspension>
+Reminder cancellation failed: LateInitializationError: Field '_instance@1669271368' has not been initialized.
+00:04 +31: /workspace/scratch/4d9e15b8ae99/raha-next/test/ui_capture_test.dart: Render mobile-light with bundled Persian font
+00:04 +32: /workspace/scratch/4d9e15b8ae99/raha-next/test/ui_capture_test.dart: Render mobile-dark with bundled Persian font
+00:05 +33: /workspace/scratch/4d9e15b8ae99/raha-next/test/ui_capture_test.dart: Render mobile-dark with bundled Persian font
+00:05 +34: /workspace/scratch/4d9e15b8ae99/raha-next/test/ui_capture_test.dart: Render mobile-dark with bundled Persian font
+00:05 +35: /workspace/scratch/4d9e15b8ae99/raha-next/test/ui_capture_test.dart: Render desktop-light with bundled Persian font
+00:06 +36: /workspace/scratch/4d9e15b8ae99/raha-next/test/scheduled_shopping_test.dart: stores purchase time, location, reminder, and linked affair
+00:06 +37: /workspace/scratch/4d9e15b8ae99/raha-next/test/logical_backup_merge_test.dart: restore never overwrites an equal local revision
+00:06 +38: /workspace/scratch/4d9e15b8ae99/raha-next/test/logical_backup_merge_test.dart: restore never overwrites an equal local revision
+00:07 +39: /workspace/scratch/4d9e15b8ae99/raha-next/test/logical_backup_merge_test.dart: restore preserves divergent higher revision as conflict
+00:07 +40: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 360.0
+00:07 +41: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 360.0
+00:08 +42: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 360.0
+00:09 +43: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 360.0
+00:09 +44: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: people Persian large text at 360.0
+00:09 +45: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: people Persian large text at 360.0
+00:10 +46: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: finance Persian large text at 360.0
+00:10 +47: /workspace/scratch/4d9e15b8ae99/raha-next/test/drift_entity_repository_test.dart: only real record changes create incremental sync deltas
+00:10 +48: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: cycle Persian large text at 360.0
+00:10 +49: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: cycle Persian large text at 360.0
+00:10 +50: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: cycle Persian large text at 360.0
+00:11 +51: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 800.0
+00:11 +52: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 800.0
+00:11 +53: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 800.0
+00:11 +54: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 800.0
+00:11 +55: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 800.0
+00:11 +56: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: people Persian large text at 800.0
+00:11 +57: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: finance Persian large text at 800.0
+00:11 +58: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: cycle Persian large text at 800.0
+00:11 +59: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 1280.0
+00:12 +60: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: notes Persian large text at 1280.0
+00:12 +61: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: people Persian large text at 1280.0
+00:12 +62: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: finance Persian large text at 1280.0
+00:12 +63: /workspace/scratch/4d9e15b8ae99/raha-next/test/release_09_ui_test.dart: cycle Persian large text at 1280.0
+00:12 +64: /workspace/scratch/4d9e15b8ae99/raha-next/test/schema_upgrade_v7_test.dart: v6 to v7 preserves existing records and pending deltas
+00:13 +65: /workspace/scratch/4d9e15b8ae99/raha-next/test/schema_upgrade_v7_test.dart: malformed legacy input keeps both original preferences and existing data
+00:13 +66: /workspace/scratch/4d9e15b8ae99/raha-next/test/locale_formatters_test.dart: converts English digits to Persian digits
+00:13 +67: /workspace/scratch/4d9e15b8ae99/raha-next/test/locale_formatters_test.dart: keeps English digits in English locale
+00:13 +68: /workspace/scratch/4d9e15b8ae99/raha-next/test/locale_formatters_test.dart: converts Persian digits back to English for numeric input
+00:13 +69: /workspace/scratch/4d9e15b8ae99/raha-next/test/finance_controller_test.dart: calculates balance from accounts and transactions
+00:13 +70: /workspace/scratch/4d9e15b8ae99/raha-next/test/today_layout_test.dart: Today RTL at 360.0 with large text has no layout exception
+00:14 +71: /workspace/scratch/4d9e15b8ae99/raha-next/test/today_layout_test.dart: Today RTL at 360.0 with large text has no layout exception
+00:14 +72: /workspace/scratch/4d9e15b8ae99/raha-next/test/today_layout_test.dart: Today RTL at 800.0 with large text has no layout exception
+00:15 +73: /workspace/scratch/4d9e15b8ae99/raha-next/test/today_layout_test.dart: Today RTL at 800.0 with large text has no layout exception
+00:15 +74: /workspace/scratch/4d9e15b8ae99/raha-next/test/today_layout_test.dart: Today RTL at 1280.0 with large text has no layout exception
+00:15 +75: /workspace/scratch/4d9e15b8ae99/raha-next/test/money_test.dart: adds values with the same currency
+00:15 +76: /workspace/scratch/4d9e15b8ae99/raha-next/test/money_test.dart: rejects currency mismatch
+00:15 +77: All tests passed!

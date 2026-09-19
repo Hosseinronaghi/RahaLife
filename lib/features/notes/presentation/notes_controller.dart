@@ -80,7 +80,7 @@ class NotesNotifier extends StateNotifier<List<RichNote>> {
       archived: existing?.archived ?? false,
       projectId: projectId,
       personId: personId,
-      scheduledAt: scheduledAt,
+      scheduledAt: scheduledAt ?? existing?.scheduledAt,
       updatedAt: DateTime.now().toUtc(),
     );
     state = [

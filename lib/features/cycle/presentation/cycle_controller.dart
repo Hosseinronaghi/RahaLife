@@ -1,3 +1,4 @@
+import '../domain/cycle_forecast.dart';
 import '../../../core/persistence/write_status.dart';
 
 import 'dart:async';
@@ -55,6 +56,8 @@ class CycleNotifier extends StateNotifier<List<CycleLog>> {
   }
 
   CycleLog add({
+    String? id,
+    bool conflictReminders = false,
     required DateTime startDate,
     DateTime? endDate,
     required FlowIntensity flow,
@@ -65,8 +68,13 @@ class CycleNotifier extends StateNotifier<List<CycleLog>> {
     ReminderPlan predictionReminder = const ReminderPlan(),
     String predictionReminderTime = '09:00',
   }) {
+    if (endDate != null && calendarDays(endDate, startDate) < 0) {
+      throw ArgumentError('End precedes start');
+    }
+    if (painLevel < 0 || painLevel > 10) throw ArgumentError('Invalid pain');
     final log = CycleLog(
-      id: _uuid.v4(),
+      id: id ?? _uuid.v4(),
+      conflictReminders: conflictReminders,
       startDate: startDate,
       endDate: endDate,
       flow: flow,
@@ -77,7 +85,8 @@ class CycleNotifier extends StateNotifier<List<CycleLog>> {
       predictionReminder: predictionReminder,
       predictionReminderTime: predictionReminderTime,
     );
-    state = [...state, log]..sort((a, b) => b.startDate.compareTo(a.startDate));
+    state = [...state.where((e) => e.id != log.id), log]
+      ..sort((a, b) => b.startDate.compareTo(a.startDate));
     WriteStatus.track(_persist());
     return log;
   }
@@ -88,23 +97,7 @@ class CycleNotifier extends StateNotifier<List<CycleLog>> {
     WriteStatus.track(_persist());
   }
 
-  DateTime? get predictedNextStart {
-    if (state.isEmpty) return null;
-    if (state.length == 1) {
-      return state.first.startDate.add(const Duration(days: 28));
-    }
-    final sorted = [...state]
-      ..sort((a, b) => a.startDate.compareTo(b.startDate));
-    var sum = 0;
-    for (var index = 1; index < sorted.length; index++) {
-      sum += sorted[index].startDate
-          .difference(sorted[index - 1].startDate)
-          .inDays
-          .abs();
-    }
-    final average = (sum / (sorted.length - 1)).round().clamp(21, 45).toInt();
-    return sorted.last.startDate.add(Duration(days: average));
-  }
+  DateTime? get predictedNextStart => CycleForecast.fromLogs(state)?.start;
 }
 
 final cycleProvider = StateNotifierProvider<CycleNotifier, List<CycleLog>>(

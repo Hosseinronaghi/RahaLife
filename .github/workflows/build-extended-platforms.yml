@@ -6,6 +6,10 @@ on:
 permissions:
   contents: read
 
+env:
+  CI: 'true'
+  DASH__SUPPRESS_ANALYTICS: 'true'
+
 jobs:
   linux:
     name: Linux x64 portable
@@ -28,6 +32,7 @@ jobs:
         run: |
           flutter config --enable-linux-desktop
           flutter create --platforms=linux --org com.raha --project-name raha_life .
+          python tool/configure_branding.py
           rm -f test/widget_test.dart
       - run: flutter clean
       - run: flutter pub get
@@ -70,6 +75,7 @@ jobs:
         run: |
           flutter config --enable-macos-desktop
           flutter create --platforms=ios,macos --org com.raha --project-name raha_life .
+          python tool/configure_branding.py
           rm -f test/widget_test.dart
       - name: Set iOS deployment target for current plugins
         run: python3 tool/configure_apple_platforms.py
