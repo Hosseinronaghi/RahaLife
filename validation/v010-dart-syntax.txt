@@ -1,0 +1,2 @@
+Parsed 182 Dart files using tree-sitter-dart: zero syntax errors.
+NOT flutter analyze, NOT a type check, NOT flutter test.

@@ -64,6 +64,7 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
     String? details,
     String? subtype,
     String? personId,
+    String? phone,
     double? amount,
     String? location,
     String? address,
@@ -82,6 +83,7 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
       dateTime: dateTime,
       subtype: subtype,
       personId: personId,
+      phone: phone,
       amount: amount,
       location: location == null || location.trim().isEmpty
           ? null

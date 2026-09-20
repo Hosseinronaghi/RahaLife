@@ -9,7 +9,33 @@ class OpenAiCompatibleProvider implements AiProvider {
     this.baseUrl = 'https://api.openai.com/v1',
     this.providerType = AiProviderType.openAi,
     Dio? dio,
-  }) : _dio = dio ?? Dio();
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: const Duration(seconds: 15),
+               receiveTimeout: const Duration(seconds: 60),
+               sendTimeout: const Duration(seconds: 30),
+               followRedirects: false,
+             ),
+           );
+
+  Uri endpoint(String path) {
+    final uri = Uri.tryParse(baseUrl.trim());
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw ArgumentError(
+        'A valid HTTPS API address without credentials or query is required.',
+      );
+    }
+    return uri.replace(
+      path: '${uri.path.replaceFirst(RegExp(r"/+$"), "")}/$path',
+    );
+  }
 
   final String apiKey;
   final String model;
@@ -20,12 +46,15 @@ class OpenAiCompatibleProvider implements AiProvider {
   @override
   AiProviderType get type => providerType;
 
-  Options get _options => Options(headers: {'Authorization': 'Bearer $apiKey'});
+  Options get _options => Options(
+    followRedirects: false,
+    headers: {'Authorization': 'Bearer $apiKey'},
+  );
 
   @override
   Future<AiResponse> generate(AiRequest request) async {
     final response = await _dio.post<Map<String, Object?>>(
-      '$baseUrl/chat/completions',
+      endpoint('chat/completions').toString(),
       options: _options,
       data: {
         'model': model,
@@ -50,7 +79,7 @@ class OpenAiCompatibleProvider implements AiProvider {
   @override
   Future<List<String>> listModels() async {
     final response = await _dio.get<Map<String, Object?>>(
-      '$baseUrl/models',
+      endpoint('models').toString(),
       options: _options,
     );
     final list = response.data?['data'] as List<dynamic>? ?? const [];

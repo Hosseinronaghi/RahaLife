@@ -1,3 +1,4 @@
+import '../../features/medication/domain/medication_dose.dart';
 import '../../features/cycle/domain/cycle_forecast.dart';
 import '../../features/people/domain/person.dart';
 import '../../features/home/domain/linked_birthdays.dart';
@@ -18,8 +19,11 @@ class AgendaItem {
     this.plan, {
     this.done = false,
     this.type = 'affair',
+    this.entityId,
+    this.entityType,
   });
   final String key, title, route, type;
+  final String? entityId, entityType;
   final DateTime at;
   final ReminderPlan plan;
   final bool done;
@@ -32,6 +36,8 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
               'home_entry',
               'person',
               'medication_plan',
+              'medication_dose',
+              'entertainment',
               'shopping_list',
               'finance_transaction',
               'rich_note',
@@ -46,6 +52,7 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
             final day = DateTime(now.year, now.month, now.day);
             final people = <Person>[];
             final home = <HomeEntry>[];
+            final doses = <String, MedicationDose>{};
             for (final row in rows) {
               if (row.deletedAt != null) continue;
               try {
@@ -53,6 +60,10 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
                   jsonDecode(row.payloadJson) as Map,
                 );
                 if (data['archived'] == true) continue;
+                if (row.entityType == 'medication_dose') {
+                  final dose = MedicationDose.fromJson(data);
+                  doses[dose.id] = dose;
+                }
                 if (row.entityType == 'person') {
                   people.add(Person.fromJson(data));
                 }
@@ -87,7 +98,13 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
                     '/module/${entry.type.name}',
                     entry.reminder,
                     done: entry.completedOn(date),
-                    type: entry.type.name,
+                    type:
+                        entry.type == HomeEntryType.affair &&
+                            entry.subtype == 'call'
+                        ? 'call'
+                        : entry.type.name,
+                    entityId: entry.id,
+                    entityType: 'home_entry',
                   ),
                 );
               }
@@ -111,11 +128,50 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
                     row.entityType == 'person') {
                   continue;
                 }
+                if (row.entityType == 'entertainment') {
+                  final at = DateTime.tryParse(
+                    data['plannedAt']?.toString() ?? '',
+                  );
+                  if (at != null) {
+                    result.add(
+                      AgendaItem(
+                        'entertainment:${row.id}',
+                        data['title']?.toString() ?? '',
+                        at.toLocal(),
+                        '/entertainment',
+                        ReminderPlan(enabled: data['remind'] == true),
+                        done: data['status'] == 'done',
+                        type: 'entertainment',
+                      ),
+                    );
+                  }
+                  continue;
+                }
                 if (row.entityType == 'medication_plan') {
                   final medicine = MedicationPlan.fromJson(data);
                   if (!medicine.active ||
                       medicine.courseType == MedicationCourseType.asNeeded) {
                     continue;
+                  }
+                  for (final dose in doses.values.where(
+                    (d) =>
+                        d.planId == medicine.id &&
+                        d.outcome == DoseOutcome.postponed &&
+                        d.remindAt != null,
+                  )) {
+                    result.add(
+                      AgendaItem(
+                        'dose-snooze:${dose.id}',
+                        medicine.name,
+                        dose.remindAt!.toLocal(),
+                        '/medication',
+                        ReminderPlan(
+                          enabled: true,
+                          kind: medicine.reminder.kind,
+                        ),
+                        type: 'medication',
+                      ),
+                    );
                   }
                   final next = medicine.nextDoseDateTime(
                     now.subtract(const Duration(days: 1)),
@@ -138,6 +194,9 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
                         date,
                         '/medication',
                         medicine.reminder,
+                        done: doses.containsKey(
+                          MedicationDose.occurrenceId(medicine.id, date),
+                        ),
                         type: 'medication',
                       ),
                     );

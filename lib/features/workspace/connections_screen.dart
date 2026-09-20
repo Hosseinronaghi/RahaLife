@@ -34,15 +34,27 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
     url.text.trim().replaceAll(RegExp(r'/+$'), ''),
     account,
   );
-  Dio get client => Dio(
-    BaseOptions(
-      baseUrl: url.text.trim().replaceAll(RegExp(r'/+$'), ''),
-      followRedirects: false,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 30),
-      headers: {if (token.isNotEmpty) 'Authorization': 'Bearer $token'},
-    ),
-  );
+  Dio get client {
+    final uri = Uri.tryParse(url.text.trim());
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw StateError('Valid HTTPS server URL required.');
+    }
+    return Dio(
+      BaseOptions(
+        baseUrl: url.text.trim().replaceAll(RegExp(r'/+$'), ''),
+        followRedirects: false,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {if (token.isNotEmpty) 'Authorization': 'Bearer $token'},
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +79,7 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
   }
 
   Future<void> run(Future<void> Function() action) async {
+    if (busy) return;
     setState(() {
       busy = true;
       error = '';

@@ -24,7 +24,12 @@ void validateTransportSecurity(SyncConnectionProfile profile) {
   final raw = connectionEndpoint(profile)?.trim() ?? '';
   if (raw.isEmpty) return;
   final uri = Uri.tryParse(raw);
-  if (uri == null || uri.host.isEmpty || !uri.hasScheme) {
+  if (uri == null ||
+      uri.host.isEmpty ||
+      !uri.hasScheme ||
+      uri.userInfo.isNotEmpty ||
+      uri.hasQuery ||
+      uri.hasFragment) {
     throw const FormatException('A valid server URL is required.');
   }
   if (uri.scheme.toLowerCase() == 'https') return;

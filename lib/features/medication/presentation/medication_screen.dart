@@ -1,3 +1,5 @@
+import 'medication_history_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -205,16 +207,18 @@ class MedicationScreen extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: FilledButton.tonalIcon(
-                                onPressed: plan.active && !finished
-                                    ? () => ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                            SnackBar(
-                                              content: Text(l10n.medicineTaken),
-                                            ),
-                                          )
-                                    : null,
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) =>
+                                        MedicationHistoryScreen(plan: plan),
+                                  ),
+                                ),
                                 icon: const Icon(Icons.check_rounded),
-                                label: Text(l10n.medicineTaken),
+                                label: Text(
+                                  locale.languageCode == 'fa'
+                                      ? 'ثبت و سابقه مصرف'
+                                      : 'Record / dose history',
+                                ),
                               ),
                             ),
                             IconButton(
@@ -295,7 +299,7 @@ Future<void> _showCatalog(
         final lang = Localizations.localeOf(context).languageCode;
         final results = medicationStarterCatalog.where((item) {
           final haystack =
-              '${item.genericName} ${item.groupFor(lang)} ${item.commonUseFor(lang)}'
+              '${item.genericName} ${item.nameFor(lang)} ${item.groupFor(lang)} ${item.commonUseFor(lang)}'
                   .toLowerCase();
           return haystack.contains(search.toLowerCase());
         }).toList();
@@ -333,7 +337,17 @@ Future<void> _showCatalog(
                       final item = results[index];
                       return ListTile(
                         leading: const Icon(Icons.medication_outlined),
-                        title: Text(item.genericName),
+                        title: Text(item.nameFor(lang)),
+                        trailing: item.sourceUrl == null
+                            ? null
+                            : IconButton(
+                                tooltip: lang == 'fa'
+                                    ? 'اطلاعات و عوارض'
+                                    : 'Information and side effects',
+                                icon: const Icon(Icons.info_outline),
+                                onPressed: () =>
+                                    _showMedicineInfo(context, item),
+                              ),
                         subtitle: Text(
                           '${item.groupFor(lang)} • ${item.commonUseFor(lang)}',
                         ),
@@ -362,7 +376,11 @@ Future<void> showMedicationForm(
 }) async {
   final l10n = AppLocalizations.of(context);
   final formKey = GlobalKey<FormState>();
-  final name = TextEditingController(text: catalogItem?.genericName ?? '');
+  final name = TextEditingController(
+    text:
+        catalogItem?.nameFor(Localizations.localeOf(context).languageCode) ??
+        '',
+  );
   final brand = TextEditingController();
   final dosage = TextEditingController();
   final reason = TextEditingController();
@@ -414,7 +432,9 @@ Future<void> showMedicationForm(
                           await _showCatalog(
                             context,
                             onSelected: (selected) {
-                              name.text = selected.genericName;
+                              name.text = selected.nameFor(
+                                Localizations.localeOf(context).languageCode,
+                              );
                               setState(() {
                                 selectedCatalog = selected;
                                 form = selected.defaultForm;
@@ -458,6 +478,17 @@ Future<void> showMedicationForm(
                       ),
                     ),
                   ],
+                  if (selectedCatalog?.sourceUrl != null)
+                    TextButton.icon(
+                      onPressed: () =>
+                          _showMedicineInfo(context, selectedCatalog!),
+                      icon: const Icon(Icons.info_outline),
+                      label: Text(
+                        lang == 'fa'
+                            ? 'اطلاعات و عوارض مهم'
+                            : 'Information and important side effects',
+                      ),
+                    ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<MedicationForm>(
                     initialValue: form,
@@ -639,4 +670,65 @@ Future<void> showMedicationForm(
   instructions.dispose();
   stock.dispose();
   days.dispose();
+}
+
+Future<void> _showMedicineInfo(
+  BuildContext context,
+  MedicationCatalogItem item,
+) async {
+  final fa = Localizations.localeOf(context).languageCode == 'fa';
+  await showDialog<void>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text(item.nameFor(fa ? 'fa' : 'en')),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(item.commonUseFor(fa ? 'fa' : 'en')),
+            const SizedBox(height: 12),
+            Text(item.safetyFor(fa ? 'fa' : 'en') ?? ''),
+            const SizedBox(height: 12),
+            Text(
+              fa
+                  ? 'این خلاصه همه عوارض را پوشش نمی‌دهد. شکل، مقدار و دوره مصرف را طبق نسخه ثبت کنید. برای علائم شدید با اورژانس محل خود تماس بگیرید.'
+                  : 'This is not a complete list of side effects. Record formulation, dose and duration from your prescription. For severe symptoms contact local emergency services.',
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${fa ? 'تاریخ بررسی منبع' : 'Source checked'}: ${item.checkedOn ?? ''}',
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        if (item.sourceUrl != null)
+          TextButton(
+            onPressed: () async {
+              final ok = await launchUrl(
+                Uri.parse(item.sourceUrl!),
+                mode: LaunchMode.externalApplication,
+              );
+              if (!ok && c.mounted) {
+                ScaffoldMessenger.of(c).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      fa
+                          ? 'بازکردن منبع ناموفق بود.'
+                          : 'Could not open source.',
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Text(fa ? 'مشاهده منبع' : 'Read source'),
+          ),
+        TextButton(
+          onPressed: () => Navigator.pop(c),
+          child: Text(fa ? 'بستن' : 'Close'),
+        ),
+      ],
+    ),
+  );
 }

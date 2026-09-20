@@ -5,8 +5,10 @@ const syncModuleTypes = <String, List<String>>{
   'projects': ['project'],
   'people': ['person'],
   'finance': ['finance_account', 'finance_transaction', 'budget'],
-  'health': ['cycle_log', 'medication_plan'],
+  'health': ['cycle_log', 'medication_plan', 'medication_dose'],
   'bookmarks': ['bookmark'],
+  'entertainment': ['entertainment'],
+  'files': ['attachment_blob', 'attachment_chunk', 'attachment_link'],
 };
 const defaultSyncModules = ['notes', 'shopping', 'projects', 'bookmarks'];
 Set<String>? syncTypes(Map<String, String> config) {

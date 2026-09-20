@@ -1,3 +1,4 @@
+import '../../home/domain/birthday_occurrence.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,6 +29,17 @@ class ModuleEntriesScreen extends ConsumerWidget {
             )
             .toList()
           ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+    final now = DateTime.now();
+    if (type == HomeEntryType.birthday) {
+      items.sort((a, b) {
+        final group = birthdayGroup(a, now).compareTo(birthdayGroup(b, now));
+        return group != 0
+            ? group
+            : (birthdayDaysAway(a, now) ?? 9999).compareTo(
+                birthdayDaysAway(b, now) ?? 9999,
+              );
+      });
+    }
     final color = homeEntryTypeColor(type, Theme.of(context).colorScheme);
 
     return Scaffold(
@@ -75,41 +87,76 @@ class ModuleEntriesScreen extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final entry = items[index];
-                return Card(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: entry.type == HomeEntryType.birthday
-                        ? const Icon(Icons.cake_outlined)
-                        : Checkbox(
-                            value: entry.completedOn(DateTime.now()),
-                            onChanged: (_) => ref
-                                .read(homeEntriesProvider.notifier)
-                                .toggle(entry.id),
+                final fa = Localizations.localeOf(context).languageCode == 'fa';
+                final group = type == HomeEntryType.birthday
+                    ? birthdayGroup(entry, now)
+                    : 0;
+                final showGroup =
+                    type == HomeEntryType.birthday &&
+                    (index == 0 ||
+                        birthdayGroup(items[index - 1], now) != group);
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (showGroup)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          (fa
+                              ? [
+                                  'امروز',
+                                  'فردا',
+                                  '۷ روز آینده',
+                                  'دیروز',
+                                  'سایر تولدها',
+                                ]
+                              : [
+                                  'Today',
+                                  'Tomorrow',
+                                  'Next 7 days',
+                                  'Yesterday',
+                                  'Other birthdays',
+                                ])[group],
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                    Card(
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: entry.type == HomeEntryType.birthday
+                            ? const Icon(Icons.cake_outlined)
+                            : Checkbox(
+                                value: entry.completedOn(DateTime.now()),
+                                onChanged: (_) => ref
+                                    .read(homeEntriesProvider.notifier)
+                                    .toggle(entry.id),
+                              ),
+                        title: Text(
+                          entry.title,
+                          style: TextStyle(
+                            decoration: entry.completedOn(DateTime.now())
+                                ? TextDecoration.lineThrough
+                                : null,
                           ),
-                    title: Text(
-                      entry.title,
-                      style: TextStyle(
-                        decoration: entry.completedOn(DateTime.now())
-                            ? TextDecoration.lineThrough
-                            : null,
+                        ),
+                        subtitle: Text(
+                          [
+                            if (homeEntrySubtypeLabel(l10n, entry) != null)
+                              homeEntrySubtypeLabel(l10n, entry)!,
+                            compactDualDate(
+                              entry.dateTime,
+                              Localizations.localeOf(context),
+                            ),
+                          ].join(' • '),
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => showEntryDetails(context, entry),
                       ),
                     ),
-                    subtitle: Text(
-                      [
-                        if (homeEntrySubtypeLabel(l10n, entry) != null)
-                          homeEntrySubtypeLabel(l10n, entry)!,
-                        compactDualDate(
-                          entry.dateTime,
-                          Localizations.localeOf(context),
-                        ),
-                      ].join(' • '),
-                    ),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => showEntryDetails(context, entry),
-                  ),
+                  ],
                 );
               },
             ),

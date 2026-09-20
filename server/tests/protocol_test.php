@@ -12,3 +12,11 @@ $c=normalizeChange(['changeId'=>'exact-id','entityType'=>'note','entityId'=>'one
 check($c['deletedAtUtc']===$c['updatedAtUtc'],'delete timestamp normalized');
 check($c['changeId']==='exact-id','acknowledgement identity preserved');
 try {normalizeClock(['A'=>-1],'A',1);throw new RuntimeException('Negative clock accepted');}catch(RuntimeException $e){check($e->getMessage()==='400','negative clock rejected');}
+check(sameChange($c,$c),'identical retry');
+$other=$c;$other['payload']=['id'=>'one','value'=>42];
+check(!sameChange($c,$other),'change ID reuse with altered payload rejected');
+$other=$c;$other['deviceId']='B';
+check(!sameChange($c,$other),'change ID reuse by other device rejected');
+$other=$c;$other['payload']=['x'=>1,'y'=>2];$copy=$other;$copy['payload']=['y'=>2,'x'=>1];
+check(sameChange($other,$copy),'object key order does not change identity');
+$copy['payload']['x']='1';check(!sameChange($other,$copy),'payload scalar types preserved');

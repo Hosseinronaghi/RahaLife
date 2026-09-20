@@ -69,13 +69,44 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
           prefs.getString('$_modelKey.${provider.name}') ??
           (provider == AiProviderType.gemini
               ? 'gemini-2.5-flash'
-              : 'gpt-4.1-mini');
+              : provider == AiProviderType.openAi
+              ? 'gpt-4.1-mini'
+              : '');
       _baseUrlController.text =
           prefs.getString('$_baseUrlKey.${provider.name}') ?? '';
     });
   }
 
   Future<void> _save() async {
+    if (_provider != AiProviderType.rahaFree &&
+        _modelController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).requiredField)),
+      );
+      return;
+    }
+    if (_provider != AiProviderType.rahaFree &&
+        _provider != AiProviderType.openAi &&
+        _provider != AiProviderType.gemini) {
+      try {
+        OpenAiCompatibleProvider(
+          apiKey: '',
+          model: '',
+          baseUrl: _baseUrlController.text.trim(),
+        ).endpoint('models');
+      } catch (_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Localizations.localeOf(context).languageCode == 'fa'
+                  ? 'آدرس معتبر HTTPS سرویس را وارد کنید.'
+                  : 'Enter a valid HTTPS API address.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(
       '$_modelKey.${_provider.name}',
@@ -122,9 +153,17 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     if (_provider == AiProviderType.gemini) {
       var success = false;
       try {
-        await Dio().get(
+        await Dio(
+          BaseOptions(
+            connectTimeout: const Duration(seconds: 15),
+            receiveTimeout: const Duration(seconds: 30),
+          ),
+        ).get(
           'https://generativelanguage.googleapis.com/v1beta/models',
-          options: Options(headers: {'x-goog-api-key': apiKey}),
+          options: Options(
+            followRedirects: false,
+            headers: {'x-goog-api-key': apiKey},
+          ),
         );
         success = true;
       } catch (_) {}
@@ -202,9 +241,15 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                             ),
                             DropdownMenuItem(
                               value: AiProviderType.gemini,
-                              child: Text(
-                                '${l10n.geminiApi} · ${l10n.comingSoon}',
-                              ),
+                              child: Text(l10n.geminiApi),
+                            ),
+                            const DropdownMenuItem(
+                              value: AiProviderType.qwen,
+                              child: Text('Qwen'),
+                            ),
+                            const DropdownMenuItem(
+                              value: AiProviderType.zai,
+                              child: Text('Z.ai / GLM'),
                             ),
                             DropdownMenuItem(
                               value: AiProviderType.customOpenAiCompatible,
@@ -247,7 +292,9 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                           ),
                         ],
                         if (_provider ==
-                            AiProviderType.customOpenAiCompatible) ...[
+                                AiProviderType.customOpenAiCompatible ||
+                            _provider == AiProviderType.qwen ||
+                            _provider == AiProviderType.zai) ...[
                           const SizedBox(height: 14),
                           TextField(
                             controller: _baseUrlController,

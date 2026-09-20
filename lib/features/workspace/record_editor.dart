@@ -1,3 +1,4 @@
+import '../files/files_screen.dart';
 import '../../core/widgets/retained_popup.dart';
 import '../finance/presentation/finance_screen.dart';
 import '../finance/domain/finance_models.dart';
@@ -367,6 +368,12 @@ Future<void> recordActions(
       children: [
         for (final entry in [
           ('edit', Icons.edit_outlined, 'ویرایش', 'Edit'),
+          (
+            'files',
+            Icons.attach_file,
+            'فایل‌ها و صداها',
+            'Files and recordings',
+          ),
           ('copy', Icons.copy, 'ساخت کپی', 'Duplicate'),
           (
             'archive',
@@ -390,6 +397,15 @@ Future<void> recordActions(
     ),
   );
   if (action == null || !context.mounted) {
+    return;
+  }
+  if (action == 'files') {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            FilesScreen(entityType: type, entityId: data['id'].toString()),
+      ),
+    );
     return;
   }
   if (action == 'edit') {

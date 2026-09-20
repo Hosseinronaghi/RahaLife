@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/settings/app_settings.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/home/presentation/quick_add_sheet.dart';
 import '../../l10n/generated/app_localizations.dart';
 
-class ResponsiveShell extends StatelessWidget {
+class ResponsiveShell extends ConsumerWidget {
   const ResponsiveShell({required this.child, super.key});
 
   final Widget child;
@@ -18,7 +20,10 @@ class ResponsiveShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final swipeEnabled = ref.watch(
+      appSettingsProvider.select((s) => s.swipeNavigation),
+    );
     final l10n = AppLocalizations.of(context);
     final index = _index(context);
     final destinations = [
@@ -58,11 +63,24 @@ class ResponsiveShell extends StatelessWidget {
           return Scaffold(
             extendBody: false,
             body: SafeArea(bottom: false, child: child),
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: index,
-              onDestinationSelected: select,
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-              destinations: destinations,
+            bottomNavigationBar: GestureDetector(
+              onHorizontalDragEnd: swipeEnabled
+                  ? (details) {
+                      final speed = details.primaryVelocity ?? 0;
+                      if (speed.abs() < 250) return;
+                      final rtl =
+                          Directionality.of(context) == TextDirection.rtl;
+                      final step = (speed < 0 ? 1 : -1) * (rtl ? -1 : 1);
+                      final next = index + step;
+                      if (next >= 0 && next < _paths.length) select(next);
+                    }
+                  : null,
+              child: NavigationBar(
+                selectedIndex: index,
+                onDestinationSelected: select,
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                destinations: destinations,
+              ),
             ),
           );
         }

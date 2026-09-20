@@ -73,6 +73,7 @@ String affairKindLabel(AppLocalizations l10n, AffairKind kind) =>
       AffairKind.shopping => l10n.affairShopping,
       AffairKind.bill => l10n.affairBill,
       AffairKind.study => l10n.affairStudy,
+      AffairKind.call => l10n.localeName.startsWith('fa') ? 'تماس' : 'Call',
       AffairKind.custom => l10n.affairCustom,
     };
 

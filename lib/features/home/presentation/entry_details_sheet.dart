@@ -1,4 +1,6 @@
-import '../../people/presentation/people_screen.dart';
+import '../../files/files_screen.dart';
+import 'birthday_form.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../workspace/record_editor.dart';
 
 import 'package:flutter/material.dart';
@@ -47,6 +49,9 @@ class _EntryDetailsSheet extends ConsumerWidget {
       }
     }
 
+    final callNumber = (entry.phone?.trim().isNotEmpty ?? false)
+        ? entry.phone!.trim()
+        : relatedPerson?.phone?.trim() ?? '';
     return SafeArea(
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -120,6 +125,75 @@ class _EntryDetailsSheet extends ConsumerWidget {
               title: l10n.description,
               value: entry.details ?? l10n.noDescription,
             ),
+            if (entry.type == HomeEntryType.affair &&
+                entry.subtype == 'call') ...[
+              const SizedBox(height: 12),
+              FilledButton.tonalIcon(
+                icon: const Icon(Icons.phone_outlined),
+                label: Text(
+                  '${locale.languageCode == 'fa' ? 'تماس' : 'Call'} · $callNumber',
+                ),
+                onPressed: callNumber.isEmpty
+                    ? null
+                    : () async {
+                        final normalized = callNumber
+                            .replaceAllMapped(RegExp('[۰-۹٠-٩]'), (m) {
+                              final code = m[0]!.codeUnitAt(0);
+                              return (code > 0x6ef
+                                      ? code - 0x6f0
+                                      : code - 0x660)
+                                  .toString();
+                            })
+                            .replaceAll(RegExp(r'[\s()\-]'), '');
+                        // Never pass USSD, pause sequences or arbitrary URI schemes to the dialer.
+                        if (!RegExp(r'^\+?[0-9]{3,20}$').hasMatch(normalized)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                locale.languageCode == 'fa'
+                                    ? 'شماره معتبر نیست.'
+                                    : 'Invalid phone number.',
+                              ),
+                            ),
+                          );
+                          return;
+                        }
+                        try {
+                          if (!await launchUrl(
+                            Uri(scheme: 'tel', path: normalized),
+                          )) {
+                            throw StateError('Unavailable');
+                          }
+                        } catch (_) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  locale.languageCode == 'fa'
+                                      ? 'شماره‌گیر در دسترس نیست.'
+                                      : 'Dialer unavailable.',
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
+              ),
+            ],
+            TextButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      FilesScreen(entityType: 'home_entry', entityId: entry.id),
+                ),
+              ),
+              icon: const Icon(Icons.attach_file),
+              label: Text(
+                locale.languageCode == 'fa'
+                    ? 'فایل‌ها و صداها'
+                    : 'Files and recordings',
+              ),
+            ),
             if (entry.location?.isNotEmpty ?? false) ...[
               const SizedBox(height: 12),
               _InfoRow(
@@ -164,9 +238,8 @@ class _EntryDetailsSheet extends ConsumerWidget {
             ],
             TextButton.icon(
               onPressed: () {
-                if (entry.type == HomeEntryType.birthday &&
-                    relatedPerson != null) {
-                  showPersonForm(context, ref, person: relatedPerson);
+                if (entry.type == HomeEntryType.birthday) {
+                  showBirthdayForm(context, entry: entry);
                 } else {
                   recordActions(context, ref, 'home_entry', entry.toJson());
                 }
@@ -179,10 +252,12 @@ class _EntryDetailsSheet extends ConsumerWidget {
               onPressed: () => shareTextFromContext(
                 context,
                 subject: entry.title,
-                text: [
+                text: <String>[
                   entry.title,
                   '${compactDualDate(entry.dateTime, locale)} · ${localizedTime(entry.dateTime, locale)}',
                   if (entry.details?.isNotEmpty ?? false) entry.details!,
+                  if (entry.subtype == 'call' && callNumber.isNotEmpty)
+                    callNumber,
                   if (entry.location?.isNotEmpty ?? false) entry.location!,
                 ].join('\n'),
               ),

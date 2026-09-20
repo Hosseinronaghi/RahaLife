@@ -7,7 +7,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/home/domain/home_entry.dart';
 import 'app_module.dart';
 
-enum AccentChoice { emerald, blue, purple, orange }
+enum AccentChoice {
+  emerald,
+  blue,
+  purple,
+  orange,
+  sage,
+  slate,
+  rose,
+  sand,
+  teal,
+}
 
 extension AccentChoiceColor on AccentChoice {
   Color get color => switch (this) {
@@ -15,6 +25,11 @@ extension AccentChoiceColor on AccentChoice {
     AccentChoice.blue => const Color(0xFF3B82F6),
     AccentChoice.purple => const Color(0xFF8B5CF6),
     AccentChoice.orange => const Color(0xFFF97316),
+    AccentChoice.sage => const Color(0xFF668574),
+    AccentChoice.slate => const Color(0xFF65788A),
+    AccentChoice.rose => const Color(0xFFA66F80),
+    AccentChoice.sand => const Color(0xFF9A805C),
+    AccentChoice.teal => const Color(0xFF4E8585),
   };
 }
 
@@ -23,8 +38,9 @@ class AppSettings {
   const AppSettings({
     this.locale = const Locale('fa'),
     this.themeMode = ThemeMode.system,
-    this.accentChoice = AccentChoice.emerald,
+    this.accentChoice = AccentChoice.sage,
     this.textScale = 1,
+    this.swipeNavigation = true,
     this.hiddenHomeSections = const {},
     this.moduleOrder = defaultAppModuleOrder,
     this.hiddenModules = const {},
@@ -34,6 +50,7 @@ class AppSettings {
   final ThemeMode themeMode;
   final AccentChoice accentChoice;
   final double textScale;
+  final bool swipeNavigation;
   final Set<HomeEntryType> hiddenHomeSections;
   final List<AppModule> moduleOrder;
   final Set<AppModule> hiddenModules;
@@ -43,6 +60,7 @@ class AppSettings {
     ThemeMode? themeMode,
     AccentChoice? accentChoice,
     double? textScale,
+    bool? swipeNavigation,
     Set<HomeEntryType>? hiddenHomeSections,
     List<AppModule>? moduleOrder,
     Set<AppModule>? hiddenModules,
@@ -51,6 +69,7 @@ class AppSettings {
     themeMode: themeMode ?? this.themeMode,
     accentChoice: accentChoice ?? this.accentChoice,
     textScale: textScale ?? this.textScale,
+    swipeNavigation: swipeNavigation ?? this.swipeNavigation,
     hiddenHomeSections: hiddenHomeSections ?? this.hiddenHomeSections,
     moduleOrder: moduleOrder ?? this.moduleOrder,
     hiddenModules: hiddenModules ?? this.hiddenModules,
@@ -75,7 +94,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
     final languageCode = preferences.getString(_localeKey) ?? 'fa';
     final themeIndex = preferences.getInt(_themeKey) ?? ThemeMode.system.index;
     final accentIndex =
-        preferences.getInt(_accentKey) ?? AccentChoice.emerald.index;
+        preferences.getInt(_accentKey) ?? AccentChoice.sage.index;
     final hiddenNames =
         preferences.getStringList(_hiddenSectionsKey) ?? const [];
     final savedOrder = preferences.getStringList(_moduleOrderKey) ?? const [];
@@ -105,6 +124,7 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
       themeMode: ThemeMode.values[safeThemeIndex],
       accentChoice: AccentChoice.values[safeAccentIndex],
       textScale: preferences.getDouble(_textScaleKey) ?? 1,
+      swipeNavigation: preferences.getBool('settings.swipeNavigation') ?? true,
       hiddenHomeSections: HomeEntryType.values
           .where((type) => hiddenNames.contains(type.name))
           .toSet(),
@@ -113,6 +133,12 @@ class AppSettingsNotifier extends StateNotifier<AppSettings> {
           .where((module) => hiddenModuleNames.contains(module.name))
           .toSet(),
     );
+  }
+
+  Future<void> setSwipeNavigation(bool value) async {
+    state = state.copyWith(swipeNavigation: value);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('settings.swipeNavigation', value);
   }
 
   Future<void> setLocale(Locale locale) async {

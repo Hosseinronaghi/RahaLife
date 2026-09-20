@@ -1,0 +1,49 @@
+Runtime: @php-wasm/cli 3.1.54, not a MySQL/HTTP integration run.
+No syntax errors detected in raha-v010/server/shared-hosting/config.example.php
+No syntax errors detected in raha-v010/server/tests/backup_store_test.php
+No syntax errors detected in raha-v010/server/tests/protocol_test.php
+No syntax errors detected in raha-v010/server/shared-hosting/public/accounts.php
+No syntax errors detected in raha-v010/server/shared-hosting/public/protocol.php
+No syntax errors detected in raha-v010/server/shared-hosting/public/backup_store.php
+No syntax errors detected in raha-v010/server/shared-hosting/public/index.php
+PASS independent edits with unequal scalar versions
+PASS descendant
+PASS ancestor
+PASS key order
+PASS legacy fallback
+PASS delete timestamp normalized
+PASS acknowledgement identity preserved
+PASS negative clock rejected
+PASS identical retry
+PASS change ID reuse with altered payload rejected
+PASS change ID reuse by other device rejected
+PASS object key order does not change identity
+PASS payload scalar types preserved
+PASS latest complete 0
+PASS acknowledged archive exists 0
+PASS latest complete 1
+PASS acknowledged archive exists 1
+PASS latest complete 2
+PASS acknowledged archive exists 2
+PASS latest complete 3
+PASS acknowledged archive exists 3
+PASS latest complete 4
+PASS acknowledged archive exists 4
+PASS latest complete 5
+PASS acknowledged archive exists 5
+PASS latest complete 6
+PASS acknowledged archive exists 6
+PASS latest complete 7
+PASS acknowledged archive exists 7
+PASS latest complete 8
+PASS acknowledged archive exists 8
+PASS latest complete 9
+PASS acknowledged archive exists 9
+PASS latest complete 10
+PASS acknowledged archive exists 10
+PASS latest complete 11
+PASS acknowledged archive exists 11
+PASS retention bounded
+PASS temporary files cleaned
+PASS empty rejected
+PASS failed upload preserves latest

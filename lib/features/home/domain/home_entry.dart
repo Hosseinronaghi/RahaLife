@@ -24,6 +24,7 @@ enum AffairKind {
   shopping,
   bill,
   study,
+  call,
   custom,
 }
 
@@ -50,6 +51,8 @@ class HomeEntry {
     this.calendar = 'gregorian',
     this.subtype,
     this.personId,
+    this.phone,
+    this.relationship,
     this.amount,
     this.location,
     this.address,
@@ -79,6 +82,8 @@ class HomeEntry {
       calendar: json['calendar']?.toString() ?? 'gregorian',
       subtype: json['subtype'] as String?,
       personId: json['personId'] as String?,
+      phone: json['phone'] as String?,
+      relationship: json['relationship'] as String?,
       amount: (json['amount'] as num?)?.toDouble(),
       location: json['location'] as String?,
       address: json['address'] as String?,
@@ -109,6 +114,8 @@ class HomeEntry {
       recurring ? completedDates.contains(dayKey(day)) : completed;
   final String? subtype;
   final String? personId;
+  final String? phone;
+  final String? relationship;
   final double? amount;
   final String? location;
   final String? address;
@@ -127,6 +134,8 @@ class HomeEntry {
     'calendar': calendar,
     'subtype': subtype,
     'personId': personId,
+    'phone': phone,
+    'relationship': relationship,
     'amount': amount,
     'location': location,
     'address': address,
@@ -144,6 +153,8 @@ class HomeEntry {
     String? calendar,
     String? subtype,
     String? personId,
+    String? phone,
+    String? relationship,
     double? amount,
     String? location,
     String? address,
@@ -161,6 +172,8 @@ class HomeEntry {
     calendar: calendar ?? this.calendar,
     subtype: subtype ?? this.subtype,
     personId: personId ?? this.personId,
+    phone: phone ?? this.phone,
+    relationship: relationship ?? this.relationship,
     amount: amount ?? this.amount,
     location: location ?? this.location,
     address: address ?? this.address,

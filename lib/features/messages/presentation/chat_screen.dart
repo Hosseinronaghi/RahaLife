@@ -1,3 +1,4 @@
+import '../../files/attachment_preview.dart';
 import '../../../core/persistence/attachments.dart';
 
 import 'package:flutter/material.dart';
@@ -92,7 +93,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               if (message.attachmentName != null)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 6),
-                                  child: Chip(
+                                  child: ActionChip(
+                                    onPressed: () => openAttachment(
+                                      context,
+                                      message.attachmentPath,
+                                    ),
                                     avatar: const Icon(
                                       Icons.attach_file_rounded,
                                       size: 16,

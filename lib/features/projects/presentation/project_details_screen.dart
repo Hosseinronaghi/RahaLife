@@ -1,3 +1,5 @@
+import '../../files/files_screen.dart';
+import '../../files/attachment_preview.dart';
 import '../../../core/persistence/attachments.dart';
 
 import 'package:flutter/material.dart';
@@ -354,22 +356,52 @@ class _Files extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        OutlinedButton.icon(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) =>
+                  FilesScreen(entityType: 'project', entityId: project.id),
+            ),
+          ),
+          icon: const Icon(Icons.mic),
+          label: Text(
+            Localizations.localeOf(context).languageCode == 'fa'
+                ? 'فایل‌ها و ضبط صدا'
+                : 'Files and voice recordings',
+          ),
+        ),
+
         FilledButton.icon(
           onPressed: () async {
-            final file = await AttachmentStore().pick();
-            if (file == null) return;
-            final fileSize = file['size'] as int;
-            ref
-                .read(projectsProvider.notifier)
-                .addAttachment(
-                  project.id,
-                  ProjectAttachment(
-                    id: const Uuid().v4(),
-                    name: file['name'] as String,
-                    size: fileSize,
-                    path: file['path'] as String,
+            try {
+              final file = await AttachmentStore().pick();
+              if (!context.mounted) return;
+              if (file == null) return;
+              final fileSize = file['size'] as int;
+              ref
+                  .read(projectsProvider.notifier)
+                  .addAttachment(
+                    project.id,
+                    ProjectAttachment(
+                      id: const Uuid().v4(),
+                      name: file['name'] as String,
+                      size: fileSize,
+                      path: file['path'] as String,
+                    ),
+                  );
+            } catch (_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      Localizations.localeOf(context).languageCode == 'fa'
+                          ? 'پیوست اضافه نشد؛ اندازه فایل و فضای ذخیره‌سازی را بررسی کنید.'
+                          : 'Could not attach file. Check its size and available storage.',
+                    ),
                   ),
                 );
+              }
+            }
           },
           icon: const Icon(Icons.attach_file_rounded),
           label: Text(l10n.addAttachment),
@@ -379,7 +411,7 @@ class _Files extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.insert_drive_file_rounded),
             title: Text(attachment.name),
-            onTap: () => AttachmentStore().save(attachment.path),
+            onTap: () => openAttachment(context, attachment.path),
             subtitle: Text(
               '${localizeDigits((attachment.size / 1024).ceil().toString(), Localizations.localeOf(context))} ${l10n.kilobytes}',
             ),

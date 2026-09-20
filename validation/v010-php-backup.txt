@@ -1,0 +1,28 @@
+PASS latest complete 0
+PASS acknowledged archive exists 0
+PASS latest complete 1
+PASS acknowledged archive exists 1
+PASS latest complete 2
+PASS acknowledged archive exists 2
+PASS latest complete 3
+PASS acknowledged archive exists 3
+PASS latest complete 4
+PASS acknowledged archive exists 4
+PASS latest complete 5
+PASS acknowledged archive exists 5
+PASS latest complete 6
+PASS acknowledged archive exists 6
+PASS latest complete 7
+PASS acknowledged archive exists 7
+PASS latest complete 8
+PASS acknowledged archive exists 8
+PASS latest complete 9
+PASS acknowledged archive exists 9
+PASS latest complete 10
+PASS acknowledged archive exists 10
+PASS latest complete 11
+PASS acknowledged archive exists 11
+PASS retention bounded
+PASS temporary files cleaned
+PASS empty rejected
+PASS failed upload preserves latest

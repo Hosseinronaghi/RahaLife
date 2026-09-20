@@ -1,3 +1,4 @@
+import 'birthday_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,11 +20,13 @@ Future<void> showAddEntry(
   BuildContext context,
   HomeEntryType type, {
   String? projectId,
-}) => showModalBottomSheet<void>(
-  context: context,
-  isScrollControlled: true,
-  builder: (_) => _AddEntrySheet(type: type, projectId: projectId),
-);
+}) => type == HomeEntryType.birthday
+    ? showBirthdayForm(context)
+    : showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => _AddEntrySheet(type: type, projectId: projectId),
+      );
 
 Future<void> showQuickAdd(BuildContext context) => showModalBottomSheet<void>(
   context: context,
@@ -136,6 +139,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
   final _detailsController = TextEditingController();
   final _locationController = TextEditingController();
   final _addressController = TextEditingController();
+  final _phoneController = TextEditingController();
   final _relationshipController = TextEditingController();
   DateTime _selectedDateTime = DateTime.now();
   AffairKind _affairKind = AffairKind.personal;
@@ -157,6 +161,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
     _locationController.dispose();
     _addressController.dispose();
     _relationshipController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -226,6 +231,9 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
           dateTime: _selectedDateTime,
           subtype: subtype,
           personId: _personId,
+          phone: _affairKind == AffairKind.call
+              ? _phoneController.text.trim()
+              : null,
           location: _locationController.text,
           address: _addressController.text,
           projectId: widget.projectId,
@@ -346,6 +354,32 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                     labelText: l10n.birthdayRelationship,
                     prefixIcon: const Icon(Icons.family_restroom_rounded),
                   ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (widget.type == HomeEntryType.affair &&
+                  _affairKind == AffairKind.call) ...[
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  textDirection: TextDirection.ltr,
+                  decoration: InputDecoration(
+                    labelText:
+                        Localizations.localeOf(context).languageCode == 'fa'
+                        ? 'شماره تماس (یا شماره فرد مرتبط)'
+                        : 'Phone (or linked person’s number)',
+                  ),
+                  validator: (v) {
+                    final manual = (v ?? '').trim();
+                    final person = ref
+                        .read(peopleProvider)
+                        .where((p) => p.id == _personId)
+                        .firstOrNull;
+                    return manual.isEmpty &&
+                            (person?.phone?.trim().isEmpty ?? true)
+                        ? l10n.requiredField
+                        : null;
+                  },
                 ),
                 const SizedBox(height: 12),
               ],

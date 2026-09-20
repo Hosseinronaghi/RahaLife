@@ -1,0 +1,2 @@
+python -m unittest tool/test_branding.py tool/test_legacy_recovery.py
+Ran 3 tests — OK

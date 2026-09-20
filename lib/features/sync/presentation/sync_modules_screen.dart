@@ -102,6 +102,8 @@ class SyncModulesScreen extends ConsumerWidget {
                             'finance': 'امور مالی',
                             'health': 'چرخه و دارو',
                             'bookmarks': 'نشانک‌ها',
+                            'files': 'فایل‌ها و صداها',
+                            'entertainment': 'سرگرمی',
                           }[module]!,
                           module,
                         ),

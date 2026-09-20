@@ -10,7 +10,16 @@ class WebDavBackupTarget implements BackupTarget {
     required this.profile,
     required this.credentials,
     Dio? dio,
-  }) : _dio = dio ?? Dio();
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               followRedirects: false,
+               connectTimeout: const Duration(seconds: 15),
+               receiveTimeout: const Duration(seconds: 60),
+               sendTimeout: const Duration(seconds: 60),
+             ),
+           );
 
   final SyncConnectionProfile profile;
   final Map<String, String> credentials;
@@ -74,6 +83,7 @@ class WebDavBackupTarget implements BackupTarget {
       final response = await _dio.request<Object?>(
         current,
         options: Options(
+          followRedirects: false,
           method: 'MKCOL',
           headers: _headers,
           validateStatus: (_) => true,
@@ -97,21 +107,26 @@ class WebDavBackupTarget implements BackupTarget {
       final response = await _dio.request<Object?>(
         _directoryUrl(),
         options: Options(
+          followRedirects: false,
           method: 'PROPFIND',
           headers: <String, String>{..._headers, 'Depth': '0'},
           validateStatus: (_) => true,
         ),
       );
       final status = response.statusCode ?? 0;
-      final success = status >= 200 && status < 400;
+      final success = status >= 200 && status < 300;
       return BackupTargetTestResult(
         success: success,
         message: success
             ? 'WebDAV connection is ready.'
             : 'WebDAV returned HTTP $status.',
       );
-    } catch (error) {
-      return BackupTargetTestResult(success: false, message: error.toString());
+    } catch (_) {
+      return const BackupTargetTestResult(
+        success: false,
+        message:
+            'Connection failed. Check the address, credentials and network.',
+      );
     }
   }
 
@@ -122,6 +137,7 @@ class WebDavBackupTarget implements BackupTarget {
       _urlFor('latest.rahabackup'),
       data: object.bytes,
       options: Options(
+        followRedirects: false,
         headers: <String, String>{
           ..._headers,
           Headers.contentTypeHeader: 'application/octet-stream',
@@ -145,6 +161,7 @@ class WebDavBackupTarget implements BackupTarget {
     final response = await _dio.get<List<int>>(
       _urlFor('latest.rahabackup'),
       options: Options(
+        followRedirects: false,
         headers: _headers,
         responseType: ResponseType.bytes,
         validateStatus: (_) => true,

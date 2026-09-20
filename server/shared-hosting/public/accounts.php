@@ -1,26 +1,41 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/passwords.php';
 // Included by index.php after its shared helpers have been declared.
 function accountRoute(array $config, string $path, string $method): ?string {
     $db=pdo($config);
     if ($method==='POST' && (routeEndsWith($path,'/v1/account/register') || routeEndsWith($path,'/v1/account/login'))) {
         $body=readJsonBody();
+        if(!is_string($body['username']??null) || !is_string($body['password']??null)) respond(400,['error'=>'invalid_credentials_format']);
         $username=strtolower(trim((string)($body['username']??'')));
         $password=(string)($body['password']??'');
         if(!preg_match('/^[a-z0-9_.-]{3,64}$/',$username)||strlen($password)<10||strlen($password)>512) respond(400,['error'=>'invalid_credentials_format']);
-        $key=hash('sha256',($_SERVER['REMOTE_ADDR']??'').':'.$username);
-        $q=$db->prepare('SELECT COUNT(*) FROM auth_attempts WHERE attempt_key=? AND created_at>DATE_SUB(NOW(),INTERVAL 15 MINUTE)');$q->execute([$key]);
-        if((int)$q->fetchColumn()>=10)respond(429,['error'=>'try_later']);
-        $db->prepare('INSERT INTO auth_attempts(attempt_key) VALUES(?)')->execute([$key]);
+        // Independent account and address limits also cover rotating usernames/IPs.
+        // REMOTE_ADDR is trusted; untrusted forwarded headers are deliberately ignored.
+        $address=(string)($_SERVER['REMOTE_ADDR']??'unknown');
+        $limits=[hash('sha256','pair:'.$address.':'.$username)=>10,
+                 hash('sha256','account:'.$username)=>30,
+                 hash('sha256','address:'.$address)=>60];
+        foreach($limits as $key=>$limit) {
+            $q=$db->prepare('SELECT COUNT(*) FROM auth_attempts WHERE attempt_key=? AND created_at>DATE_SUB(NOW(),INTERVAL 15 MINUTE)');$q->execute([$key]);
+            if((int)$q->fetchColumn()>=$limit)respond(429,['error'=>'try_later']);
+        }
+        foreach($limits as $key=>$limit) {
+            $db->prepare('INSERT INTO auth_attempts(attempt_key) VALUES(?)')->execute([$key]);
+        }
+        $db->exec('DELETE FROM auth_attempts WHERE created_at<DATE_SUB(NOW(),INTERVAL 1 DAY) LIMIT 500');
         if(routeEndsWith($path,'/v1/account/register')){
             $code=(string)(getenv('RAHA_REGISTRATION_CODE')?:($config['registration_code']??''));
             if($code==='' || !hash_equals($code,(string)($body['registrationCode']??'')))respond(403,['error'=>'registration_invitation_required']);
             $id=bin2hex(random_bytes(16));
-            try{$db->prepare('INSERT INTO raha_users(id,username,password_hash) VALUES(?,?,?)')->execute([$id,$username,password_hash($password,PASSWORD_DEFAULT)]);}catch(PDOException $e){respond(409,['error'=>'username_unavailable']);}
+            try{$db->prepare('INSERT INTO raha_users(id,username,password_hash) VALUES(?,?,?)')->execute([$id,$username,rahaPasswordHash($password)]);}catch(PDOException $e){respond(409,['error'=>'username_unavailable']);}
         }else{
             $q=$db->prepare('SELECT id,password_hash FROM raha_users WHERE username=?');$q->execute([$username]);$user=$q->fetch();
-            if(!$user || !password_verify($password,$user['password_hash']))respond(401,['error'=>'invalid_credentials']);
+            if(!$user || !rahaPasswordVerify($password,$user['password_hash']))respond(401,['error'=>'invalid_credentials']);
             $id=$user['id'];
+            if(rahaPasswordCanUpgrade($password,$user['password_hash'])) {
+                $db->prepare('UPDATE raha_users SET password_hash=? WHERE id=? AND password_hash=?')->execute([rahaPasswordHash($password),$id,$user['password_hash']]);
+            }
         }
         $token=bin2hex(random_bytes(32));
         $db->prepare('INSERT INTO raha_sessions(token_hash,account_id,expires_at) VALUES(?,?,DATE_ADD(NOW(),INTERVAL 30 DAY))')->execute([hash('sha256',$token),$id]);

@@ -1,0 +1,13 @@
+PASS independent edits with unequal scalar versions
+PASS descendant
+PASS ancestor
+PASS key order
+PASS legacy fallback
+PASS delete timestamp normalized
+PASS acknowledgement identity preserved
+PASS negative clock rejected
+PASS identical retry
+PASS change ID reuse with altered payload rejected
+PASS change ID reuse by other device rejected
+PASS object key order does not change identity
+PASS payload scalar types preserved

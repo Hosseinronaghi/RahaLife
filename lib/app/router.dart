@@ -1,3 +1,5 @@
+import '../features/entertainment/entertainment_screen.dart';
+import '../features/files/files_screen.dart';
 import '../features/sync/presentation/sync_modules_screen.dart';
 import '../features/federation/federation_screen.dart';
 import '../features/workspace/installments_screen.dart';
@@ -114,6 +116,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, state) =>
                 ProjectDetailsScreen(projectId: state.pathParameters['id']!),
           ),
+          GoRoute(
+            path: '/entertainment',
+            builder: (_, _) => const EntertainmentScreen(),
+          ),
+          GoRoute(path: '/files', builder: (_, _) => const FilesScreen()),
           GoRoute(path: '/notes', builder: (_, _) => const NotesScreen()),
           GoRoute(
             path: '/notes/edit',

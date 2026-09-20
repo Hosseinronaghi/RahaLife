@@ -9,7 +9,16 @@ import 'backup_target.dart';
 
 class S3BackupTarget implements BackupTarget {
   S3BackupTarget({required this.profile, required this.credentials, Dio? dio})
-    : _dio = dio ?? Dio();
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              followRedirects: false,
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 60),
+              sendTimeout: const Duration(seconds: 60),
+            ),
+          );
 
   final SyncConnectionProfile profile;
   final Map<String, String> credentials;
@@ -169,6 +178,7 @@ class S3BackupTarget implements BackupTarget {
       uri.toString(),
       data: body,
       options: Options(
+        followRedirects: false,
         method: method,
         headers: headers,
         responseType: ResponseType.bytes,
@@ -204,8 +214,12 @@ class S3BackupTarget implements BackupTarget {
         success: true,
         message: 'S3-compatible storage is ready.',
       );
-    } catch (error) {
-      return BackupTargetTestResult(success: false, message: error.toString());
+    } catch (_) {
+      return const BackupTargetTestResult(
+        success: false,
+        message:
+            'Connection failed. Check the address, credentials and network.',
+      );
     }
   }
 

@@ -36,9 +36,15 @@ for plist_path in (Path("ios/Runner/Info.plist"), Path("macos/Runner/Info.plist"
     with plist_path.open("rb") as source:
         values = plistlib.load(source)
     values["NSLocalNetworkUsageDescription"] = LOCAL_NETWORK_USAGE
+    values["NSMicrophoneUsageDescription"] = "Raha Life records voice attachments only when you choose to start recording."
     with plist_path.open("wb") as destination:
         plistlib.dump(values, destination, sort_keys=False)
 
 print(
     f"Configured iOS deployment target {IOS_TARGET} and Apple local-network privacy text"
 )
+
+for entitlement in Path('macos/Runner').glob('*.entitlements'):
+    values=plistlib.loads(entitlement.read_bytes())
+    values['com.apple.security.device.audio-input']=True
+    entitlement.write_bytes(plistlib.dumps(values))

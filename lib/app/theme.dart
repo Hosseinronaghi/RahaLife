@@ -30,7 +30,7 @@ ThemeData _buildTheme({
   final colorScheme = ColorScheme.fromSeed(
     seedColor: seedColor,
     brightness: brightness,
-    surface: isDark ? const Color(0xFF12131B) : const Color(0xFFF6F7FB),
+    surface: isDark ? const Color(0xFF191D1C) : const Color(0xFFF7F8F6),
   );
   final base = ThemeData(
     useMaterial3: true,

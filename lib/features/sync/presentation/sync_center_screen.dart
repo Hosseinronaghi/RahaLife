@@ -12,7 +12,8 @@ import 'sync_controller.dart';
 import 'widgets/sync_connection_sheet.dart';
 
 class SyncCenterScreen extends ConsumerWidget {
-  const SyncCenterScreen({super.key});
+  const SyncCenterScreen({this.advanced = false, super.key});
+  final bool advanced;
 
   bool _fa(BuildContext context) =>
       Localizations.localeOf(context).languageCode == 'fa';
@@ -281,8 +282,242 @@ class SyncCenterScreen extends ConsumerWidget {
     );
   }
 
+  Widget _simple(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(syncSettingsProvider);
+    final notifier = ref.read(syncSettingsProvider.notifier);
+    final busy = state.busyConnectionId != null;
+    final syncReady = state.connections.any(_canRecordSync);
+    final backupReady = state.connections.any(_canBackup);
+    String stamp(DateTime? date) => date == null
+        ? _t(context, 'هنوز انجام نشده', 'Not yet completed')
+        : '${compactDualDate(date.toLocal(), Localizations.localeOf(context))} — ${TimeOfDay.fromDateTime(date.toLocal()).format(context)}';
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _t(context, 'همگام‌سازی و پشتیبان‌گیری', 'Sync and backup'),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            _t(
+              context,
+              'همگام‌سازی تغییرات را بین دستگاه‌ها منتقل می‌کند. پشتیبان‌گیری نسخه‌ای برای بازیابی اطلاعات نگه می‌دارد.',
+              'Sync transfers changes between devices. Backups keep a copy for recovery.',
+            ),
+          ),
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: _t(
+              context,
+              'همگام‌سازی بین دستگاه‌ها',
+              'Sync between devices',
+            ),
+            icon: Icons.sync,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  !syncReady
+                      ? _t(
+                          context,
+                          'هنوز اتصالی تنظیم نشده است.',
+                          'No connection configured yet.',
+                        )
+                      : busy
+                      ? _t(context, 'در حال انجام…', 'Working…')
+                      : state.conflicts > 0
+                      ? _t(
+                          context,
+                          'بعضی تغییرات نیاز به بررسی دارند.',
+                          'Some changes need review.',
+                        )
+                      : state.lastActionSucceeded == false
+                      ? _t(
+                          context,
+                          'آخرین عملیات موفق نبود؛ اتصال را بررسی کنید.',
+                          'The last operation failed. Check the connection.',
+                        )
+                      : _t(context, 'آخرین همگام‌سازی: ', 'Last sync: ') +
+                            stamp(state.lastSyncAt),
+                ),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    _t(context, 'همگام‌سازی خودکار', 'Automatic sync'),
+                  ),
+                  subtitle: Text(
+                    _t(
+                      context,
+                      'هنگام بازکردن یا بازگشت به برنامه',
+                      'When opening or returning to the app',
+                    ),
+                  ),
+                  value: syncReady && state.autoSync,
+                  onChanged: syncReady && !busy ? notifier.setAutoSync : null,
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: !syncReady || busy
+                      ? null
+                      : () async {
+                          final ok = await notifier.syncAllEnabled();
+                          if (!context.mounted) return;
+                          await _showResult(
+                            context,
+                            success: ok,
+                            successFa: 'عملیات همگام‌سازی انجام شد.',
+                            successEn: 'Sync completed.',
+                            failureDetails: ref
+                                .read(syncSettingsProvider)
+                                .lastActionMessage,
+                          );
+                        },
+                  icon: const Icon(Icons.sync),
+                  label: Text(_t(context, 'همگام‌سازی الآن', 'Sync now')),
+                ),
+                if (state.conflicts > 0)
+                  TextButton(
+                    onPressed: () => showSyncConflictsSheet(context, ref),
+                    child: Text(
+                      _t(context, 'بررسی تعارض‌ها', 'Review conflicts'),
+                    ),
+                  ),
+                if (syncReady)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      _t(
+                        context,
+                        'در اتصال فعلی، مدیر سرور می‌تواند داده‌های همگام‌شده را بخواند. فقط بخش‌های موردنظر خود را فعال کنید.',
+                        'The current server connection allows the server operator to read synced data. Enable only the modules you intend to sync.',
+                      ),
+                    ),
+                  ),
+                TextButton(
+                  onPressed: () => context.push('/sync/modules'),
+                  child: Text(
+                    _t(
+                      context,
+                      'انتخاب اطلاعات برای همگام‌سازی',
+                      'Choose data to sync',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: _t(context, 'پشتیبان‌گیری از اطلاعات', 'Back up your data'),
+            icon: Icons.backup_outlined,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  _t(context, 'آخرین پشتیبان: ', 'Last backup: ') +
+                      stamp(state.lastBackupAt),
+                ),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    _t(context, 'پشتیبان‌گیری خودکار', 'Automatic backup'),
+                  ),
+                  subtitle: Text(
+                    _t(
+                      context,
+                      'در زمان فعالیت برنامه و با مقصد تنظیم‌شده',
+                      'While the app is active, using a configured destination',
+                    ),
+                  ),
+                  value: backupReady && state.autoBackup,
+                  onChanged: backupReady && !busy
+                      ? notifier.setAutoBackup
+                      : null,
+                ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: busy
+                          ? null
+                          : () => _exportBackup(context, ref),
+                      icon: const Icon(Icons.save_alt),
+                      label: Text(
+                        _t(context, 'ذخیره فایل پشتیبان', 'Save backup file'),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: busy
+                          ? null
+                          : () => _importBackup(context, ref),
+                      icon: const Icon(Icons.restore),
+                      label: Text(
+                        _t(context, 'بازیابی اطلاعات', 'Restore data'),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: busy
+                          ? null
+                          : () => _showRecoveryKey(context, ref),
+                      child: Text(
+                        _t(
+                          context,
+                          'نگهداری کلید بازیابی',
+                          'Save recovery key',
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: busy
+                          ? null
+                          : () => _importRecoveryKey(context, ref),
+                      child: Text(
+                        _t(
+                          context,
+                          'واردکردن کلید بازیابی',
+                          'Import recovery key',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          ListTile(
+            leading: const Icon(Icons.settings_outlined),
+            title: Text(
+              _t(
+                context,
+                'اتصال‌ها و تنظیمات پیشرفته',
+                'Connections and advanced settings',
+              ),
+            ),
+            subtitle: Text(
+              _t(
+                context,
+                'فضای شخصی، شبکه و جزئیات عملیات',
+                'Personal storage, network and operation details',
+              ),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const SyncCenterScreen(advanced: true),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (!advanced) return _simple(context, ref);
     final state = ref.watch(syncSettingsProvider);
     final notifier = ref.read(syncSettingsProvider.notifier);
     final locale = Localizations.localeOf(context);

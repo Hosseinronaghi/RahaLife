@@ -1,3 +1,7 @@
+## 0.10.0-dev.2+18 (review)
+
+Managed media and recording; entertainment; grouped daily agenda; dose history and snooze; simpler sync/backup UI; localized catalog; credential hashing and error hardening. See docs/v010/STATUS_FA.md for validation and unfinished work.
+
 # Changelog
 
 ## 0.8.0+15 — review candidate

@@ -1,3 +1,5 @@
+import '../../home/presentation/entry_details_sheet.dart';
+import '../../home/presentation/home_controller.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -196,6 +198,24 @@ class _TodayState extends ConsumerState<TodayScreen> {
               e.at.day == date.day,
         )
         .toList();
+    const sectionNames = {
+      'birthday': ['تولدهای این روز', 'Birthdays'],
+      'appointment': ['قرارها', 'Appointments'],
+      'call': ['تماس‌ها', 'Calls'],
+      'shopping': ['خریدها', 'Shopping'],
+      'medication': ['داروها', 'Medication'],
+      'finance': ['پرداخت‌ها', 'Payments'],
+      'entertainment': ['سرگرمی', 'Entertainment'],
+      'affair': ['کارها و پیگیری‌ها', 'Tasks and follow-ups'],
+      'habit': ['عادت‌ها', 'Habits'],
+      'note': ['یادداشت‌ها', 'Notes'],
+    };
+    final order = sectionNames.keys.toList();
+    items.sort((a, b) {
+      final x = order.indexOf(a.type), y = order.indexOf(b.type);
+      final group = (x < 0 ? 99 : x).compareTo(y < 0 ? 99 : y);
+      return group == 0 ? a.at.compareTo(b.at) : group;
+    });
     final done = items.where((e) => e.done).length;
     final sync = ref.watch(syncSettingsProvider);
     final settings = ref.watch(appSettingsProvider);
@@ -260,22 +280,25 @@ class _TodayState extends ConsumerState<TodayScreen> {
                   primaryDateLabel(date, locale),
                   style: Theme.of(c).textTheme.labelLarge,
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  tr(c, 'برای امروزت جا باز کن.', 'Make room for your day.'),
-                  style: Theme.of(c).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+                if (MediaQuery.sizeOf(c).width >= 550) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    tr(c, 'برای امروزت جا باز کن.', 'Make room for your day.'),
+                    style: Theme.of(c).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  tr(
-                    c,
-                    'کارها، قرارها و چیزهایی که برایت مهم‌اند؛ یک‌جا.',
-                    'Tasks, plans and the things that matter. All together.',
+                  const SizedBox(height: 10),
+                  Text(
+                    tr(
+                      c,
+                      'کارها، قرارها و چیزهایی که برایت مهم‌اند؛ یک‌جا.',
+                      'Tasks, plans and the things that matter. All together.',
+                    ),
                   ),
-                ),
-                const SizedBox(height: 22),
+                  const SizedBox(height: 22),
+                ],
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -309,6 +332,136 @@ class _TodayState extends ConsumerState<TodayScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 20),
+          Text(
+            tr(c, 'مسیر روز', 'Your day'),
+            style: Theme.of(c).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 14),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var i = 0; i < 7; i++)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: ChoiceChip(
+                      selected: offset == i,
+                      onSelected: (_) => setState(() => offset = i),
+                      label: Text(
+                        i == 0
+                            ? tr(c, 'امروز', 'Today')
+                            : primaryDateLabel(
+                                DateTime(now.year, now.month, now.day + i),
+                                locale,
+                              ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (schedule.isLoading)
+            const Center(child: CircularProgressIndicator())
+          else if (schedule.hasError)
+            Text(
+              tr(
+                c,
+                'برنامه روز خوانده نشد؛ دوباره تلاش کنید.',
+                'Could not load the daily agenda. Please retry.',
+              ),
+            )
+          else if (items.isEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.wb_sunny_outlined,
+                      size: 40,
+                      color: scheme.primary,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      tr(
+                        c,
+                        'این روز هنوز برنامه‌ای ندارد',
+                        'Nothing planned for this day',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => showQuickAdd(c),
+                      child: Text(l10n.addNewItem),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            for (var itemIndex = 0; itemIndex < items.length; itemIndex++)
+              Builder(
+                builder: (c) {
+                  final item = items[itemIndex];
+                  final section =
+                      sectionNames[item.type] ??
+                      ['سایر موعدها', 'Other events'];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (itemIndex == 0 ||
+                          items[itemIndex - 1].type != item.type)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 18, 8, 10),
+                          child: Text(
+                            tr(c, section[0], section[1]),
+                            style: Theme.of(c).textTheme.titleMedium,
+                          ),
+                        ),
+                      Card(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 10,
+                          ),
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: scheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              item.done ? Icons.check : Icons.schedule,
+                            ),
+                          ),
+                          title: Text(item.title),
+                          subtitle: Text(localizedTime(item.at, locale)),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            if (item.entityType == 'home_entry') {
+                              final entry = ref
+                                  .read(effectiveHomeEntriesProvider)
+                                  .where((e) => e.id == item.entityId)
+                                  .firstOrNull;
+                              if (entry != null) {
+                                showEntryDetails(
+                                  c,
+                                  entry,
+                                  occurrenceDate: item.at,
+                                );
+                                return;
+                              }
+                            }
+                            c.push(item.route);
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
           const SizedBox(height: 28),
           Row(
             children: [
@@ -390,89 +543,6 @@ class _TodayState extends ConsumerState<TodayScreen> {
             },
           ),
           const SizedBox(height: 28),
-          Text(
-            tr(c, 'مسیر روز', 'Your day'),
-            style: Theme.of(c).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 14),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (var i = 0; i < 7; i++)
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 8),
-                    child: ChoiceChip(
-                      selected: offset == i,
-                      onSelected: (_) => setState(() => offset = i),
-                      label: Text(
-                        i == 0
-                            ? tr(c, 'امروز', 'Today')
-                            : primaryDateLabel(
-                                DateTime(now.year, now.month, now.day + i),
-                                locale,
-                              ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (schedule.isLoading)
-            const Center(child: CircularProgressIndicator())
-          else if (schedule.hasError)
-            Text(schedule.error.toString())
-          else if (items.isEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.wb_sunny_outlined,
-                      size: 40,
-                      color: scheme.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      tr(
-                        c,
-                        'این روز هنوز برنامه‌ای ندارد',
-                        'Nothing planned for this day',
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => showQuickAdd(c),
-                      child: Text(l10n.addNewItem),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            for (final item in items)
-              Card(
-                margin: const EdgeInsets.only(bottom: 10),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 10,
-                  ),
-                  leading: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: scheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(item.done ? Icons.check : Icons.schedule),
-                  ),
-                  title: Text(item.title),
-                  subtitle: Text(localizedTime(item.at, locale)),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => c.push(item.route),
-                ),
-              ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,

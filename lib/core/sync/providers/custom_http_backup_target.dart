@@ -9,7 +9,16 @@ class CustomHttpBackupTarget implements BackupTarget {
     required this.profile,
     required this.credentials,
     Dio? dio,
-  }) : _dio = dio ?? Dio();
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               followRedirects: false,
+               connectTimeout: const Duration(seconds: 15),
+               receiveTimeout: const Duration(seconds: 60),
+               sendTimeout: const Duration(seconds: 60),
+             ),
+           );
 
   final SyncConnectionProfile profile;
   final Map<String, String> credentials;
@@ -50,7 +59,11 @@ class CustomHttpBackupTarget implements BackupTarget {
     try {
       final response = await _dio.get<Object?>(
         '$_baseUrl/health',
-        options: Options(headers: _headers, validateStatus: (_) => true),
+        options: Options(
+          followRedirects: false,
+          headers: _headers,
+          validateStatus: (_) => true,
+        ),
       );
       final status = response.statusCode ?? 0;
       return BackupTargetTestResult(
@@ -59,8 +72,12 @@ class CustomHttpBackupTarget implements BackupTarget {
             ? 'Server connection is ready.'
             : 'Server returned HTTP $status.',
       );
-    } catch (error) {
-      return BackupTargetTestResult(success: false, message: error.toString());
+    } catch (_) {
+      return const BackupTargetTestResult(
+        success: false,
+        message:
+            'Connection failed. Check the address, credentials and network.',
+      );
     }
   }
 
@@ -70,6 +87,7 @@ class CustomHttpBackupTarget implements BackupTarget {
       '$_baseUrl/v1/backup/latest',
       data: object.bytes,
       options: Options(
+        followRedirects: false,
         headers: <String, String>{
           ..._headers,
           'X-Raha-Backup-Name': object.fileName,
@@ -94,6 +112,7 @@ class CustomHttpBackupTarget implements BackupTarget {
     final response = await _dio.get<List<int>>(
       '$_baseUrl/v1/backup/latest',
       options: Options(
+        followRedirects: false,
         headers: _headers,
         responseType: ResponseType.bytes,
         validateStatus: (_) => true,

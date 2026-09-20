@@ -1,5 +1,11 @@
 <?php
 declare(strict_types=1);
+// Do not expose SQL statements, paths or credentials in public error responses.
+ini_set('display_errors', '0');
+set_exception_handler(static function (Throwable $error): void {
+    error_log('Raha API unhandled exception: ' . get_class($error));
+    respond(500, ['ok'=>false, 'error'=>'internal_error']);
+});
 
 function loadConfig(): array
 {
@@ -28,6 +34,7 @@ header('Access-Control-Allow-Origin: ' . ($config['cors_origin'] ?? '*'));
 header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Raha-Client, X-Raha-Backup-Name');
 header('Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS');
 header('Cache-Control: no-store');
+header('X-Content-Type-Options: nosniff');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -54,6 +61,7 @@ $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 require __DIR__ . '/accounts.php';
 require __DIR__ . '/protocol.php';
+require __DIR__ . '/backup_store.php';
 $expectedToken = (string)($config['api_token'] ?? '');
 $scopeId = ($expectedToken !== '' && $expectedToken !== 'CHANGE_TO_A_LONG_RANDOM_TOKEN' && hash_equals($expectedToken,bearerToken())) ? 'personal' : accountRoute($config,$path,$method);
 if(!$scopeId)respond(401,['error'=>'unauthorized']);
@@ -108,21 +116,6 @@ function readJsonBody(): array
 }
 
 
-function pruneBackupArchives(string $storageDir, int $keep): void
-{
-    $keep = max(1, $keep);
-    $files = glob($storageDir . '/Raha-Life-Backup-*.rahabackup') ?: [];
-    usort(
-        $files,
-        static fn(string $a, string $b): int => (filemtime($b) ?: 0) <=> (filemtime($a) ?: 0)
-    );
-    foreach (array_slice($files, $keep) as $file) {
-        if (is_file($file)) {
-            @unlink($file);
-        }
-    }
-}
-
 if (routeEndsWith($path, '/health') && $method === 'GET') {
     $db = pdo($config);
     $db->query('SELECT 1');
@@ -145,27 +138,17 @@ if (routeEndsWith($path, '/v1/backup/latest') && $method === 'PUT') {
         respond(413, ['ok' => false, 'error' => 'backup_too_large']);
     }
     $raw = file_get_contents('php://input',false,null,0,$maxBytes+1);
-    if ($raw === false) {
+    if ($raw === false || $raw === '') {
         respond(400, ['ok' => false, 'error' => 'empty_backup']);
     }
     if (strlen($raw) > $maxBytes) {
         respond(413, ['ok' => false, 'error' => 'backup_too_large']);
     }
-    $requestedName = basename((string) ($_SERVER['HTTP_X_RAHA_BACKUP_NAME'] ?? ''));
-    $safeName = preg_match('/^[A-Za-z0-9._-]+\.rahabackup$/', $requestedName)
-        ? $requestedName
-        : 'Raha-Life-Backup-' . gmdate('Ymd\THis\Z') . '.rahabackup';
-    $latest = $storageDir . '/latest.rahabackup';
-    $archive = $storageDir . '/' . $safeName;
-    $temp=tempnam($storageDir,'upload-');
-    if ($temp===false || file_put_contents($archive, $raw, LOCK_EX) === false ||
-        file_put_contents($temp,$raw,LOCK_EX)===false || !rename($temp,$latest)) {
+    try {
+        $safeName = writeBackup($storageDir, $raw, (int)($config['keep_backup_versions'] ?? 7));
+    } catch (Throwable $error) {
         respond(500, ['ok' => false, 'error' => 'backup_write_failed']);
     }
-    pruneBackupArchives(
-        $storageDir,
-        (int) ($config['keep_backup_versions'] ?? 7)
-    );
     respond(200, ['ok' => true, 'fileName' => $safeName, 'bytes' => strlen($raw)]);
 }
 
@@ -229,7 +212,7 @@ if (routeEndsWith($path, '/v1/sync/push') && $method === 'POST') {
     if (count($rawChanges)>100) respond(413,['error'=>'batch_too_large']);
     $db = pdo($config);
     $selectChange = $db->prepare(
-        'SELECT cursor_id FROM sync_changes WHERE change_id = ? AND owner_id = ? LIMIT 1'
+        'SELECT * FROM sync_changes WHERE change_id = ? AND owner_id = ? LIMIT 1'
     );
     $selectEntity = $db->prepare(
         'SELECT entity_type, entity_id, operation, version, updated_at_utc, device_id, deleted_at_utc, payload_json, clock_json
@@ -258,8 +241,13 @@ if (routeEndsWith($path, '/v1/sync/push') && $method === 'POST') {
             }
             $change = normalizeChange($rawChange, $deviceId);
             $selectChange->execute([$change['changeId'],$scopeId]);
-            if ($selectChange->fetch()) {
-                // Network retry of a change that was already committed.
+            $storedChange = $selectChange->fetch();
+            if ($storedChange) {
+                if (!sameChange(rowToEnvelope($storedChange), $change)) {
+                    $db->rollBack();
+                    respond(409, ['ok'=>false, 'error'=>'change_id_reused']);
+                }
+                // Only an identical retry can acknowledge a committed change.
                 $accepted[] = $change['changeId'];
                 continue;
             }

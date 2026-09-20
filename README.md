@@ -1,3 +1,5 @@
+> **۰٫۱۰٫۰-dev.2+۱۸ — نسخه بررسی.** تحلیل Flutter بدون ایراد، ۹۶ تست موفق و بیلد وب ساخته شده‌اند. تمام درخواست‌ها هنوز تکمیل نشده‌اند؛ وضعیت معتبر در [گزارش ۰٫۱۰](docs/v010/STATUS_FA.md) است. مطالب نسخه‌های قبلی پایین این صفحه تاریخی‌اند.
+
 # Raha Life 0.9.0 — review build
 
 Start with [START_HERE_FA.txt](START_HERE_FA.txt) and [RELEASE_0.9_FA.md](RELEASE_0.9_FA.md). This is not a claim that all requested features or native release validation are complete.

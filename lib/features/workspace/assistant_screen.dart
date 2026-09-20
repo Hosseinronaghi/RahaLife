@@ -24,7 +24,7 @@ class AssistantScreen extends ConsumerStatefulWidget {
 class _AssistantState extends ConsumerState<AssistantScreen> {
   final prompt = TextEditingController();
   String answer = '', error = '';
-  bool busy = false, applied = false;
+  bool busy = false, applied = false, applying = false;
   List<Map<String, Object?>> proposals = [];
   @override
   void dispose() {
@@ -33,7 +33,7 @@ class _AssistantState extends ConsumerState<AssistantScreen> {
   }
 
   Future<void> ask() async {
-    if (prompt.text.trim().isEmpty) return;
+    if (busy || applying || prompt.text.trim().isEmpty) return;
     setState(() {
       busy = true;
       error = '';
@@ -52,7 +52,11 @@ class _AssistantState extends ConsumerState<AssistantScreen> {
       if (key == null || key.isEmpty) {
         throw StateError('Add your API key in settings.');
       }
-      final model = settings.getString('ai.model') ?? 'gpt-4.1-mini';
+      final model =
+          settings.getString('ai.model.$kind') ??
+          settings.getString('ai.model') ??
+          '';
+      if (model.isEmpty) throw StateError('Choose a model in settings.');
       const system =
           'You are a personal organizer. Reply in the user language. Do not prescribe medication or make financial transactions. For explicitly requested task creation, return a JSON object with answer and tasks (maximum 10), each with title and dateTime in ISO 8601. Never propose deletion or modification of existing records. Otherwise respond with plain text.';
       String result;
@@ -65,7 +69,10 @@ class _AssistantState extends ConsumerState<AssistantScreen> {
               ),
             ).post<Map<String, dynamic>>(
               'https://generativelanguage.googleapis.com/v1beta/models/${Uri.encodeComponent(model)}:generateContent',
-              options: Options(headers: {'x-goog-api-key': key}),
+              options: Options(
+                followRedirects: false,
+                headers: {'x-goog-api-key': key},
+              ),
               data: {
                 'system_instruction': {
                   'parts': [
@@ -91,7 +98,9 @@ class _AssistantState extends ConsumerState<AssistantScreen> {
       } else {
         final base = kind == 'openAi'
             ? 'https://api.openai.com/v1'
-            : settings.getString('ai.baseUrl') ?? '';
+            : settings.getString('ai.baseUrl.$kind') ??
+                  settings.getString('ai.baseUrl') ??
+                  '';
         final uri = Uri.tryParse(base);
         if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
           throw StateError('AI requires a valid HTTPS endpoint.');
@@ -100,6 +109,7 @@ class _AssistantState extends ConsumerState<AssistantScreen> {
           apiKey: key,
           model: model,
           baseUrl: base,
+          providerType: AiProviderType.values.byName(kind),
         ).generate(AiRequest(prompt: prompt.text.trim(), systemPrompt: system));
         result = response.text;
       }
@@ -127,11 +137,15 @@ class _AssistantState extends ConsumerState<AssistantScreen> {
         answer = result;
       }
       if (mounted) setState(() => busy = false);
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         setState(() {
           busy = false;
-          error = e.toString();
+          error = tr(
+            context,
+            'ارتباط با دستیار ناموفق بود؛ آدرس سرویس، نام مدل، کلید و اتصال اینترنت را بررسی کنید.',
+            'Assistant request failed. Check the endpoint, model, API key and connection.',
+          );
         });
       }
     }
@@ -174,7 +188,7 @@ class _AssistantState extends ConsumerState<AssistantScreen> {
         ),
         const SizedBox(height: 12),
         FilledButton.icon(
-          onPressed: busy ? null : ask,
+          onPressed: busy || applying ? null : ask,
           icon: Icon(busy ? Icons.hourglass_top : Icons.auto_awesome),
           label: Text(tr(c, 'ارسال درخواست', 'Send prompt')),
         ),
@@ -202,23 +216,39 @@ class _AssistantState extends ConsumerState<AssistantScreen> {
           ),
         if (proposals.isNotEmpty)
           FilledButton(
-            onPressed: applied
+            onPressed: applied || applying || busy
                 ? null
                 : () async {
-                    final repo = DriftEntityRepository();
-                    await repo.db.transaction(() async {
-                      for (final e in proposals) {
-                        await repo.upsert('home_entry', {
-                          'id': const Uuid().v4(),
-                          'type': 'affair',
-                          'title': e['title'],
-                          'dateTime': e['dateTime'],
-                          'completed': false,
-                        });
+                    if (applied || applying || busy) return;
+                    setState(() => applying = true);
+                    try {
+                      final repo = DriftEntityRepository();
+                      await repo.db.transaction(() async {
+                        for (final e in proposals) {
+                          await repo.upsert('home_entry', {
+                            'id': const Uuid().v4(),
+                            'type': 'affair',
+                            'title': e['title'],
+                            'dateTime': e['dateTime'],
+                            'completed': false,
+                          });
+                        }
+                      });
+                      invalidateSyncedFeatureProviders(ref);
+                      if (mounted) setState(() => applied = true);
+                    } catch (_) {
+                      if (mounted) {
+                        setState(
+                          () => error = tr(
+                            c,
+                            'ذخیره برنامه‌ها انجام نشد. دوباره تلاش کنید.',
+                            'Could not save plans. Please retry.',
+                          ),
+                        );
                       }
-                    });
-                    invalidateSyncedFeatureProviders(ref);
-                    if (mounted) setState(() => applied = true);
+                    } finally {
+                      if (mounted) setState(() => applying = false);
+                    }
                   },
             child: Text(
               applied

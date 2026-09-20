@@ -1,4 +1,11 @@
-enum AiProviderType { rahaFree, openAi, gemini, customOpenAiCompatible }
+enum AiProviderType {
+  rahaFree,
+  openAi,
+  gemini,
+  customOpenAiCompatible,
+  qwen,
+  zai,
+}
 
 class AiRequest {
   const AiRequest({required this.prompt, this.systemPrompt, this.jsonSchema});

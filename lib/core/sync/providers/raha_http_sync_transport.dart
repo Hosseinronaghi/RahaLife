@@ -15,6 +15,7 @@ class RahaHttpSyncTransport implements SyncTransport {
            dio ??
            Dio(
              BaseOptions(
+               followRedirects: false,
                connectTimeout: const Duration(seconds: 15),
                receiveTimeout: const Duration(seconds: 45),
                sendTimeout: const Duration(seconds: 45),
@@ -29,7 +30,12 @@ class RahaHttpSyncTransport implements SyncTransport {
   static String _validatedBaseUrl(String raw, bool allowInsecureHttp) {
     final value = raw.trim().replaceAll(RegExp(r'/+$'), '');
     final uri = Uri.tryParse(value);
-    if (uri == null || uri.host.isEmpty || !uri.hasScheme) {
+    if (uri == null ||
+        uri.host.isEmpty ||
+        !uri.hasScheme ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasQuery ||
+        uri.hasFragment) {
       throw const FormatException('A valid Raha Sync Server URL is required.');
     }
     final scheme = uri.scheme.toLowerCase();
@@ -54,7 +60,7 @@ class RahaHttpSyncTransport implements SyncTransport {
     }
     final result = await _dio.get<Map<String, dynamic>>(
       '$_baseUrl/health',
-      options: Options(headers: _headers),
+      options: Options(followRedirects: false, headers: _headers),
     );
     if ((result.data?['protocolVersion'] as num? ?? 0) < 3) {
       throw StateError(
@@ -77,7 +83,7 @@ class RahaHttpSyncTransport implements SyncTransport {
         if (entityTypes != null) 'types': entityTypes!.join(','),
         if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
       },
-      options: Options(headers: _headers),
+      options: Options(followRedirects: false, headers: _headers),
     );
     final data = response.data;
     if (data is! Map ||
@@ -115,7 +121,7 @@ class RahaHttpSyncTransport implements SyncTransport {
         'deviceId': deviceId,
         'changes': changes.map((e) => e.toJson()).toList(),
       },
-      options: Options(headers: _headers),
+      options: Options(followRedirects: false, headers: _headers),
     );
     final data = response.data;
     if (data is! Map ||

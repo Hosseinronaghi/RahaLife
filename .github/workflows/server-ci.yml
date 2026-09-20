@@ -1,5 +1,7 @@
 name: Server protocol and account tests
 on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
 env:
   CI: 'true'
   DASH__SUPPRESS_ANALYTICS: 'true'
@@ -29,7 +31,9 @@ jobs:
         with:
           php-version: '8.3'
           extensions: pdo_mysql
+      - run: php server/tests/password_test.php
       - run: php server/tests/protocol_test.php
+      - run: php server/tests/backup_store_test.php
       - name: Fresh database
         run: mysql -h 127.0.0.1 -uroot -ptest-only-password raha_test < server/shared-hosting/install.sql
       - name: Start disposable server

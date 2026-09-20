@@ -12,7 +12,7 @@ class BrandingTest(unittest.TestCase):
    plist=root/'macos/Runner/Info.plist';plist.parent.mkdir(parents=True);plist.write_bytes(plistlib.dumps({'CFBundleIdentifier':'com.raha.rahaLife','CFBundleName':'raha_life'}))
    swift=put('macos/Runner/MainFlutterWindow.swift','super.awakeFromNib()')
    for _ in range(2):subprocess.run([sys.executable,str(root/'tool/configure_branding.py')],check=True,capture_output=True)
-   self.assertIn('android:label="Raha Life"',manifest.read_text());self.assertIn('com.raha.raha_life',manifest.read_text())
+   self.assertEqual(manifest.read_text().count('android.permission.RECORD_AUDIO'),1);self.assertIn('android:label="Raha Life"',manifest.read_text());self.assertIn('com.raha.raha_life',manifest.read_text())
    self.assertEqual(plistlib.loads(plist.read_bytes())['CFBundleName'],'raha_life');self.assertEqual(plistlib.loads(plist.read_bytes())['CFBundleIdentifier'],'com.raha.rahaLife')
    self.assertEqual(swift.read_text().count('self.title'),1);self.assertIn('\\u0645',windows.read_text())
    self.assertTrue((root/'android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png').is_file())

@@ -1,3 +1,4 @@
+import '../../files/files_screen.dart';
 import '../../../core/persistence/write_status.dart';
 import 'dart:convert';
 
@@ -68,8 +69,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     super.dispose();
   }
 
-  Future<void> _save() async {
-    if (_invalidDocument || _saving) return;
+  Future<bool> _save() async {
+    if (_invalidDocument || _saving) return false;
     setState(() => _saving = true);
     final l10n = AppLocalizations.of(context);
     final saved = ref
@@ -95,6 +96,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.noteSaved)));
       }
+      return true;
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,6 +109,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           ),
         );
       }
+      return false;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -121,6 +124,26 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       appBar: AppBar(
         title: Text(_savedId == null ? l10n.newNote : l10n.editNote),
         actions: [
+          IconButton(
+            tooltip: Localizations.localeOf(context).languageCode == 'fa'
+                ? 'فایل و صدا'
+                : 'Files and voice',
+            icon: const Icon(Icons.attach_file),
+            onPressed: _saving || _invalidDocument
+                ? null
+                : () async {
+                    final saved = await _save();
+                    if (!saved || !context.mounted || _savedId == null) return;
+                    await Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => FilesScreen(
+                          entityType: 'rich_note',
+                          entityId: _savedId,
+                        ),
+                      ),
+                    );
+                  },
+          ),
           IconButton(
             tooltip: l10n.systemShare,
             onPressed: () => shareTextFromContext(

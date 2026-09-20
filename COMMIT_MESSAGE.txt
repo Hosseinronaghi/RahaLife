@@ -1,10 +1,8 @@
-feat: refresh Raha Life branding, forms and selective sync
+feat: add managed media, daily sections and simplified sync controls
 
-- Add Raha Life display assets while preserving application identifiers.
-- Fix note layout, repeat saves and popup controller lifetime.
-- Link person birthdays and add relationship presets and Jalali input.
-- Expand financial forms and cycle schedule-overlap reminders.
-- Add selective sync and durable account-scoped offline message retries.
-- Scope server change/message IDs and provide the v0.9 SQL migration.
-- Add opt-in Matrix/Mastodon previews; Matrix E2EE remains unsupported.
-- Add regression, layout, transport and branding checks.
+Add chunked attachments, voice recording, media previews and entertainment planning.
+Group daily events and track medication doses and snoozes.
+Simplify sync/backup entry points and preserve advanced connection settings.
+Refresh branding, birthday forms, provider settings and server protections.
+Validate with 96 Flutter tests, clean analysis and a release web build.
+Keep unfinished OAuth, Matrix E2EE, native validation and store readiness explicit.

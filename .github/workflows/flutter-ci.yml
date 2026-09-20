@@ -1,6 +1,7 @@
 name: Flutter CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches-ignore:
@@ -8,6 +9,9 @@ on:
       - master
     tags-ignore:
       - 'v*'
+
+permissions:
+  contents: read
 
 env:
   CI: 'true'

@@ -18,6 +18,8 @@ manifest = root/'android/app/src/main/AndroidManifest.xml'
 if manifest.exists():
     text = manifest.read_text(encoding='utf-8')
     text = re.sub(r'(<application\b[^>]*?android:label=")[^"]*', r'\g<1>Raha Life', text, count=1, flags=re.S)
+    if 'android.permission.RECORD_AUDIO' not in text:
+        text=text.replace('<application', '<uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <application',1)
     manifest.write_text(text, encoding='utf-8')
     for density, size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
         copy_icon(size, manifest.parent/f'res/mipmap-{density}/ic_launcher.png')

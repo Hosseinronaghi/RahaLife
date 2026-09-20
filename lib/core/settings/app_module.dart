@@ -16,6 +16,8 @@ enum AppModule {
   habits,
   finance,
   messages,
+  files,
+  entertainment,
 }
 
 const defaultAppModuleOrder = <AppModule>[
@@ -32,6 +34,8 @@ const defaultAppModuleOrder = <AppModule>[
   AppModule.habits,
   AppModule.finance,
   AppModule.messages,
+  AppModule.files,
+  AppModule.entertainment,
 ];
 
 String appModuleLabel(AppLocalizations l10n, AppModule module) =>
@@ -49,6 +53,9 @@ String appModuleLabel(AppLocalizations l10n, AppModule module) =>
       AppModule.habits => l10n.habits,
       AppModule.finance => l10n.finance,
       AppModule.messages => l10n.messagesTitle,
+      AppModule.entertainment =>
+        l10n.localeName.startsWith('fa') ? 'سرگرمی' : 'Entertainment',
+      AppModule.files => l10n.localeName.startsWith('fa') ? 'فایل‌ها' : 'Files',
     };
 
 String appModuleRoute(AppModule module) => switch (module) {
@@ -65,6 +72,8 @@ String appModuleRoute(AppModule module) => switch (module) {
   AppModule.habits => '/module/habit',
   AppModule.finance => '/finance',
   AppModule.messages => '/connections',
+  AppModule.files => '/files',
+  AppModule.entertainment => '/entertainment',
 };
 
 IconData appModuleIcon(AppModule module) => switch (module) {
@@ -81,6 +90,8 @@ IconData appModuleIcon(AppModule module) => switch (module) {
   AppModule.habits => Icons.auto_graph_rounded,
   AppModule.finance => Icons.account_balance_wallet_rounded,
   AppModule.messages => Icons.forum_rounded,
+  AppModule.files => Icons.folder_outlined,
+  AppModule.entertainment => Icons.movie_outlined,
 };
 
 Color appModuleColor(AppModule module) => switch (module) {
@@ -97,4 +108,6 @@ Color appModuleColor(AppModule module) => switch (module) {
   AppModule.habits => const Color(0xFF6366F1),
   AppModule.finance => const Color(0xFF10B981),
   AppModule.messages => const Color(0xFF7C3AED),
+  AppModule.files => const Color(0xFF65788A),
+  AppModule.entertainment => const Color(0xFFA66F80),
 };

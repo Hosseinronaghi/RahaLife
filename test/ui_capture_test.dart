@@ -96,11 +96,11 @@ void main() {
               locale: const Locale('fa'),
               theme: buildLightTheme(
                 locale: const Locale('fa'),
-                accent: AccentChoice.emerald,
+                accent: AccentChoice.sage,
               ),
               darkTheme: buildDarkTheme(
                 locale: const Locale('fa'),
-                accent: AccentChoice.emerald,
+                accent: AccentChoice.sage,
               ),
               themeMode: variant.endsWith('dark')
                   ? ThemeMode.dark

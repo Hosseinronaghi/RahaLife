@@ -22,6 +22,20 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
         children: [
+          SwitchListTile.adaptive(
+            title: Text(
+              settings.locale.languageCode == 'fa'
+                  ? 'جابجایی منو با سوایپ'
+                  : 'Swipe navigation',
+            ),
+            subtitle: Text(
+              settings.locale.languageCode == 'fa'
+                  ? 'روی نوار پایین به چپ یا راست بکشید.'
+                  : 'Swipe left or right on the bottom navigation bar.',
+            ),
+            value: settings.swipeNavigation,
+            onChanged: notifier.setSwipeNavigation,
+          ),
           _SettingsGroup(
             title: l10n.language,
             icon: Icons.translate_rounded,

@@ -77,3 +77,17 @@ function rowToEnvelope(array $row): array
     ];
 }
 
+
+/** JSON objects ignore key order, while scalar values retain their types. */
+function canonicalJsonValue(mixed $value): mixed {
+    if (!is_array($value)) return $value;
+    if (!array_is_list($value)) ksort($value, SORT_STRING);
+    foreach ($value as $key => $item) $value[$key] = canonicalJsonValue($item);
+    return $value;
+}
+function sameChange(array $a, array $b): bool {
+    foreach (['changeId','entityType','entityId','operation','version','updatedAtUtc','deviceId','deletedAtUtc','payload','clock'] as $key) {
+        if (canonicalJsonValue($a[$key] ?? null) !== canonicalJsonValue($b[$key] ?? null)) return false;
+    }
+    return true;
+}

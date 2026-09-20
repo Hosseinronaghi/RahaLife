@@ -408,6 +408,8 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
                         'finance': 'امور مالی',
                         'health': 'چرخه و دارو',
                         'bookmarks': 'نشانک‌ها',
+                        'files': 'فایل‌ها و صداها',
+                        'entertainment': 'سرگرمی',
                       }[module]!,
                       module,
                     ),
