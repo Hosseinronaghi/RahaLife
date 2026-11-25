@@ -1,0 +1,70 @@
+name: Verify Android upgrade on emulator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['review/v0.10.0-dev.5']
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: 'true'
+      DASH__SUPPRESS_ANALYTICS: 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: candidate
+      - uses: actions/checkout@v5
+        with:
+          ref: 6c55d62e70a539f0a43d72eb46f81059760b2d44
+          path: baseline
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+      - name: Verify source and build both versions with one test signing identity
+        run: |
+          python3 candidate/tool/check_source_integrity.py
+          for project in baseline candidate; do
+            (
+              cd "$project"
+              flutter create --no-pub --platforms=android --org com.raha --project-name raha_life .
+              python3 tool/configure_branding.py
+              python3 ../candidate/tool/configure_android_desugaring.py
+              flutter pub get
+              flutter gen-l10n
+              dart run build_runner build --delete-conflicting-outputs
+              flutter build apk --debug --target-platform android-x64
+            )
+          done
+      - name: Boot a fresh Android 35 emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-raha-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -r /dev/kvm && test -w /dev/kvm
+          sdkmanager 'emulator' 'platform-tools' 'system-images;android-35;google_apis;x86_64'
+          echo no | avdmanager create avd --force --name raha-upgrade --package 'system-images;android-35;google_apis;x86_64'
+          nohup emulator -avd raha-upgrade -no-window -no-boot-anim -no-audio -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/raha-emulator.log" 2>&1 < /dev/null &
+          timeout 180 bash -c 'adb wait-for-device; until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
+          adb shell input keyevent 82
+      - name: Install in place and verify the saved record survives
+        run: |
+          python3 candidate/tool/test_android_upgrade.py \
+            baseline/build/app/outputs/flutter-apk/app-debug.apk \
+            candidate/build/app/outputs/flutter-apk/app-debug.apk
+      - name: Show test device diagnostics
+        if: failure()
+        run: |
+          tail -100 "$RUNNER_TEMP/raha-emulator.log" || true
+          adb logcat -d -b crash -t 100 || true

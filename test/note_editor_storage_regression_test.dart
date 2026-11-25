@@ -77,4 +77,65 @@ void main() {
       expect(result.plainText, 'Existing body');
     },
   );
+  testWidgets('note details fit RTL at large text and cancel is non-destructive', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 640);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final notes = DelayedNotes()..deliver();
+    final scope = ProviderContainer(
+      overrides: [
+        notesProvider.overrideWith((ref) => notes),
+        peopleProvider.overrideWith(
+          (ref) => PeopleNotifier(persistenceEnabled: false),
+        ),
+        projectsProvider.overrideWith(
+          (ref) => ProjectsNotifier(persistenceEnabled: false),
+        ),
+      ],
+    );
+    addTearDown(scope.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: scope,
+        child: MaterialApp(
+          locale: const Locale('fa'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(1.4),
+            ),
+            child: child!,
+          ),
+          home: const NoteEditorScreen(noteId: 'existing'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final editorBefore = tester.getRect(find.byType(QuillEditor));
+    final details = find.byIcon(Icons.tune_rounded);
+    await tester.tap(details);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    final tags = find.byType(TextFormField);
+    await tester.ensureVisible(tags);
+    await tester.enterText(tags, 'آزمایشی');
+    await tester.tap(find.text('لغو'));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(QuillEditor)), editorBefore);
+    await tester.tap(find.byIcon(Icons.check_rounded));
+    await tester.pumpAndSettle();
+    expect(scope.read(notesProvider).single.tags, isEmpty);
+    expect(scope.read(notesProvider).single.plainText, 'Existing body');
+  });
+
 }
