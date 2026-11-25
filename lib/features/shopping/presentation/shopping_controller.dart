@@ -62,7 +62,7 @@ class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
       reminder: reminder,
     );
     state = [...state, list];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
     return list;
   }
 
@@ -74,7 +74,7 @@ class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
         else
           list,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void addItems(String listId, List<String> itemTitles) {
@@ -95,7 +95,7 @@ class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
         else
           list,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void toggleItem(String listId, String itemId) {
@@ -119,13 +119,13 @@ class ShoppingNotifier extends StateNotifier<List<ShoppingListData>> {
         else
           list,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void deleteList(String id) {
     state = state.where((list) => list.id != id).toList();
     unawaited(ReminderService.instance.cancel('shopping:$id'));
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 }
 

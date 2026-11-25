@@ -56,6 +56,7 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
   final _secretKey = TextEditingController();
   final _sessionToken = TextEditingController();
   final _host = TextEditingController();
+  final _hostFingerprint = TextEditingController();
   final _port = TextEditingController(text: '22');
   final _modules = defaultSyncModules.toSet();
   var _purpose = SyncTargetPurpose.backup;
@@ -94,6 +95,7 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
       _secretKey,
       _sessionToken,
       _host,
+      _hostFingerprint,
       _port,
     ]) {
       controller.dispose();
@@ -237,6 +239,19 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
         ],
       ),
       const SizedBox(height: 12),
+      _field(
+        _hostFingerprint,
+        t('اثر انگشت تأییدشدهٔ سرور SSH', 'Trusted SSH host fingerprint'),
+        hint: 'SHA256:…',
+        validator: (value) =>
+            RegExp(r'^SHA256:[A-Za-z0-9+/]{43}$').hasMatch(value?.trim() ?? '')
+            ? null
+            : t(
+                'اثر انگشت معتبر را از مدیر سرور بگیرید.',
+                'Enter a valid SHA256 fingerprint from the server administrator.',
+              ),
+      ),
+      const SizedBox(height: 12),
       _field(_username, t('نام کاربری', 'Username'), validator: _required),
       const SizedBox(height: 12),
       _field(
@@ -308,6 +323,7 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
       case SyncProviderKind.sftp:
         config.addAll(<String, String>{
           'host': _host.text.trim(),
+          'hostFingerprint': _hostFingerprint.text.trim(),
           'port': _port.text.trim(),
           'username': _username.text.trim(),
           'remotePath': _remotePath.text.trim(),

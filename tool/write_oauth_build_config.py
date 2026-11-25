@@ -1,0 +1,25 @@
+"""Write public OAuth registration IDs for a release. Never accepts app secrets."""
+import json
+import os
+from pathlib import Path
+import sys
+
+platform = sys.argv[1]
+if platform not in ('android', 'ios', 'macos', 'linux', 'windows', 'web'):
+    raise SystemExit('Unsupported platform')
+client = os.environ.get('RAHA_DROPBOX_CLIENT_ID', '').strip()
+if platform == 'web':
+    redirect = os.environ.get('RAHA_DROPBOX_WEB_REDIRECT_URI', '').strip()
+elif platform in ('linux', 'windows'):
+    redirect = 'http://127.0.0.1:43829/callback'
+else:
+    redirect = 'com.raha.life.oauth:/callback'
+if not client or not redirect:
+    client = redirect = ''  # Unconfigured builds keep direct sign-in disabled.
+destination = Path('build') / f'oauth-{platform}.json'
+destination.parent.mkdir(parents=True, exist_ok=True)
+destination.write_text(json.dumps({
+    'RAHA_DROPBOX_CLIENT_ID': client,
+    'RAHA_DROPBOX_REDIRECT_URI': redirect,
+}), encoding='utf-8')
+print(f'OAuth build configuration written for {platform}; no client secret is embedded.')

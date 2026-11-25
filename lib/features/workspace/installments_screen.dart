@@ -1,3 +1,4 @@
+import '../../core/domain/money.dart';
 import '../finance/presentation/finance_screen.dart' show financeCurrencyLabel;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,12 +47,8 @@ class _InstallmentsState extends ConsumerState<InstallmentsScreen> {
       error = null;
     });
     try {
-      final value = double.tryParse(toEnglishDigits(amount.text.trim()));
-      if (title.text.trim().isEmpty ||
-          value == null ||
-          !value.isFinite ||
-          value <= 0 ||
-          account == null) {
+      final value = Money.parse(amount.text).minorUnits;
+      if (title.text.trim().isEmpty || value <= 0 || account == null) {
         throw StateError(
           tr(
             context,
@@ -66,8 +63,8 @@ class _InstallmentsState extends ConsumerState<InstallmentsScreen> {
           await repo.upsert('finance_transaction', {
             'id': const Uuid().v4(),
             'type': 'bill',
-            'amount': value,
-            'amountMinor': (value * 100).round(),
+            'amount': value / 100,
+            'amountMinor': value,
             'dateTime': due(i).toIso8601String(),
             'dueDate': due(i).toIso8601String(),
             'accountId': account,

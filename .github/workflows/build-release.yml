@@ -12,6 +12,8 @@ permissions:
 env:
   CI: 'true'
   DASH__SUPPRESS_ANALYTICS: 'true'
+  RAHA_DROPBOX_CLIENT_ID: ${{ vars.RAHA_DROPBOX_CLIENT_ID }}
+  RAHA_DROPBOX_WEB_REDIRECT_URI: ${{ vars.RAHA_DROPBOX_WEB_REDIRECT_URI }}
 
 jobs:
   android:
@@ -199,15 +201,20 @@ jobs:
 
       - name: Build universal APK
         run: |
-          flutter build apk --release
+          python tool/write_oauth_build_config.py android
+          flutter build apk --release --dart-define-from-file=build/oauth-android.json
           mkdir -p release/android
           cp build/app/outputs/flutter-apk/app-release.apk release/android/Raha-Life-universal-release.apk
 
       - name: Build split APKs
-        run: flutter build apk --release --split-per-abi
+        run: |
+          python tool/write_oauth_build_config.py android
+          flutter build apk --release --split-per-abi --dart-define-from-file=build/oauth-android.json
 
       - name: Build Android App Bundle
-        run: flutter build appbundle --release
+        run: |
+          python tool/write_oauth_build_config.py android
+          flutter build appbundle --release --dart-define-from-file=build/oauth-android.json
 
       - name: Rename Android artifacts
         shell: bash
@@ -279,7 +286,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build Windows release
-        run: flutter build windows --release
+        run: |
+          python tool/write_oauth_build_config.py windows
+          flutter build windows --release --dart-define-from-file=build/oauth-windows.json
 
       - name: Package Windows release
         shell: pwsh
@@ -342,7 +351,9 @@ jobs:
         run: bash tool/prepare_drift_web.sh
 
       - name: Build Web release
-        run: flutter build web --release
+        run: |
+          python tool/write_oauth_build_config.py web
+          flutter build web --release --dart-define-from-file=build/oauth-web.json
 
       - name: Package Web release
         run: |

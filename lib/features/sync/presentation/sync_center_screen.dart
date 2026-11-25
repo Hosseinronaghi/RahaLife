@@ -1,3 +1,4 @@
+import 'sync_quarantine_sheet.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import '../domain/sync_settings.dart';
 import 'sync_conflicts_sheet.dart';
 import 'sync_controller.dart';
 import 'widgets/sync_connection_sheet.dart';
+import 'widgets/dropbox_connect_button.dart';
 
 class SyncCenterScreen extends ConsumerWidget {
   const SyncCenterScreen({this.advanced = false, super.key});
@@ -36,6 +38,7 @@ class SyncCenterScreen extends ConsumerWidget {
       (connection.purpose == SyncTargetPurpose.backup ||
           connection.purpose == SyncTargetPurpose.both) &&
       switch (connection.kind) {
+        SyncProviderKind.dropbox ||
         SyncProviderKind.webDav ||
         SyncProviderKind.nextcloud ||
         SyncProviderKind.s3 ||
@@ -237,6 +240,39 @@ class SyncCenterScreen extends ConsumerWidget {
     );
   }
 
+  Future<bool> _confirmDestination(
+    BuildContext context,
+    SyncConnectionProfile profile,
+  ) async {
+    if (!context.mounted) return false;
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialog) => AlertDialog(
+            title: Text(
+              _t(context, 'تأیید مقصد سینک', 'Confirm sync destination'),
+            ),
+            content: Text(
+              _t(
+                context,
+                'داده‌های محلیِ بخش‌های انتخاب‌شده به «${profile.name}» در ${profile.config['baseUrl'] ?? ''} ارسال می‌شوند. فقط اگر مقصد و حساب را می‌شناسید ادامه دهید.',
+                'Selected local data will be sent to “${profile.name}” at ${profile.config['baseUrl'] ?? ''}. Continue only if this destination and account are intended.',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialog, false),
+                child: Text(_t(context, 'لغو', 'Cancel')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialog, true),
+                child: Text(_t(context, 'تأیید و سینک', 'Confirm and sync')),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   Future<void> _importRecoveryKey(BuildContext context, WidgetRef ref) async {
     final controller = TextEditingController();
     final value = await showDialog<String>(
@@ -361,7 +397,10 @@ class SyncCenterScreen extends ConsumerWidget {
                   onPressed: !syncReady || busy
                       ? null
                       : () async {
-                          final ok = await notifier.syncAllEnabled();
+                          final ok = await notifier.syncAllEnabled(
+                            confirmDestination: (profile) =>
+                                _confirmDestination(context, profile),
+                          );
                           if (!context.mounted) return;
                           await _showResult(
                             context,
@@ -376,6 +415,25 @@ class SyncCenterScreen extends ConsumerWidget {
                   icon: const Icon(Icons.sync),
                   label: Text(_t(context, 'همگام‌سازی الآن', 'Sync now')),
                 ),
+                if (state.quarantinedChanges > 0)
+                  ListTile(
+                    onTap: () => showSyncQuarantineSheet(context, ref),
+                    leading: const Icon(Icons.warning_amber_rounded),
+                    title: Text(
+                      _t(
+                        context,
+                        '${state.quarantinedChanges} تغییر بزرگ جدا نگه داشته شده است',
+                        '${state.quarantinedChanges} oversized changes retained separately',
+                      ),
+                    ),
+                    subtitle: Text(
+                      _t(
+                        context,
+                        'بقیهٔ اطلاعات همگام می‌شوند. محتوای رکورد بزرگ را کاهش دهید و دوباره ذخیره کنید؛ تاریخچهٔ اصلی حذف نشده است.',
+                        'Other records continue syncing. Reduce the oversized record and save it again; the original history is retained.',
+                      ),
+                    ),
+                  ),
                 if (state.conflicts > 0)
                   TextButton(
                     onPressed: () => showSyncConflictsSheet(context, ref),
@@ -657,6 +715,7 @@ class SyncCenterScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 14),
+                const DropboxConnectButton(),
                 OutlinedButton.icon(
                   onPressed: busy ? null : () => _exportBackup(context, ref),
                   icon: const Icon(Icons.folder_open_rounded),
@@ -668,8 +727,8 @@ class SyncCenterScreen extends ConsumerWidget {
                 Text(
                   _t(
                     context,
-                    'اتصال خودکار OAuth به این سرویس‌ها به Client ID انتشار هر سرویس نیاز دارد؛ تا قبل از ثبت آن، گزینه دستی بالا امن و فعال است.',
-                    'Automatic OAuth integration needs published app client IDs for each provider. Until those are registered, the secure manual option above is fully usable.',
+                    'ورود مستقیم Dropbox به ثبت اپ توسط ناشر نیاز دارد. اتصال مستقیم سایر سرویس‌ها هنوز تکمیل نشده؛ ذخیره فایل پشتیبان با انتخاب‌گر سیستم مستقل از آن است.',
+                    'Direct Dropbox sign-in requires publisher app registration. Other direct cloud connections are unfinished; saving a backup through the system picker is independent.',
                   ),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -791,6 +850,8 @@ class SyncCenterScreen extends ConsumerWidget {
                       onSync: () async {
                         final result = await notifier.syncConnection(
                           connection.id,
+                          confirmDestination: (profile) =>
+                              _confirmDestination(context, profile),
                         );
                         if (!context.mounted) return;
                         final latestState = ref.read(syncSettingsProvider);
@@ -923,7 +984,10 @@ class SyncCenterScreen extends ConsumerWidget {
                           onPressed: busy
                               ? null
                               : () async {
-                                  final ok = await notifier.syncAllEnabled();
+                                  final ok = await notifier.syncAllEnabled(
+                                    confirmDestination: (profile) =>
+                                        _confirmDestination(context, profile),
+                                  );
                                   if (!context.mounted) return;
                                   await _showResult(
                                     context,
@@ -1405,6 +1469,7 @@ class _ConnectionTile extends StatelessWidget {
   }
 
   String _providerLabel(SyncProviderKind kind) => switch (kind) {
+    SyncProviderKind.dropbox => 'Dropbox',
     SyncProviderKind.webDav => 'WebDAV',
     SyncProviderKind.nextcloud => 'Nextcloud',
     SyncProviderKind.s3 => 'S3',

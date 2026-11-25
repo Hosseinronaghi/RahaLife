@@ -24,21 +24,72 @@ class DriftSyncStore implements SyncStore {
   @override
   Future<T> atomic<T>(Future<T> Function() action) => db.transaction(action);
 
+  Expression<bool> get _pendingFilter =>
+      db.syncChanges.uploaded.equals(false) &
+      (entityTypes == null
+          ? const Constant(true)
+          : db.syncChanges.entityType.isIn(entityTypes!)) &
+      const CustomExpression<bool>(
+        'change_id NOT IN (SELECT change_id FROM sync_quarantine)',
+      ) &
+      const CustomExpression<bool>(
+        'NOT EXISTS (SELECT 1 FROM sync_conflicts cf '
+        'WHERE cf.resolved_at IS NULL '
+        'AND cf.entity_type = sync_changes.entity_type '
+        'AND cf.entity_id = sync_changes.entity_id)',
+      );
+
+  Future<int> quarantinedCount() async {
+    final rows = await db
+        .customSelect(
+          'SELECT c.entity_type FROM sync_quarantine q JOIN sync_changes c ON c.change_id=q.change_id WHERE c.uploaded=0',
+        )
+        .get();
+    return rows
+        .where(
+          (r) =>
+              entityTypes == null ||
+              entityTypes!.contains(r.read<String>('entity_type')),
+        )
+        .length;
+  }
+
+  Future<void> retryQuarantined() =>
+      db.customStatement('DELETE FROM sync_quarantine');
+
   Future<int> pendingCount() async {
     final expression = db.syncChanges.sequence.count();
     final query = db.selectOnly(db.syncChanges)
       ..addColumns([expression])
-      ..where(db.syncChanges.uploaded.equals(false));
+      ..where(_pendingFilter);
     return (await query.map((row) => row.read(expression) ?? 0).getSingle());
   }
 
   Stream<int> watchPendingCount() {
-    final count = db.syncChanges.sequence.count();
-    return (db.selectOnly(db.syncChanges)
-          ..addColumns([count])
-          ..where(db.syncChanges.uploaded.equals(false)))
+    final filter = StringBuffer(
+      'uploaded = 0 AND '
+      'change_id NOT IN (SELECT change_id FROM sync_quarantine) AND '
+      'NOT EXISTS (SELECT 1 FROM sync_conflicts cf WHERE cf.resolved_at IS NULL '
+      'AND cf.entity_type = sync_changes.entity_type AND cf.entity_id = sync_changes.entity_id)',
+    );
+    final types = entityTypes?.toList();
+    if (types != null && types.isEmpty) return Stream.value(0);
+    if (types != null) {
+      filter.write(
+        ' AND entity_type IN (${List.filled(types.length, '?').join(',')})',
+      );
+    }
+    return db
+        .customSelect(
+          'SELECT COUNT(*) AS pending FROM sync_changes WHERE $filter',
+          readsFrom: {db.syncChanges, db.syncConflicts},
+          variables: [
+            for (final type in types ?? const <String>[])
+              Variable.withString(type),
+          ],
+        )
         .watchSingle()
-        .map((row) => row.read(count) ?? 0)
+        .map((row) => row.read<int>('pending'))
         .distinct();
   }
 
@@ -126,29 +177,34 @@ class DriftSyncStore implements SyncStore {
 
   @override
   Future<List<SyncEnvelope>> pendingChanges() async {
-    final rows =
-        await (db.select(db.syncChanges)
-              ..where(
-                (row) =>
-                    row.uploaded.equals(false) &
-                    (entityTypes == null
-                        ? const Constant(true)
-                        : row.entityType.isIn(entityTypes!)),
-              )
-              ..orderBy([(row) => OrderingTerm.asc(row.sequence)])
-              ..limit(100))
-            .get();
-    if (rows.isNotEmpty &&
-        utf8.encode(rows.first.payloadJson).length + 2048 >= 7 * 1024 * 1024) {
-      throw StateError(
-        'A record exceeds the sync batch limit; reduce its content before retrying.',
-      );
-    }
+    const batchLimit = 7 * 1024 * 1024;
+    final bounded = <SyncChangeRow>[];
     var bytes = 0;
-    final bounded = rows.takeWhile((row) {
-      bytes += utf8.encode(row.payloadJson).length + 2048;
-      return bytes < 7 * 1024 * 1024;
-    });
+    // Scan past rejected rows; their original deltas remain durable for inspection.
+    while (bounded.isEmpty) {
+      final rows =
+          await (db.select(db.syncChanges)
+                ..where((row) => _pendingFilter)
+                ..orderBy([(row) => OrderingTerm.asc(row.sequence)])
+                ..limit(100))
+              .get();
+      if (rows.isEmpty) break;
+      for (final row in rows) {
+        final size = utf8.encode(row.payloadJson).length + 2048;
+        if (size >= batchLimit) {
+          await db.customStatement(
+            'INSERT OR REPLACE INTO sync_quarantine(change_id,reason,bytes) VALUES(?,?,?)',
+            [row.changeId, 'record_too_large', size],
+          );
+          // Notify watchers whose computed count depends on the side table.
+          db.markTablesUpdated({db.syncChanges});
+          continue;
+        }
+        if (bytes + size >= batchLimit) break;
+        bounded.add(row);
+        bytes += size;
+      }
+    }
     return bounded
         .map(
           (row) => SyncEnvelope(
@@ -228,24 +284,16 @@ class DriftSyncStore implements SyncStore {
   Future<void> markUploaded(Iterable<String> changeIdsOrIdentities) async {
     final acknowledgements = changeIdsOrIdentities.toSet();
     if (acknowledgements.isEmpty) return;
-    final pending =
-        await (db.select(db.syncChanges)..where(
-              (row) =>
-                  row.uploaded.equals(false) &
-                  (entityTypes == null
-                      ? const Constant(true)
-                      : row.entityType.isIn(entityTypes!)),
-            ))
-            .get();
-    final sequenceIds = <int>[];
-    for (final row in pending) {
-      if (acknowledgements.contains(row.changeId)) {
-        sequenceIds.add(row.sequence);
-      }
-    }
-    if (sequenceIds.isNotEmpty) {
-      await (db.update(db.syncChanges)
-            ..where((row) => row.sequence.isIn(sequenceIds)))
+    final ids = acknowledgements.toList(growable: false);
+    for (var offset = 0; offset < ids.length; offset += 100) {
+      await (db.update(db.syncChanges)..where(
+            (row) =>
+                row.uploaded.equals(false) &
+                row.changeId.isIn(ids.skip(offset).take(100)) &
+                (entityTypes == null
+                    ? const Constant(true)
+                    : row.entityType.isIn(entityTypes!)),
+          ))
           .write(const SyncChangesCompanion(uploaded: Value(true)));
     }
     final now = DateTime.now().toUtc();

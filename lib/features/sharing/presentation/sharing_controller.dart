@@ -70,12 +70,12 @@ class SharingNotifier extends StateNotifier<List<ShareGrant>> {
           createdAt: DateTime.now().toUtc(),
         ),
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void revoke(String id) {
     state = state.where((item) => item.id != id).toList(growable: false);
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 }
 

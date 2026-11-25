@@ -1,0 +1,88 @@
+name: Build Raha Life for Mac and iPhone
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master, 'codex/apple-*']
+
+permissions:
+  contents: read
+
+env:
+  CI: 'true'
+  DASH__SUPPRESS_ANALYTICS: 'true'
+  RAHA_DROPBOX_CLIENT_ID: ${{ vars.RAHA_DROPBOX_CLIENT_ID }}
+
+jobs:
+  apple:
+    name: ${{ matrix.platform }} device release
+    runs-on: macos-15
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos, ios]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verify release source
+        run: python3 tool/check_source_integrity.py
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+      - name: Generate Apple projects
+        run: |
+          flutter config --enable-macos-desktop
+          flutter create --platforms=ios,macos --org com.raha --project-name raha_life .
+          python3 tool/configure_branding.py
+          python3 tool/configure_apple_platforms.py
+          rm -f test/widget_test.dart
+          flutter pub get
+          flutter gen-l10n
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+      - name: Build macOS application
+        if: matrix.platform == 'macos'
+        run: |
+          if test -f tool/write_oauth_build_config.py; then
+            python3 tool/write_oauth_build_config.py macos
+          else
+            mkdir -p build
+            echo '{}' > build/oauth-macos.json
+          fi
+          flutter build macos --release --build-name=0.10.0 --dart-define-from-file=build/oauth-macos.json
+          mkdir -p release/macos
+          APP=build/macos/Build/Products/Release/raha_life.app
+          test -d "$APP"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict "$APP"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" release/macos/Raha-Life-macOS.zip
+          mkdir -p build/dmg
+          ditto "$APP" 'build/dmg/Raha Life.app'
+          ln -s /Applications build/dmg/Applications
+          hdiutil create -volname 'Raha Life' -srcfolder build/dmg -ov -format UDZO release/macos/Raha-Life-macOS.dmg
+          printf '%s\n' 'Developer preview. Locally ad-hoc signed; not Developer ID signed or notarized. Requires testing on a real Mac.' > release/macos/READ_ME.txt
+          shasum -a 256 release/macos/*.zip release/macos/*.dmg > release/macos/SHA256SUMS.txt
+      - name: Build real iPhone archive
+        if: matrix.platform == 'ios'
+        run: |
+          if test -f tool/write_oauth_build_config.py; then
+            python3 tool/write_oauth_build_config.py ios
+          else
+            mkdir -p build
+            echo '{}' > build/oauth-ios.json
+          fi
+          flutter build ipa --release --no-codesign --build-name=0.10.0 --dart-define-from-file=build/oauth-ios.json
+          mkdir -p release/ios
+          test -d build/ios/archive/Runner.xcarchive
+          ditto -c -k --sequesterRsrc --keepParent build/ios/archive/Runner.xcarchive release/ios/Raha-Life-iPhone-unsigned-archive.zip
+          printf '%s\n' 'Real-device archive, NOT a simulator build. NOT installable until signed/exported using an Apple certificate and matching provisioning profile. No installable IPA was produced.' > release/ios/READ_ME.txt
+          shasum -a 256 release/ios/*.zip > release/ios/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Raha-Life-${{ matrix.platform }}-device
+          path: release/${{ matrix.platform }}/
+          if-no-files-found: error
+          retention-days: 14

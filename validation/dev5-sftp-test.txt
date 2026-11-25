@@ -1,0 +1,2 @@
+00:00 +0: SFTP preserves the last good backup when publish fails and enforces SSH identity
+00:02 +1: All tests passed!

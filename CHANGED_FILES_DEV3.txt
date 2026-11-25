@@ -1,0 +1,36 @@
+Delta base: Raha-Life-v0.10-dev2-Source.zip (0.10.0-dev.2+18)
+Target: 0.10.0-dev.3+19
+Deleted files: none
+Changed or added files:
+.github/workflows/build-extended-platforms.yml
+.github/workflows/build-release.yml
+START_HERE_FA.txt
+docs/v010/SCOPE_FA.md
+docs/v010/STATUS_FA.md
+docs/v010/dev3/OAUTH_SETUP_FA.md
+docs/v010/dev3/SECURITY_AND_ACCEPTANCE_FA.md
+docs/v010/dev3/STATUS_DEV2_ARCHIVE_FA.md
+lib/core/sync/backup/local_backup_service.dart
+lib/core/sync/providers/backup_target_factory.dart
+lib/core/sync/providers/dropbox_backup_target.dart
+lib/core/sync/providers/oauth_pkce.dart
+lib/features/federation/federation_screen.dart
+lib/features/federation/federation_store.dart
+lib/features/sync/presentation/sync_center_screen.dart
+lib/features/sync/presentation/widgets/dropbox_connect_button.dart
+pubspec.lock
+pubspec.yaml
+test/backup_private_preferences_test.dart
+test/cloud_oauth_test.dart
+test/federation_store_test.dart
+tool/check_source_integrity.py
+tool/configure_branding.py
+tool/source_integrity.json
+tool/test_branding.py
+tool/write_oauth_build_config.py
+validation/dev3-flutter-analyze.txt
+validation/dev3-flutter-tests.txt
+validation/dev3-osv.json
+validation/dev3-python-workflows.txt
+validation/dev3-web-build.txt
+web/auth.html

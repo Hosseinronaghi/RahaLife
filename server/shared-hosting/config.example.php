@@ -8,5 +8,8 @@ return [
     'storage_dir' => __DIR__ . '/storage',
     'max_backup_bytes' => 268435456, // 256 MB
     'keep_backup_versions' => 7,
-    'cors_origin' => '*',
+    'session_days' => 7,
+    'api_requests_per_minute' => 300,
+    'account_requests_per_minute' => 240,
+    'cors_origin' => '', // Comma-separated exact web origins, e.g. https://raha.example. Native apps do not need CORS.
 ];

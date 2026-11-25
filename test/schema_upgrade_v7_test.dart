@@ -35,7 +35,7 @@ void main() {
       final version = await upgraded
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.read<int>('user_version'), 7);
+      expect(version.read<int>('user_version'), 8);
     } finally {
       await upgraded.close();
       await folder.delete(recursive: true);

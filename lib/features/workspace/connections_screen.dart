@@ -64,7 +64,14 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     url.text = prefs.getString('collab.url') ?? '';
-    account = prefs.getString('collab.account') ?? '';
+    account =
+        await secure.read(key: 'collab.account') ??
+        prefs.getString('collab.account') ??
+        '';
+    if (account.isNotEmpty) {
+      await secure.write(key: 'collab.account', value: account);
+      await prefs.remove('collab.account');
+    }
     token = await secure.read(key: 'collab.token') ?? '';
     if (token.isNotEmpty) {
       friends = await outbox.read('friends');
@@ -72,10 +79,32 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
       try {
         await refresh();
       } catch (e) {
-        error = e.toString();
+        await _handleConnectionError(e);
       }
     }
     if (mounted) setState(() {});
+  }
+
+  Future<void> _handleConnectionError(Object value) async {
+    if (value is DioException &&
+        value.response?.statusCode == 401 &&
+        token.isNotEmpty) {
+      await secure.delete(key: 'collab.token');
+      token = '';
+      friends = [];
+      shared = [];
+      if (mounted) {
+        error = tr(
+          context,
+          'نشست پایان یافته است؛ دوباره وارد شوید.',
+          'Session expired. Sign in again.',
+        );
+      }
+    } else {
+      error = value is DioException
+          ? '${value.response?.data ?? value.message}'
+          : value.toString();
+    }
   }
 
   Future<void> run(Future<void> Function() action) async {
@@ -87,9 +116,7 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
     try {
       await action();
     } catch (e) {
-      error = e is DioException
-          ? '${e.response?.data ?? e.message}'
-          : e.toString();
+      await _handleConnectionError(e);
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -129,7 +156,7 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
     await secure.write(key: 'collab.token', value: token);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('collab.url', url.text.trim());
-    await prefs.setString('collab.account', account);
+    await secure.write(key: 'collab.account', value: account);
     password.clear();
     code.clear();
     await refresh();
@@ -557,6 +584,61 @@ class _ConnectionsState extends ConsumerState<ConnectionsScreen> {
                 }),
               ),
             ),
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.devices_outlined),
+            label: Text(
+              tr(c, 'خروج از همهٔ دستگاه‌ها', 'Sign out all devices'),
+            ),
+            onPressed: busy
+                ? null
+                : () => run(() async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (dialog) => AlertDialog(
+                        title: Text(
+                          tr(
+                            dialog,
+                            'خروج از همهٔ دستگاه‌ها؟',
+                            'Sign out all devices?',
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialog, false),
+                            child: Text(tr(dialog, 'لغو', 'Cancel')),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(dialog, true),
+                            child: Text(tr(dialog, 'خروج', 'Sign out')),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true) return;
+                    await client.post('/v1/account/logout-all');
+                    await secure.delete(key: 'collab.token');
+                    token = '';
+                    friends = [];
+                    shared = [];
+                  }),
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.refresh),
+            label: Text(tr(c, 'نوسازی نشست', 'Renew session')),
+            onPressed: busy
+                ? null
+                : () => run(() async {
+                    final result = await client.post<Map<String, dynamic>>(
+                      '/v1/account/rotate',
+                    );
+                    final renewed = result.data?['token'] as String?;
+                    if (renewed == null || renewed.isEmpty) {
+                      throw StateError('Invalid session response');
+                    }
+                    await secure.write(key: 'collab.token', value: renewed);
+                    token = renewed;
+                  }),
           ),
           Padding(
             padding: const EdgeInsets.only(top: 12),

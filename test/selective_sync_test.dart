@@ -27,7 +27,11 @@ void main() {
       expect(pending.single.entityType, 'rich_note');
       await store.markUploaded(pending.map((e) => e.changeId!).toList());
       expect(await store.pendingChanges(), isEmpty);
-      expect(await store.pendingCount(), 110);
+      expect(await store.pendingCount(), 0);
+      expect(
+        await DriftSyncStore(providerId: 'all', database: db).pendingCount(),
+        110,
+      );
       expect(
         await DriftSyncStore(
           providerId: 'empty',

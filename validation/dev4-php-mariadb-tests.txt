@@ -1,0 +1,44 @@
+PASS: exact CORS, TLS headers, bounded rate windows and account partition
+Password tests: 7 assertions passed
+PASS independent edits with unequal scalar versions
+PASS descendant
+PASS ancestor
+PASS key order
+PASS legacy fallback
+PASS delete timestamp normalized
+PASS acknowledgement identity preserved
+PASS negative clock rejected
+PASS identical retry
+PASS change ID reuse with altered payload rejected
+PASS change ID reuse by other device rejected
+PASS object key order does not change identity
+PASS payload scalar types preserved
+PASS latest complete 0
+PASS acknowledged archive exists 0
+PASS latest complete 1
+PASS acknowledged archive exists 1
+PASS latest complete 2
+PASS acknowledged archive exists 2
+PASS latest complete 3
+PASS acknowledged archive exists 3
+PASS latest complete 4
+PASS acknowledged archive exists 4
+PASS latest complete 5
+PASS acknowledged archive exists 5
+PASS latest complete 6
+PASS acknowledged archive exists 6
+PASS latest complete 7
+PASS acknowledged archive exists 7
+PASS latest complete 8
+PASS acknowledged archive exists 8
+PASS latest complete 9
+PASS acknowledged archive exists 9
+PASS latest complete 10
+PASS acknowledged archive exists 10
+PASS latest complete 11
+PASS acknowledged archive exists 11
+PASS retention bounded
+PASS temporary files cleaned
+PASS empty rejected
+PASS failed upload preserves latest
+PASS selective pull, account isolation, exact retry ACK, causal conflict, friendship, message deduplication, share permissions, CAS, revocation, session rotation, logout-all

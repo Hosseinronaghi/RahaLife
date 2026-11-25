@@ -31,6 +31,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   bool _metadataOpen = false;
   bool _invalidDocument = false;
   bool _saving = false;
+  bool _waitingForNote = false;
+  String? _loadedSnapshot;
   String? _projectId;
   String? _personId;
 
@@ -41,23 +43,39 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final note = widget.noteId == null
         ? null
         : _noteById(ref.read(notesProvider), widget.noteId!);
-    _titleController = TextEditingController(text: note?.title ?? '');
+    _titleController = TextEditingController();
+    _controller = QuillController.basic();
+    _waitingForNote = widget.noteId != null && note == null;
+    _loadEditor(note);
+    ref.listenManual(notesProvider, (_, notes) {
+      if (!_waitingForNote) return;
+      final loaded = _noteById(notes, widget.noteId!);
+      if (loaded == null) return;
+      setState(() {
+        _loadEditor(loaded);
+        _waitingForNote = false;
+      });
+    });
+  }
+
+  void _loadEditor(RichNote? note) {
+    _titleController.text = note?.title ?? '';
     _tagsController.text = (note?.tags ?? const <String>[]).join(', ');
     _projectId = note?.projectId ?? widget.initialProjectId;
     _personId = note?.personId;
+    _invalidDocument = false;
+    if (note == null) return;
+    _loadedSnapshot = jsonEncode(note.toJson());
     try {
-      final delta = note == null
-          ? null
-          : jsonDecode(note.deltaJson) as List<dynamic>;
-      _controller = delta == null
-          ? QuillController.basic()
-          : QuillController(
-              document: Document.fromJson(delta),
-              selection: const TextSelection.collapsed(offset: 0),
-            );
+      final delta = jsonDecode(note.deltaJson) as List<dynamic>;
+      final controller = QuillController(
+        document: Document.fromJson(delta),
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+      _controller.dispose();
+      _controller = controller;
     } catch (_) {
       _invalidDocument = true;
-      _controller = QuillController.basic();
     }
   }
 
@@ -70,26 +88,49 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   }
 
   Future<bool> _save() async {
-    if (_invalidDocument || _saving) return false;
+    if (_waitingForNote || _invalidDocument || _saving) return false;
+    final id = _savedId;
+    if (id != null) {
+      final current = _noteById(ref.read(notesProvider), id);
+      if (current == null) {
+        _showMissingNote();
+        return false;
+      }
+      if (jsonEncode(current.toJson()) != _loadedSnapshot) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Localizations.localeOf(context).languageCode == 'fa'
+                  ? 'یادداشت جای دیگری تغییر کرده است. متن این پنجره را کپی کنید و یادداشت را دوباره باز کنید.'
+                  : 'The note changed elsewhere. Copy your draft and reopen the note before saving.',
+            ),
+          ),
+        );
+        return false;
+      }
+    }
     setState(() => _saving = true);
     final l10n = AppLocalizations.of(context);
-    final saved = ref
-        .read(notesProvider.notifier)
-        .save(
-          id: _savedId,
-          title: _titleController.text,
-          deltaJson: jsonEncode(_controller.document.toDelta().toJson()),
-          plainText: _controller.document.toPlainText(),
-          tags: _tagsController.text
-              .split(RegExp('[,،]'))
-              .map((item) => item.trim())
-              .where((item) => item.isNotEmpty)
-              .toList(growable: false),
-          projectId: _projectId,
-          personId: _personId,
-        );
-    setState(() => _savedId = saved.id);
     try {
+      final saved = ref
+          .read(notesProvider.notifier)
+          .save(
+            id: _savedId,
+            title: _titleController.text,
+            deltaJson: jsonEncode(_controller.document.toDelta().toJson()),
+            plainText: _controller.document.toPlainText(),
+            tags: _tagsController.text
+                .split(RegExp('[,،]'))
+                .map((item) => item.trim())
+                .where((item) => item.isNotEmpty)
+                .toList(growable: false),
+            projectId: _projectId,
+            personId: _personId,
+          );
+      setState(() {
+        _savedId = saved.id;
+        _loadedSnapshot = jsonEncode(saved.toJson());
+      });
       await WriteStatus.flush();
       if (mounted) {
         ScaffoldMessenger.of(
@@ -115,9 +156,29 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
+  String get _missingNoteMessage =>
+      Localizations.localeOf(context).languageCode == 'fa'
+      ? 'یادداشت هنوز بارگذاری نشده یا دیگر در دسترس نیست.'
+      : 'The note is still loading or is no longer available.';
+
+  void _showMissingNote() => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(_missingNoteMessage)));
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    if (_waitingForNote) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.editNote)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(_missingNoteMessage, textAlign: TextAlign.center),
+          ),
+        ),
+      );
+    }
     final projects = ref.watch(projectsProvider);
     final people = ref.watch(peopleProvider);
     return Scaffold(

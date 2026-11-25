@@ -1,3 +1,4 @@
+import '../../core/domain/money.dart';
 import '../finance/presentation/finance_screen.dart'
     show financeCategoryLabel, financeCurrencyLabel;
 import '../../l10n/generated/app_localizations.dart';
@@ -71,7 +72,7 @@ class _InsightsState extends ConsumerState<InsightsScreen> {
               }
 
               final csv =
-                  '\ufeffdate,type,account,currency,amount,category,note\n${rows.map((e) => [e.dateTime.toIso8601String(), e.type.name, e.accountId, finance.accounts.where((a) => a.id == e.accountId).firstOrNull?.currencyCode ?? '', e.amount, e.category, e.note].map(cell).join(',')).join('\n')}';
+                  '\ufeffdate,type,account,currency,amount,category,note\n${rows.map((e) => [e.dateTime.toIso8601String(), e.type.name, e.accountId, finance.accounts.where((a) => a.id == e.accountId).firstOrNull?.currencyCode ?? '', Money(minorUnits: e.amountMinor, currencyCode: '').decimal, e.category, e.note].map(cell).join(',')).join('\n')}';
               await FilePicker.saveFile(
                 fileName: 'Raha-Report.csv',
                 bytes: Uint8List.fromList(utf8.encode(csv)),
@@ -206,7 +207,11 @@ class _InsightsState extends ConsumerState<InsightsScreen> {
                     Builder(
                       builder: (c) {
                         final goal = data['savingGoal'] == true;
-                        final limit = (data['amount'] as num?)?.toDouble() ?? 0;
+                        final limitMinor = Money.readMinor(
+                          data['amountMinor'],
+                          data['amount'],
+                        );
+                        final limit = limitMinor / 100;
                         final from =
                             DateTime.tryParse(
                               data['startDate']?.toString() ?? '',
@@ -247,7 +252,11 @@ class _InsightsState extends ConsumerState<InsightsScreen> {
                                 .fold<int>(0, (sum, e) => sum + e.amountMinor) /
                             100;
                         final current = goal
-                            ? (data['savedAmount'] as num?)?.toDouble() ?? 0
+                            ? Money.readMinor(
+                                    data['savedAmountMinor'],
+                                    data['savedAmount'],
+                                  ) /
+                                  100
                             : spent;
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),

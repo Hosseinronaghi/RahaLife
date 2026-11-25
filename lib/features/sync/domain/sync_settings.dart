@@ -12,6 +12,7 @@ class SyncSettingsState {
     this.lastBackupAt,
     this.lastSyncAt,
     this.pendingChanges = 0,
+    this.quarantinedChanges = 0,
     this.conflicts = 0,
     this.deviceId = '',
     this.busyConnectionId,
@@ -27,6 +28,7 @@ class SyncSettingsState {
   final DateTime? lastBackupAt;
   final DateTime? lastSyncAt;
   final int pendingChanges;
+  final int quarantinedChanges;
   final int conflicts;
   final String deviceId;
   final String? busyConnectionId;
@@ -56,6 +58,7 @@ class SyncSettingsState {
     DateTime? lastBackupAt,
     DateTime? lastSyncAt,
     int? pendingChanges,
+    int? quarantinedChanges,
     int? conflicts,
     String? deviceId,
     String? busyConnectionId,
@@ -73,6 +76,7 @@ class SyncSettingsState {
       lastBackupAt: lastBackupAt ?? this.lastBackupAt,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
       pendingChanges: pendingChanges ?? this.pendingChanges,
+      quarantinedChanges: quarantinedChanges ?? this.quarantinedChanges,
       conflicts: conflicts ?? this.conflicts,
       deviceId: deviceId ?? this.deviceId,
       busyConnectionId: clearBusyConnection

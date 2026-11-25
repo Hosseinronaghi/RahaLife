@@ -1,3 +1,4 @@
+import '../../core/domain/money.dart';
 import '../files/files_screen.dart';
 import '../../core/widgets/retained_popup.dart';
 import '../finance/presentation/finance_screen.dart';
@@ -16,7 +17,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/persistence/drift_entity_repository.dart';
-import '../../core/localization/locale_formatters.dart';
 import '../sync/presentation/synced_feature_refresh.dart';
 
 String tr(BuildContext c, String fa, String en) =>
@@ -102,7 +102,14 @@ Future<void> editRecord(
   final fields = <String, TextEditingController>{
     for (final key in labels.keys)
       if (data.containsKey(key) && !dates.contains(key))
-        key: TextEditingController(text: data[key]?.toString() ?? ''),
+        key: TextEditingController(
+          text: data['${key}Minor'] is int
+              ? Money(
+                  minorUnits: data['${key}Minor'] as int,
+                  currencyCode: '',
+                ).decimal
+              : data[key]?.toString() ?? '',
+        ),
   };
   String? error;
   var busy = false;
@@ -272,15 +279,9 @@ Future<void> editRecord(
                                     data[field.key] = null;
                                     continue;
                                   }
-                                  final value = double.tryParse(
-                                    toEnglishDigits(raw),
-                                  );
-                                  if (value == null || !value.isFinite) {
-                                    throw const FormatException(
-                                      'Enter a finite number.',
-                                    );
-                                  }
-                                  data[field.key] = value;
+                                  final money = Money.parse(raw);
+                                  data['${field.key}Minor'] = money.minorUnits;
+                                  data[field.key] = money.minorUnits / 100;
                                 } else {
                                   data[field.key] = raw;
                                 }
@@ -296,19 +297,11 @@ Future<void> editRecord(
                                   'A name or title is required.',
                                 );
                               }
-                              if (data['amount'] is num) {
-                                if ((data['amount'] as num) <= 0) {
-                                  throw const FormatException(
-                                    'Amount must be positive.',
-                                  );
-                                }
-                                data['amountMinor'] =
-                                    ((data['amount'] as num) * 100).round();
-                              }
-                              if (data['openingBalance'] is num) {
-                                data['openingBalanceMinor'] =
-                                    ((data['openingBalance'] as num) * 100)
-                                        .round();
+                              if (data['amountMinor'] is int &&
+                                  (data['amountMinor'] as int) <= 0) {
+                                throw const FormatException(
+                                  'Amount must be positive.',
+                                );
                               }
                               if (type == 'bookmark') {
                                 final uri = Uri.tryParse(

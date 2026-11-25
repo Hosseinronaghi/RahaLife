@@ -97,7 +97,7 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
       reminder: reminder,
     );
     state = [...state, entry]..sort((a, b) => a.dateTime.compareTo(b.dateTime));
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
     return entry;
   }
 
@@ -118,7 +118,7 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
         else
           item,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void update(HomeEntry entry) {
@@ -126,13 +126,13 @@ class HomeEntriesNotifier extends StateNotifier<List<HomeEntry>> {
       for (final item in state)
         if (item.id == entry.id) entry else item,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void delete(String id) {
     state = state.where((item) => item.id != id).toList(growable: false);
     unawaited(ReminderService.instance.cancel('home:$id'));
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   List<HomeEntry> forDate(DateTime date) =>

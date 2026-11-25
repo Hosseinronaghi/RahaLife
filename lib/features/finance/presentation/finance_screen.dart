@@ -1,3 +1,4 @@
+import '../../../core/domain/money.dart';
 import '../../../core/widgets/retained_popup.dart';
 import '../../workspace/record_editor.dart';
 
@@ -347,7 +348,11 @@ Future<void> showFinanceForm(
 }) async {
   final l10n = AppLocalizations.of(context);
   final formKey = GlobalKey<FormState>();
-  final amount = TextEditingController(text: existing?.amount.toString() ?? '');
+  final amount = TextEditingController(
+    text: existing == null
+        ? ''
+        : Money(minorUnits: existing.amountMinor, currencyCode: '').decimal,
+  );
   final note = TextEditingController(text: existing?.note ?? '');
   final billIdentifier = TextEditingController(
     text: existing?.billIdentifier ?? '',
@@ -449,22 +454,17 @@ Future<void> showFinanceForm(
                     ),
                     decoration: InputDecoration(labelText: l10n.amount),
                     validator: (value) {
-                      final parsed = double.tryParse(
-                        toEnglishDigits(value ?? '')
-                            .replaceAll(',', '')
-                            .replaceAll('٬', '')
-                            .replaceAll('٫', '.'),
+                      try {
+                        final minor = Money.parse(value ?? '').minorUnits;
+                        if (minor > 0) return null;
+                      } on FormatException {
+                        /* Show the localized validation below. */
+                      }
+                      return tr(
+                        context,
+                        'مبلغ مثبت و معتبر وارد کنید.',
+                        'Enter a valid positive amount.',
                       );
-                      return parsed == null ||
-                              !parsed.isFinite ||
-                              parsed <= 0 ||
-                              parsed > 90071992547409
-                          ? tr(
-                              context,
-                              'مبلغ مثبت و معتبر وارد کنید.',
-                              'Enter a valid positive amount.',
-                            )
-                          : null;
                     },
                   ),
                   const SizedBox(height: 10),
@@ -707,12 +707,9 @@ Future<void> showFinanceForm(
                                     id: existing?.id,
                                     paid: existing?.paid ?? false,
                                     type: type,
-                                    amount: double.parse(
-                                      toEnglishDigits(amount.text)
-                                          .replaceAll(',', '')
-                                          .replaceAll('٬', '')
-                                          .replaceAll('٫', '.'),
-                                    ),
+                                    amountMinor: Money.parse(
+                                      amount.text,
+                                    ).minorUnits,
                                     dateTime: date,
                                     accountId: accountId,
                                     toAccountId: toAccountId,
@@ -798,7 +795,12 @@ Future<void> showAccountForm(
         : account?.name ?? '',
   );
   final balance = TextEditingController(
-    text: (account?.openingBalance ?? 0).toString(),
+    text: account == null
+        ? '0.00'
+        : Money(
+            minorUnits: account.openingBalanceMinor,
+            currencyCode: account.currencyCode,
+          ).decimal,
   );
   final bank = TextEditingController(text: account?.bankName ?? '');
   final number = TextEditingController(text: account?.accountNumber ?? '');
@@ -902,17 +904,13 @@ Future<void> showAccountForm(
           ),
           FilledButton(
             onPressed: () {
-              final opening = double.tryParse(
-                toEnglishDigits(balance.text)
-                    .replaceAll(',', '')
-                    .replaceAll('٬', '')
-                    .replaceAll('٫', '.')
-                    .replaceAll('٬', '')
-                    .replaceAll('٫', '.'),
-              );
-              if (name.text.trim().isEmpty ||
-                  opening == null ||
-                  !opening.isFinite) {
+              int? parsed;
+              try {
+                parsed = Money.parse(balance.text).minorUnits;
+              } on FormatException {
+                /* Invalid input below. */
+              }
+              if (name.text.trim().isEmpty || parsed == null) {
                 setState(
                   () => error = tr(
                     context,
@@ -928,7 +926,7 @@ Future<void> showAccountForm(
                     .addAccount(
                       name.text,
                       id: account?.id,
-                      openingBalance: opening,
+                      openingBalanceMinor: parsed,
                       currencyCode: currency,
                       kind: kind,
                       bankName: bank.text,

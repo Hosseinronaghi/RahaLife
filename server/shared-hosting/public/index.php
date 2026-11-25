@@ -24,17 +24,23 @@ function loadConfig(): array
         'storage_dir' => getenv('RAHA_STORAGE_DIR') ?: dirname(__DIR__) . '/storage',
         'max_backup_bytes' => (int) (getenv('RAHA_MAX_BACKUP_BYTES') ?: 268435456),
         'keep_backup_versions' => (int) (getenv('RAHA_KEEP_BACKUP_VERSIONS') ?: 7),
-        'cors_origin' => getenv('RAHA_CORS_ORIGIN') ?: '*',
+        'cors_origin' => getenv('RAHA_CORS_ORIGIN') ?: '',
     ];
 }
 
 $config = loadConfig();
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: ' . ($config['cors_origin'] ?? '*'));
-header('Access-Control-Allow-Headers: Authorization, Content-Type, X-Raha-Client, X-Raha-Backup-Name');
-header('Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS');
-header('Cache-Control: no-store');
-header('X-Content-Type-Options: nosniff');
+require_once __DIR__ . '/security.php';
+try {
+    foreach (rahaSecurityHeaders($config, $_SERVER) as $line) header($line);
+} catch (DomainException $error) {
+    respond(403, ['error'=>'origin_not_allowed']);
+}
+$rateDirectory = rtrim((string)($config['storage_dir'] ?? dirname(__DIR__).'/storage'), DIRECTORY_SEPARATOR) . '/rate_limits';
+if (!rahaRateAllowed($rateDirectory, 'api-address:' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'),
+    max(1, (int)($config['api_requests_per_minute'] ?? 300)), 60)) {
+    header('Retry-After: 60');
+    respond(429, ['error'=>'try_later']);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -65,6 +71,7 @@ require __DIR__ . '/backup_store.php';
 $expectedToken = (string)($config['api_token'] ?? '');
 $scopeId = ($expectedToken !== '' && $expectedToken !== 'CHANGE_TO_A_LONG_RANDOM_TOKEN' && hash_equals($expectedToken,bearerToken())) ? 'personal' : accountRoute($config,$path,$method);
 if(!$scopeId)respond(401,['error'=>'unauthorized']);
+if (!rahaRateAllowed($rateDirectory, 'api-account:'.$scopeId, max(1,(int)($config['account_requests_per_minute']??240)),60)) { header('Retry-After: 60'); respond(429,['error'=>'try_later']); }
 collaborationRoute($config,$path,$method,$scopeId);
 
 function routeEndsWith(string $path, string $route): bool
@@ -123,6 +130,7 @@ if (routeEndsWith($path, '/health') && $method === 'GET') {
         'ok' => true,
         'service' => 'raha-sync',
         'protocolVersion' => 3,
+        'syncAccountId' => hash('sha256', $scopeId),
         'features' => ['backup', 'record-sync'],
     ]);
 }
@@ -174,6 +182,7 @@ if (routeEndsWith($path, '/v1/sync/pull') && $method === 'GET') {
     $db = pdo($config);
     // Read all cursor rows, including this device's own changes, so the cursor
     // always advances. Own changes are filtered only from the response body.
+    $db->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
     $statement = $db->prepare(
         'SELECT cursor_id, change_id, entity_type, entity_id, operation, version, updated_at_utc, device_id, deleted_at_utc, payload_json, clock_json
          FROM sync_changes
@@ -182,23 +191,35 @@ if (routeEndsWith($path, '/v1/sync/pull') && $method === 'GET') {
          LIMIT ' . $limit
     );
     $statement->execute(['cursor' => $cursor, 'owner'=>$scopeId]);
-    $rows = $statement->fetchAll();
     $types = isset($_GET['types']) ? array_filter(explode(',', (string)$_GET['types'])) : null;
     $changes = [];
     $nextCursor = $cursor;
-    foreach ($rows as $row) {
-        $nextCursor = max($nextCursor, (int) $row['cursor_id']);
-        if ((string) $row['device_id'] === $deviceId) {
-            continue;
+    $visited = 0;
+    $responseBytes = 0;
+    $more = false;
+    while ($row = $statement->fetch()) {
+        $included = (string)$row['device_id'] !== $deviceId &&
+            ($types === null || in_array($row['entity_type'], $types, true));
+        if ($included) {
+            $envelope = rowToEnvelope($row);
+            $size = strlen(json_encode($envelope, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)) + 1;
+            if ($changes !== [] && $responseBytes + $size > 7 * 1024 * 1024) {
+                // Do not acknowledge a row omitted by the byte budget.
+                $more = true;
+                break;
+            }
+            $responseBytes += $size;
+            $changes[] = $envelope;
         }
-        if ($types !== null && !in_array($row['entity_type'], $types, true)) continue;
-        $changes[] = rowToEnvelope($row);
+        $visited++;
+        $nextCursor = max($nextCursor, (int)$row['cursor_id']);
     }
+    $statement->closeCursor();
     respond(200, [
         'ok' => true,
         'changes' => $changes,
         'nextCursor' => (string) $nextCursor,
-        'hasMore' => count($rows) === $limit,
+        'hasMore' => $more || $visited === $limit,
     ]);
 }
 
@@ -233,6 +254,17 @@ if (routeEndsWith($path, '/v1/sync/push') && $method === 'POST') {
     );
     $accepted = [];
     $conflicts = [];
+    // AUTO_INCREMENT order is only safe as a cursor when the writes for
+    // one owner commit in the same order as ID assignment.
+    $lockName = hash('sha256', 'raha-sync|' . $db->query('SELECT DATABASE()')->fetchColumn() . '|' . $scopeId);
+    $lockStatement = $db->prepare('SELECT GET_LOCK(?, 5)');
+    $lockStatement->execute([$lockName]);
+    $locked = (int)$lockStatement->fetchColumn() === 1;
+    $lockStatement->closeCursor();
+    if (!$locked) {
+        header('Retry-After: 1');
+        respond(503, ['ok' => false, 'error' => 'sync_busy']);
+    }
     try {
         $db->beginTransaction();
         foreach ($rawChanges as $rawChange) {
@@ -245,6 +277,7 @@ if (routeEndsWith($path, '/v1/sync/push') && $method === 'POST') {
             if ($storedChange) {
                 if (!sameChange(rowToEnvelope($storedChange), $change)) {
                     $db->rollBack();
+                    $db->prepare('DO RELEASE_LOCK(?)')->execute([$lockName]);
                     respond(409, ['ok'=>false, 'error'=>'change_id_reused']);
                 }
                 // Only an identical retry can acknowledge a committed change.
@@ -310,8 +343,10 @@ if (routeEndsWith($path, '/v1/sync/push') && $method === 'POST') {
         if ($db->inTransaction()) {
             $db->rollBack();
         }
+        $db->prepare('DO RELEASE_LOCK(?)')->execute([$lockName]);
         respond(500, ['ok' => false, 'error' => 'sync_push_failed']);
     }
+    $db->prepare('DO RELEASE_LOCK(?)')->execute([$lockName]);
     respond(200, ['ok' => true, 'accepted' => $accepted, 'conflicts' => $conflicts]);
 }
 

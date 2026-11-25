@@ -1,4 +1,7 @@
+// Public parameter names remain stable for callers and stored-model compatibility.
+// ignore_for_file: prefer_initializing_formals
 import 'dart:collection';
+import '../../../core/domain/money.dart';
 
 import '../../../core/notifications/reminder_models.dart';
 
@@ -56,20 +59,23 @@ class FinanceAccount {
   const FinanceAccount({
     required this.id,
     required this.name,
-    this.openingBalance = 0,
+    double openingBalance = 0,
+    int? openingBalanceMinor,
     this.currencyCode = 'IRT',
     this.kind = 'cash',
     this.bankName,
     this.accountNumber,
     this.archived = false,
-  });
+  }) : _legacyOpeningBalance = openingBalance,
+       _openingBalanceMinor = openingBalanceMinor;
 
   factory FinanceAccount.fromJson(Map<String, Object?> json) => FinanceAccount(
     id: json['id']! as String,
     name: json['name']! as String,
-    openingBalance: (json['openingBalanceMinor'] as num?)?.toDouble() != null
-        ? (json['openingBalanceMinor'] as num).toDouble() / 100
-        : (json['openingBalance'] as num?)?.toDouble() ?? 0,
+    openingBalanceMinor: Money.readMinor(
+      json['openingBalanceMinor'],
+      json['openingBalance'],
+    ),
     currencyCode: json['currencyCode']?.toString() ?? 'IRT',
     kind: json['kind']?.toString() ?? 'cash',
     bankName: json['bankName']?.toString(),
@@ -79,11 +85,15 @@ class FinanceAccount {
 
   final String id;
   final String name;
-  final double openingBalance;
+  final double _legacyOpeningBalance;
+  final int? _openingBalanceMinor;
+  double get openingBalance => openingBalanceMinor / 100;
   final String currencyCode, kind;
   final String? bankName, accountNumber;
   final bool archived;
-  int get openingBalanceMinor => (openingBalance * 100).round();
+  int get openingBalanceMinor =>
+      _openingBalanceMinor ??
+      Money.parse(_legacyOpeningBalance.toString()).minorUnits;
 
   Map<String, Object?> toJson() => {
     'id': id,
@@ -102,7 +112,8 @@ class FinanceTransaction {
   const FinanceTransaction({
     required this.id,
     required this.type,
-    required this.amount,
+    double amount = 0,
+    int? amountMinor,
     required this.dateTime,
     required this.accountId,
     this.toAccountId,
@@ -115,7 +126,8 @@ class FinanceTransaction {
     this.paid = false,
     this.reminder = const ReminderPlan(),
     this.projectId,
-  });
+  }) : _legacyAmount = amount,
+       _amountMinor = amountMinor;
 
   factory FinanceTransaction.fromJson(Map<String, Object?> json) =>
       FinanceTransaction(
@@ -124,9 +136,7 @@ class FinanceTransaction {
           (value) => value.name == json['type'],
           orElse: () => FinanceTransactionType.expense,
         ),
-        amount: json['amountMinor'] is num
-            ? (json['amountMinor'] as num).toDouble() / 100
-            : (json['amount'] as num).toDouble(),
+        amountMinor: Money.readMinor(json['amountMinor'], json['amount']),
         dateTime: DateTime.parse(json['dateTime']! as String),
         accountId: json['accountId']! as String,
         toAccountId: json['toAccountId']?.toString(),
@@ -149,11 +159,14 @@ class FinanceTransaction {
 
   final String id;
   final FinanceTransactionType type;
-  final double amount;
+  final double _legacyAmount;
+  final int? _amountMinor;
+  double get amount => amountMinor / 100;
   final DateTime dateTime;
   final String accountId;
   final String? toAccountId;
-  int get amountMinor => (amount * 100).round();
+  int get amountMinor =>
+      _amountMinor ?? Money.parse(_legacyAmount.toString()).minorUnits;
   final String? category;
   final String? note;
   final DateTime? dueDate;
@@ -189,7 +202,7 @@ class FinanceTransaction {
       FinanceTransaction(
         id: id,
         type: type,
-        amount: amount,
+        amountMinor: amountMinor,
         dateTime: dateTime,
         accountId: accountId,
         toAccountId: toAccountId,
@@ -265,6 +278,6 @@ class FinanceState {
           .fold<int>(0, (sum, a) => sum + accountBalanceMinor(a.id)),
   };
   double get balance => currencies.length > 1
-      ? 0
+      ? throw StateError('Select a currency before requesting a total balance')
       : balanceByCurrency.values.fold<int>(0, (a, b) => a + b) / 100;
 }

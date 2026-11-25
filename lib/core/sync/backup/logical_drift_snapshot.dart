@@ -88,10 +88,6 @@ class LogicalDriftSnapshotService {
                   ..where((r) => r.entityType.equals(type) & r.id.equals(id)))
                 .getSingleOrNull();
         if (existing != null) {
-          if (canonicalJson(payload) == existing.payloadJson &&
-              (deleted != null) == (existing.deletedAt != null)) {
-            continue;
-          }
           final order = compareClocks(
             decodeClock(
               existing.clockJson,
@@ -100,7 +96,11 @@ class LogicalDriftSnapshotService {
             ),
             clock,
           );
-          if (order != ClockOrder.after) {
+          if (order == ClockOrder.concurrent ||
+              (order == ClockOrder.equal &&
+                  (canonicalJson(payload) !=
+                          canonicalJson(jsonDecode(existing.payloadJson)) ||
+                      (deleted != null) != (existing.deletedAt != null)))) {
             final store = DriftSyncStore(providerId: 'restore', database: db);
             await store.saveConflicts([
               SyncConflict(
@@ -121,12 +121,12 @@ class LogicalDriftSnapshotService {
               ),
             ]);
           }
-          continue;
+          if (order != ClockOrder.before) continue;
         }
         final encoded = canonicalJson(payload);
         await db
             .into(db.entityDocuments)
-            .insert(
+            .insertOnConflictUpdate(
               EntityDocumentsCompanion.insert(
                 id: id,
                 entityType: type,
