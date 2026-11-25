@@ -26,7 +26,8 @@ jobs:
       - name: Install Linux desktop requirements
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev pulseaudio-utils ffmpeg libwebkit2gtk-4.1-dev libsoup-3.0-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev pulseaudio-utils ffmpeg libwebkit2gtk-4.1-dev libsoup-3.0-dev libmpv-dev
+          pkg-config --modversion mpv
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.0'
@@ -56,6 +57,11 @@ jobs:
         run: |
           mkdir -p release/linux
           tar -C build/linux/x64/release/bundle -czf release/linux/Raha-Life-Linux-x64-portable.tar.gz .
+          printf '%s\n' \
+            'Raha Life for Linux x86-64. System libraries are not bundled.' \
+            'On Ubuntu 24.04 install: libgtk-3-0t64 libsecret-1-0 libwebkit2gtk-4.1-0 libmpv2 ffmpeg.' \
+            'Extract the archive and start raha_life from the extracted directory.' \
+            > release/linux/READ_ME.txt
           sha256sum release/linux/Raha-Life-Linux-x64-portable.tar.gz > release/linux/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:

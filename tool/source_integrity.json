@@ -1,7 +1,7 @@
 {
   ".github/workflows/android-upgrade-preview.yml": "dc6e3864bedf6f9b735f8278640ce348a650621b6f7fc3e51e77ef03ef5196c7",
   ".github/workflows/build-apple.yml": "772e85488974dac476efc130d41505e52d98604ddb744a35f8d47683ec881577",
-  ".github/workflows/build-extended-platforms.yml": "28a40309f5538b0726777c50fa8a516151a657414d4f7b968629c5b5665d20c5",
+  ".github/workflows/build-extended-platforms.yml": "6e24b7043965f571e173cdc4b5c80b55c142e250e0d8ecd7e25bfac7a31429a7",
   ".github/workflows/build-release.yml": "16b3e2e93f4c9aa01aaa18f6a8f29b4cdfbe83580db61f7a7a2728b18fa7cb3e",
   ".github/workflows/flutter-ci.yml": "3d454df160132b7efa7802deca4dcc3ab0a7b08e94236ba29c8f43b444922ad5",
   ".github/workflows/server-ci.yml": "9f80996c6d3b8bec027cbbe9f0f0697b258108ce4e690788af187437048f935e",
