@@ -255,7 +255,7 @@
   "test/recurrence_test.dart": "3815abf7836e75496610610c74940adf435a0b01c0d92aed967c3b837aa36450",
   "test/release_010_safety_test.dart": "be003a98183743d8f70a4a20772d92c45dd3875007faca42e3e5764eeeba7313",
   "test/release_09_domain_test.dart": "32d73a69790dba94930b3eed49c0c03407026572423900f4b041d033e2f1189d",
-  "test/release_09_ui_test.dart": "45a1be1b4dbf44d8fec0ac4c2b116008d809aee8bdae729e1d37cdadea9d2784",
+  "test/release_09_ui_test.dart": "d119e68771b2cee752ef3e73a094fc0cc04823ecba29d721b7d13c259dc8f97e",
   "test/reminder_models_test.dart": "32d5e26b7d3bb807ab01e2218e67527a1e795d31eb52998e2dbf57e50739991f",
   "test/scheduled_shopping_test.dart": "0db8acda8cf471864b541d9246c55d9ae36b5a8dc3a3eab6e5eeb19c8a55138c",
   "test/schema_upgrade_v7_test.dart": "480802e28a0269b81ea4a090a07a756d2844db93945996f2586571bac2401713",
