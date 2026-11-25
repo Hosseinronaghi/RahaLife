@@ -3,7 +3,7 @@ name: Build Raha Life
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches: [main, master, 'review/v0.10.0-dev.5']
     tags: ['v*']
 
 permissions:
@@ -93,6 +93,7 @@ jobs:
 
       - name: Detect persistent Android release signing
         id: raha_signing
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         shell: bash
         env:
           RAHA_ANDROID_KEYSTORE_BASE64: ${{ secrets.RAHA_ANDROID_KEYSTORE_BASE64 }}

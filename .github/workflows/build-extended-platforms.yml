@@ -2,6 +2,8 @@ name: Build Raha Life Extended Platforms
 
 on:
   workflow_dispatch:
+  push:
+    branches: ['review/v0.10.0-dev.5']
 
 permissions:
   contents: read
