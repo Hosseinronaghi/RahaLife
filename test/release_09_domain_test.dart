@@ -119,6 +119,7 @@ void main() {
       expect(f.overlaps(DateTime(2026, 2, 2, 23)), true);
       expect(f.overlaps(DateTime(2026, 2, 3)), false);
       expect(f.samples, 0);
+      expect(f.hasEnoughHistory, isFalse);
     },
   );
   test(
@@ -200,7 +201,7 @@ void main() {
     c.dispose();
   });
   test('default selective sync excludes health finance people and events', () {
-    final types = syncTypes({'modules': defaultSyncModules.join(',')})!;
+    final types = syncTypes({'modules': defaultSyncModules.join(',')});
     expect(types, contains('shopping_item'));
     for (final type in [
       'cycle_log',
@@ -211,6 +212,6 @@ void main() {
       expect(types, isNot(contains(type)));
     }
     expect(syncTypes({'modules': ''}), isEmpty);
-    expect(syncTypes({}), isNull);
+    expect(syncTypes({}), types);
   });
 }

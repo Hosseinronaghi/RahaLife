@@ -84,7 +84,11 @@ void main() {
     expect(restored.outcome, DoseOutcome.notTaken);
     expect(restored.takenAt, isNull);
     expect(restored.id, MedicationDose.occurrenceId('plan', at.toLocal()));
-    expect(syncTypes({'modules': 'health'}), contains('medication_dose'));
+    expect(syncTypes({'modules': 'health'}), isEmpty);
+    expect(
+      syncTypes({'modules': 'health', sensitiveSyncConsentKey: 'true'}),
+      contains('medication_dose'),
+    );
     expect(
       syncTypes({'modules': defaultSyncModules.join(',')}),
       isNot(contains('medication_dose')),
