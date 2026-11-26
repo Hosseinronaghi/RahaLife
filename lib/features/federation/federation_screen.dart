@@ -23,6 +23,8 @@ class _FederationState extends State<FederationScreen> {
   int loadGeneration = 0;
   String mode = 'matrix', identity = '', error = '', visibility = 'private';
   String? room;
+  String? olderCursor;
+  final seenHistoryCursors = <String>{};
   bool busy = false, encrypted = false;
   List<String> rooms = [];
   List<Map<String, dynamic>> events = [];
@@ -53,6 +55,8 @@ class _FederationState extends State<FederationScreen> {
     selectedAccount = null;
     encrypted = false;
     room = null;
+    olderCursor = null;
+    seenHistoryCursors.clear();
     rooms = [];
     events = [];
     pending = [];
@@ -122,10 +126,29 @@ class _FederationState extends State<FederationScreen> {
   Future<void> openRoom(String id) async {
     final c = client;
     final isEncrypted = await c.matrixEncrypted(id);
-    final messages = await c.matrixMessages(id);
+    final page = await c.matrixHistory(id);
     room = id;
     encrypted = isEncrypted;
-    events = messages;
+    events = page.events;
+    olderCursor = page.olderCursor;
+    seenHistoryCursors.clear();
+  }
+
+  Future<void> loadOlderMessages() async {
+    final id = room;
+    final cursor = olderCursor;
+    if (id == null || cursor == null) return;
+    final page = await client.matrixHistory(id, from: cursor);
+    seenHistoryCursors.add(cursor);
+    final ids = events.map((event) => event['event_id']).toSet();
+    final older = [
+      for (final event in page.events.reversed)
+        if (ids.add(event['event_id'])) event,
+    ];
+    events = [...older.reversed, ...events];
+    olderCursor = seenHistoryCursors.contains(page.olderCursor)
+        ? null
+        : page.olderCursor;
   }
 
   Future<void> sendPending(Map<String, dynamic> item) async {
@@ -465,6 +488,12 @@ class _FederationState extends State<FederationScreen> {
               ),
             ],
             onChanged: (v) => setState(() => visibility = v!),
+          ),
+        if (mode == 'matrix' && room != null && olderCursor != null)
+          OutlinedButton.icon(
+            onPressed: busy ? null : () => run(loadOlderMessages),
+            icon: const Icon(Icons.history),
+            label: Text(t('پیام‌های قدیمی‌تر', 'Older messages')),
           ),
         for (final event in events)
           Card(

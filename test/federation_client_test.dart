@@ -7,6 +7,7 @@ import 'package:raha_life/features/federation/federation_client.dart';
 class FakeAdapter implements HttpClientAdapter {
   final calls = <RequestOptions>[];
   bool encrypted = false;
+  Map<String?, Object> history = {};
   @override
   Future<ResponseBody> fetch(
     RequestOptions options,
@@ -25,6 +26,13 @@ class FakeAdapter implements HttpClientAdapter {
         headers: {
           'content-type': ['application/json'],
         },
+      );
+    }
+    if (options.uri.path.endsWith('/messages')) {
+      return ResponseBody.fromString(
+        jsonEncode(history[options.queryParameters['from']]),
+        200,
+        headers: {'content-type': ['application/json']},
       );
     }
     return ResponseBody.fromString(
@@ -90,6 +98,42 @@ void main() {
       expect(sends.first.headers['Authorization'], 'Bearer secret');
     },
   );
+  test('Matrix history follows older cursors even after an empty page', () async {
+    final adapter = FakeAdapter()..history = {
+      null: {
+        'chunk': [
+          {'event_id': 'new', 'type': 'm.room.encrypted'},
+          {'event_id': 'previous', 'type': 'm.room.message'},
+        ],
+        'end': 'first',
+      },
+      'first': {'chunk': [], 'end': 'next'},
+      'next': {
+        'chunk': [
+          {'event_id': 'old', 'type': 'm.room.message'},
+          {'event_id': 'join', 'type': 'm.room.member'},
+        ],
+      },
+    };
+    final client = FederationClient(
+      'https://matrix.example',
+      'secret',
+      dio: Dio()..httpClientAdapter = adapter,
+    );
+    final latest = await client.matrixHistory('!room:matrix.example');
+    expect(latest.events.map((item) => item['event_id']), ['previous', 'new']);
+    final empty = await client.matrixHistory(
+      '!room:matrix.example', from: latest.olderCursor,
+    );
+    expect(empty.events, isEmpty);
+    expect(empty.olderCursor, 'next');
+    final old = await client.matrixHistory(
+      '!room:matrix.example', from: empty.olderCursor,
+    );
+    expect(old.events.single['event_id'], 'old');
+    expect(old.olderCursor, isNull);
+    expect(adapter.calls.map((e) => e.queryParameters['from']), [null, 'first', 'next']);
+  });
   test('Mastodon visibility and idempotency are explicit', () async {
     final adapter = FakeAdapter();
     final dio = Dio()..httpClientAdapter = adapter;

@@ -1,5 +1,11 @@
 import 'package:dio/dio.dart';
 
+class MatrixHistoryPage {
+  const MatrixHistoryPage(this.events, this.olderCursor);
+  final List<Map<String, dynamic>> events;
+  final String? olderCursor;
+}
+
 /// Tokens are bound to one explicit HTTPS origin; redirects never receive them.
 class FederationClient {
   FederationClient(String server, String token, {Dio? dio})
@@ -78,17 +84,33 @@ class FederationClient {
     }
   }
 
-  Future<List<Map<String, dynamic>>> matrixMessages(String room) async {
+  Future<MatrixHistoryPage> matrixHistory(String room, {String? from}) async {
     final response = await request(
       'GET',
       '/_matrix/client/v3/rooms/${Uri.encodeComponent(room)}/messages',
-      query: {'dir': 'b', 'limit': 50},
+      query: {'dir': 'b', 'limit': 50, if (from != null) 'from': from},
     );
-    return (response['chunk'] as List)
-        .map((e) => Map<String, dynamic>.from(e as Map))
-        .toList()
-        .reversed
-        .toList();
+    if (response is! Map || response['chunk'] is! List) {
+      throw const FormatException('Invalid Matrix history page');
+    }
+    final end = response['end'];
+    if (end != null && end is! String) {
+      throw const FormatException('Invalid Matrix history cursor');
+    }
+    final events = <Map<String, dynamic>>[];
+    for (final item in (response['chunk'] as List).reversed) {
+      if (item is! Map || item['event_id'] is! String) {
+        throw const FormatException('Invalid Matrix history event');
+      }
+      if (item['type'] == 'm.room.message' ||
+          item['type'] == 'm.room.encrypted') {
+        events.add(Map<String, dynamic>.from(item));
+      }
+    }
+    return MatrixHistoryPage(
+      events,
+      end is String && end.isNotEmpty && end != from ? end : null,
+    );
   }
 
   Future<void> matrixSend(
