@@ -64,7 +64,9 @@ jobs:
             'On Ubuntu 24.04 install: libgtk-3-0t64 libsecret-1-0 libwebkit2gtk-4.1-0 libmpv2 ffmpeg.' \
             'Extract the archive and start raha_life from the extracted directory.' \
             > release/linux/READ_ME.txt
-          sha256sum release/linux/Raha-Life-Linux-x64-portable.tar.gz > release/linux/SHA256SUMS.txt
+          cd release/linux
+          sha256sum Raha-Life-Linux-x64-portable.tar.gz > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: Raha-Life-Linux

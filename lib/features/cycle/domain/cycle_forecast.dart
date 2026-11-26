@@ -17,6 +17,7 @@ class CycleForecast {
   );
   final DateTime start;
   final int durationDays, intervalDays, samples, variationDays;
+  bool get hasEnoughHistory => samples >= 2;
   DateTime get end =>
       DateTime(start.year, start.month, start.day + durationDays - 1);
   bool overlaps(DateTime at) =>

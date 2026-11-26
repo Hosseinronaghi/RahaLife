@@ -77,10 +77,10 @@ class ReportsScreen extends ConsumerWidget {
               _MetricCard(
                 icon: Icons.payments_rounded,
                 label: l10n.balance,
-                value: finance.balanceByCurrency.entries
+                value: finance.exactBalanceByCurrency.entries
                     .map(
                       (e) =>
-                          '${localizedNumber(e.value / 100, locale)} ${financeCurrencyLabel(context, e.key)}',
+                          '${localizedMoneyMinor(e.value, locale)} ${financeCurrencyLabel(context, e.key)}',
                     )
                     .join(' / '),
               ),

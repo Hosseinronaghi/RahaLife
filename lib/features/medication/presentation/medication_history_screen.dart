@@ -94,8 +94,8 @@ class _HistoryState extends State<MedicationHistoryScreen> {
             Text(
               _text(
                 c,
-                'بدون ثبت، وضعیت این نوبت نامشخص است.',
-                'Without a record, this dose remains unknown.',
+                'بدون ثبت، وضعیت نوبت نامشخص است. ثبت نتیجه، یادآوری همان نوبت را می‌بندد. برای جابه‌جایی یادآوری، «تعویق» را بزنید.',
+                'Without a record the dose stays unknown. Recording an outcome closes this reminder. Choose Snooze to reschedule it.',
               ),
             ),
             TextField(
@@ -117,7 +117,9 @@ class _HistoryState extends State<MedicationHistoryScreen> {
             child: Text(_text(c, 'انصراف', 'Cancel')),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(c, DoseOutcome.notTaken),
+            onPressed: scheduled.isAfter(DateTime.now())
+                ? null
+                : () => Navigator.pop(c, DoseOutcome.notTaken),
             child: Text(_text(c, 'مصرف نشد', 'Not taken')),
           ),
           FilledButton(
@@ -149,7 +151,12 @@ class _HistoryState extends State<MedicationHistoryScreen> {
       if (time == null || !mounted) return;
       remindAt = DateTime(day.year, day.month, day.day, time.hour, time.minute);
       if (!remindAt.isAfter(DateTime.now())) {
-        throw StateError('Choose a future time');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_text(context, 'زمانی در آینده انتخاب کنید.', 'Choose a future time.'))),
+          );
+        }
+        return;
       }
     }
     if (outcome == DoseOutcome.taken) {
@@ -186,6 +193,21 @@ class _HistoryState extends State<MedicationHistoryScreen> {
         );
         return;
       }
+    }
+    if (outcome == DoseOutcome.taken && scheduled.isAfter(DateTime.now())) {
+      if (!mounted) return;
+      final confirm = await showRetainedDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(_text(c, 'ثبت مصرف زودتر از برنامه', 'Record an early dose')),
+          content: Text(_text(c, 'با ثبت مصرف، اعلان اصلی این نوبت لغو می‌شود.', 'Recording this dose cancels its original reminder.')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(_text(c, 'انصراف', 'Cancel'))),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(_text(c, 'ثبت مصرف', 'Record dose'))),
+          ],
+        ),
+      );
+      if (confirm != true || !mounted) return;
     }
     final dose = MedicationDose(
       id: id,

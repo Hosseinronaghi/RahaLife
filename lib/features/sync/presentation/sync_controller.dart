@@ -448,7 +448,7 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
         allowInsecureHttp: allowInsecureHttp,
       );
       final identity = await transport.destinationIdentity();
-      final scopeId = '$id:$identity:${profile.config['modules'] ?? '*'}';
+      final scopeId = '$id:$identity:${syncScopeIdentity(profile.config)}';
       if (_activeRecordProviderId != scopeId) {
         if (confirmDestination == null || !await confirmDestination(profile)) {
           state = state.copyWith(

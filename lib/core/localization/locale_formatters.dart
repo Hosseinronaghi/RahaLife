@@ -61,3 +61,20 @@ String localizedTime(DateTime date, Locale locale) {
 
 String localizedNumber(num value, Locale locale) =>
     localizeDigits(NumberFormat.decimalPattern('en').format(value), locale);
+
+/// Formats exact ledger totals without converting them to a double.
+String localizedMoneyMinor(BigInt minor, Locale locale) {
+  final fa = locale.languageCode == 'fa';
+  final absolute = minor.abs();
+  final digits = (absolute ~/ BigInt.from(100)).toString();
+  final fraction = (absolute % BigInt.from(100)).toString().padLeft(2, '0');
+  final grouped = StringBuffer(minor.isNegative ? '-' : '');
+  for (var index = 0; index < digits.length; index++) {
+    if (index > 0 && (digits.length - index) % 3 == 0) {
+      grouped.write(fa ? '٬' : ',');
+    }
+    grouped.write(digits[index]);
+  }
+  if (fraction != '00') grouped.write('${fa ? '٫' : '.'}$fraction');
+  return localizeDigits(grouped, locale);
+}

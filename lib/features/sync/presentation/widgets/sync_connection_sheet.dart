@@ -290,6 +290,9 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final config = <String, String>{
       if (_supportsRecordSync) 'modules': (_modules.toList()..sort()).join(','),
+      if (_supportsRecordSync)
+        sensitiveSyncConsentKey:
+            _modules.any(sensitiveSyncModules.contains).toString(),
     };
     final credentials = <String, String>{};
     switch (widget.kind) {
@@ -405,8 +408,8 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
               Text(t('بخش‌های مجاز برای همگام‌سازی', 'Modules to synchronize')),
               Text(
                 t(
-                  'انتخاب‌ها فقط مربوط به سینک است؛ بکاپ همچنان کامل است. اطلاعات سلامت و مالی پیش‌فرض انتخاب نشده‌اند.',
-                  'These choices affect sync, not full backups. Health and finance are off by default.',
+                  'سرور می‌تواند محتوای سینک را بخواند. انتخاب سلامت یا مالی و ذخیرهٔ اتصال، اجازهٔ ارسال این بخش‌هاست. بکاپ مستقل است.',
+                  'The server can read sync content. Selecting Health or Finance and saving the connection allows those records to be sent. Backups are separate.',
                 ),
               ),
               for (final module in syncModuleTypes.keys)

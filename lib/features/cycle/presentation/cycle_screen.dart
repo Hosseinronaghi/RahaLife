@@ -22,9 +22,9 @@ class CycleScreen extends ConsumerWidget {
     final locale = Localizations.localeOf(context);
     final logs = ref.watch(cycleProvider);
     final hideSensitive = ref.watch(cyclePrivacyProvider);
-    final predicted = ref.read(cycleProvider.notifier).predictedNextStart;
     final fa = locale.languageCode == 'fa';
     final forecast = CycleForecast.fromLogs(logs);
+    final predicted = forecast?.hasEnoughHistory == true ? forecast!.start : null;
     final conflicts =
         (ref.watch(agendaProvider).asData?.value ?? <AgendaItem>[])
             .where(
@@ -34,7 +34,7 @@ class CycleScreen extends ConsumerWidget {
                   e.type != 'cycle_conflict' &&
                   e.type != 'birthday' &&
                   e.type != 'medication' &&
-                  (forecast?.overlaps(e.at) ?? false),
+                  (forecast?.hasEnoughHistory == true && forecast!.overlaps(e.at)),
             )
             .toList();
     final latest = logs.isEmpty ? null : logs.first;
@@ -78,13 +78,13 @@ class CycleScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      fa
-                          ? 'برآورد بر پایهٔ سوابق شما'
-                          : 'Estimate from your records',
+                      forecast.hasEnoughHistory
+                          ? (fa ? 'برآورد بر پایهٔ سوابق شما' : 'Estimate from your records')
+                          : (fa ? 'سابقه برای برآورد شخصی کافی نیست' : 'Not enough history for a personal estimate'),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    if (forecast.hasEnoughHistory) Text(
                       localizeDigits(
                         fa
                             ? 'فاصله: ${forecast.intervalDays} روز · مدت: ${forecast.durationDays} روز · تعداد فاصله‌های ثبت‌شده: ${forecast.samples}'
@@ -97,7 +97,7 @@ class CycleScreen extends ConsumerWidget {
                           ? 'این تاریخ تقریبی است؛ هم‌زمانی برنامه‌ها به معنی تداخل پزشکی نیست.'
                           : 'Dates are approximate. Schedule overlap does not imply a medical interaction.',
                     ),
-                    if (forecast.start.isBefore(
+                    if (forecast.hasEnoughHistory && forecast.start.isBefore(
                       DateTime(now.year, now.month, now.day),
                     ))
                       Text(
@@ -675,11 +675,9 @@ Future<void> showCycleForm(
                           predictionReminder: reminder,
                           predictionReminderTime: timeText,
                         );
-                    final predicted = ref
-                        .read(cycleProvider.notifier)
-                        .predictedNextStart;
+                    final forecast = CycleForecast.fromLogs(ref.read(cycleProvider));
                     if ((reminder.enabled || conflictReminders) &&
-                        predicted != null) {
+                        forecast?.hasEnoughHistory == true) {
                       await ReminderService.instance.requestPermissions();
                       // Persisted data is reconciled by ReminderCoordinator.
                     }

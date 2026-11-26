@@ -13,6 +13,13 @@ import '../../features/widgets/data/home_widget_bridge.dart';
 import 'reminder_service.dart';
 import 'reminder_models.dart';
 
+String publicReminderTitle(AgendaItem item, {required bool fa}) =>
+    switch (item.type) {
+      'medication' || 'cycle' || 'cycle_conflict' =>
+        fa ? 'یادآوری رها' : 'Raha reminder',
+      _ => item.title,
+    };
+
 class ReminderCoordinator {
   Timer? _timer;
   Future<void> _tail = Future<void>.value();
@@ -31,6 +38,7 @@ class ReminderCoordinator {
   Future<void> _reconcile(List<AgendaItem> items) async {
     if (kIsWeb) return;
     final prefs = await SharedPreferences.getInstance();
+    final fa = (prefs.getString('settings.locale') ?? 'fa') == 'fa';
     final service = ReminderService.instance;
     await service.initialize();
     await service.refreshTimezone();
@@ -50,7 +58,7 @@ class ReminderCoordinator {
                 jsonEncode([
                   _fireTime(item).toUtc().toIso8601String(),
                   service.schedulingTimezone,
-                  item.title,
+                  publicReminderTitle(item, fa: fa),
                   item.route,
                   item.plan.kind.name,
                 ]),
@@ -78,8 +86,8 @@ class ReminderCoordinator {
         final item = wantedItems[key]!;
         return service.schedule(
           key: key,
-          title: item.title,
-          body: item.title,
+          title: publicReminderTitle(item, fa: fa),
+          body: publicReminderTitle(item, fa: fa),
           eventDateTime: item.at,
           plan: item.plan.copyWith(repeat: ReminderRepeat.none),
           payload: 'route:${item.route}',
@@ -111,12 +119,16 @@ class ReminderCoordinator {
         )
         .toList();
     String first(String type) =>
-        today.where((e) => e.type == type).firstOrNull?.title ?? '—';
+          today.where((e) => e.type == type).map(
+          (item) => publicReminderTitle(item, fa: fa),
+        ).firstOrNull ?? '—';
     await RahaHomeWidgetBridge.updateDashboard(
       RahaWidgetDashboardData(
         todayTitle: fa ? 'امروز' : 'Today',
         todaySummary: '${today.length}',
-        todayNextItem: today.firstOrNull?.title ?? '—',
+        todayNextItem: today.isEmpty
+            ? '—'
+            : publicReminderTitle(today.first, fa: fa),
         affairsTitle: fa ? 'کارها' : 'Tasks',
         affairsSummary: first('affair'),
         medicationTitle: fa ? 'دارو' : 'Medication',

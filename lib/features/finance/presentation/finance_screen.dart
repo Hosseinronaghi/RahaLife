@@ -56,12 +56,12 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         children: [
           if (state.currencies.length <= 1) _Summary(state: state),
-          for (final entry in state.balanceByCurrency.entries)
+          for (final entry in state.exactBalanceByCurrency.entries)
             ListTile(
               title: Text(financeCurrencyLabel(context, entry.key)),
               trailing: Text(
-                localizeDigits(
-                  (entry.value / 100).toStringAsFixed(2),
+                localizedMoneyMinor(
+                  entry.value,
                   Localizations.localeOf(context),
                 ),
               ),
@@ -80,9 +80,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                   '${financeCurrencyLabel(context, account.currencyCode)} · ${financeAccountKindLabel(context, account.kind)}${account.archived ? ' · ${tr(context, 'بایگانی', 'Archived')}' : ''}',
                 ),
                 trailing: Text(
-                  localizeDigits(
-                    (state.accountBalanceMinor(account.id) / 100)
-                        .toStringAsFixed(2),
+                  localizedMoneyMinor(
+                    state.exactAccountBalanceMinor(account.id),
                     Localizations.localeOf(context),
                   ),
                 ),
@@ -172,8 +171,8 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
                             ),
                           Flexible(
                             child: Text(
-                              localizeDigits(
-                                item.amount.toStringAsFixed(0),
+                              localizedMoneyMinor(
+                                BigInt.from(item.amountMinor),
                                 Localizations.localeOf(context),
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -196,9 +195,10 @@ class _FinanceScreenState extends ConsumerState<FinanceScreen> {
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.small(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showFinanceForm(context, ref),
-        child: const Icon(Icons.add_rounded),
+        icon: const Icon(Icons.add_rounded),
+        label: Text(tr(context, 'ثبت تراکنش', 'Add transaction')),
       ),
     );
   }
@@ -249,22 +249,22 @@ class _Summary extends StatelessWidget {
                         [
                               _Amount(
                                 label: l10n.balance,
-                                value: subset.balance,
+                                value: subset.exactBalanceByCurrency[currency] ?? BigInt.zero,
                                 icon: Icons.account_balance_wallet_rounded,
                               ),
                               _Amount(
                                 label: l10n.income,
-                                value: subset.income,
+                                value: subset.incomeMinor,
                                 icon: Icons.trending_up_rounded,
                               ),
                               _Amount(
                                 label: l10n.expense,
-                                value: subset.expense,
+                                value: subset.expenseMinor,
                                 icon: Icons.trending_down_rounded,
                               ),
                             ]
                             .map(
-                              (widget) => SizedBox(width: 180, child: widget),
+                              (widget) => SizedBox(width: 144, child: widget),
                             )
                             .toList(),
                   );
@@ -285,7 +285,7 @@ class _Summary extends StatelessWidget {
 class _Amount extends StatelessWidget {
   const _Amount({required this.label, required this.value, required this.icon});
   final String label;
-  final double value;
+  final BigInt value;
   final IconData icon;
 
   @override
@@ -305,8 +305,8 @@ class _Amount extends StatelessWidget {
             children: [
               Text(label),
               Text(
-                localizeDigits(
-                  value.toStringAsFixed(0),
+                localizedMoneyMinor(
+                  value,
                   Localizations.localeOf(context),
                 ),
                 style: Theme.of(context).textTheme.titleMedium,
@@ -452,7 +452,10 @@ Future<void> showFinanceForm(
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: InputDecoration(labelText: l10n.amount),
+                    decoration: InputDecoration(
+                      labelText: '${l10n.amount} (${financeCurrencyLabel(context, accounts.where((a) => a.id == accountId).firstOrNull?.currencyCode ?? accounts.firstOrNull?.currencyCode ?? 'IRT')})',
+                      helperText: tr(context, 'نمونه: ۱٬۲۳۴٫۵۰', 'Example: 1,234.50'),
+                    ),
                     validator: (value) {
                       try {
                         final minor = Money.parse(value ?? '').minorUnits;

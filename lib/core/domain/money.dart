@@ -12,7 +12,18 @@ class Money {
     for (var i = 0; i < digits.length; i++) {
       text = text.replaceAll(digits[i], '${i % 10}');
     }
-    text = text.replaceAll(',', '').replaceAll('٬', '').replaceAll('٫', '.');
+    if (text.contains(',') || text.contains('٬')) {
+      // A comma may mean a decimal separator in pasted input. Strip a
+      // separator only after checking that it is valid thousand grouping.
+      final grouping = RegExp(
+        r'^[+-]?\d{1,3}([,٬])\d{3}(?:\1\d{3})*(?:[.٫]\d+)?$',
+      );
+      if (!grouping.hasMatch(text)) {
+        throw const FormatException('Invalid or ambiguous amount grouping');
+      }
+      text = text.replaceAll(',', '').replaceAll('٬', '');
+    }
+    text = text.replaceAll('٫', '.');
     final match = RegExp(
       r'^([+-]?)(\d+)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$',
     ).firstMatch(text);

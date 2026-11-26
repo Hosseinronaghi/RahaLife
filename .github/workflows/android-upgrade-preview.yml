@@ -21,7 +21,7 @@ jobs:
           path: candidate
       - uses: actions/checkout@v5
         with:
-          ref: 6c55d62e70a539f0a43d72eb46f81059760b2d44
+          ref: d6c7838ee395651608f662087fddb7f4452678fc
           path: baseline
       - uses: actions/setup-java@v5
         with:
@@ -76,6 +76,17 @@ jobs:
               flutter build apk --debug --target-platform android-x64
             )
           done
+      - name: Verify package ID, increasing version code and matching test signer
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          for executable in apkanalyzer apksigner; do
+            bin="$(find "$sdk" -name "$executable" -type f -executable | sort -V | tail -1)"
+            test -n "$bin"
+            export PATH="$(dirname "$bin"):$PATH"
+          done
+          python3 candidate/tool/verify_android_upgrade.py \
+            baseline/build/app/outputs/flutter-apk/app-debug.apk \
+            candidate/build/app/outputs/flutter-apk/app-debug.apk
       - name: Boot a fresh Android 35 emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-raha-kvm.rules

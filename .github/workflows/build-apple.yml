@@ -52,7 +52,7 @@ jobs:
             mkdir -p build
             echo '{}' > build/oauth-macos.json
           fi
-          flutter build macos --release --build-name=0.10.0 --dart-define-from-file=build/oauth-macos.json
+          flutter build macos --release --build-name="$(python3 tool/check_app_version.py)" --dart-define-from-file=build/oauth-macos.json
           mkdir -p release/macos
           APP=build/macos/Build/Products/Release/raha_life.app
           test -d "$APP"
@@ -74,7 +74,7 @@ jobs:
             mkdir -p build
             echo '{}' > build/oauth-ios.json
           fi
-          flutter build ipa --release --no-codesign --build-name=0.10.0 --dart-define-from-file=build/oauth-ios.json
+          flutter build ipa --release --no-codesign --build-name="$(python3 tool/check_app_version.py)" --dart-define-from-file=build/oauth-ios.json
           mkdir -p release/ios
           test -d build/ios/archive/Runner.xcarchive
           ditto -c -k --sequesterRsrc --keepParent build/ios/archive/Runner.xcarchive release/ios/Raha-Life-iPhone-unsigned-archive.zip

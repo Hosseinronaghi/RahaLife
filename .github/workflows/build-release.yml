@@ -150,19 +150,19 @@ jobs:
       - name: Build universal APK
         run: |
           python tool/write_oauth_build_config.py android
-          flutter build apk --release --dart-define-from-file=build/oauth-android.json
+          flutter build apk --release --build-name="$(python3 tool/check_app_version.py)" --dart-define-from-file=build/oauth-android.json
           mkdir -p release/android
           cp build/app/outputs/flutter-apk/app-release.apk release/android/Raha-Life-universal-release.apk
 
       - name: Build split APKs
         run: |
           python tool/write_oauth_build_config.py android
-          flutter build apk --release --split-per-abi --dart-define-from-file=build/oauth-android.json
+          flutter build apk --release --build-name="$(python3 tool/check_app_version.py)" --split-per-abi --dart-define-from-file=build/oauth-android.json
 
       - name: Build Android App Bundle
         run: |
           python tool/write_oauth_build_config.py android
-          flutter build appbundle --release --dart-define-from-file=build/oauth-android.json
+          flutter build appbundle --release --build-name="$(python3 tool/check_app_version.py)" --dart-define-from-file=build/oauth-android.json
 
       - name: Rename Android artifacts
         shell: bash
@@ -172,7 +172,26 @@ jobs:
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release/android/Raha-Life-armeabi-v7a-release.apk
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk release/android/Raha-Life-x86_64-release.apk
           cp build/app/outputs/bundle/release/app-release.aab release/android/Raha-Life-release.aab
-          sha256sum release/android/* > release/android/SHA256SUMS.txt
+          cd release/android
+          sha256sum *.apk *.aab SIGNING_STATUS.txt > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+
+      - name: Verify the generated Android version and package ID
+        shell: bash
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          aapt="$(find "$sdk/build-tools" -name aapt -type f -executable | sort -V | tail -1)"
+          test -n "$aapt"
+          expected_version="$(python3 tool/check_app_version.py)"
+          expected_code="$(sed -nE 's/^version: .*\+([0-9]+)$/\1/p' pubspec.yaml)"
+          for apk in release/android/*.apk; do
+            manifest="$("$aapt" dump badging "$apk" | sed -n '/^package:/p')"
+            [[ "$manifest" == *"name='com.raha.raha_life'"* ]]
+            [[ "$manifest" == *"versionName='$expected_version'"* ]]
+            if [[ "$apk" == *universal* ]]; then
+              [[ "$manifest" == *"versionCode='$expected_code'"* ]]
+            fi
+          done
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
@@ -309,7 +328,9 @@ jobs:
           cd build/web
           zip -r ../../release/web/Raha-Life-Web-release.zip .
           cd ../..
-          sha256sum release/web/Raha-Life-Web-release.zip > release/web/SHA256SUMS.txt
+          cd release/web
+          sha256sum Raha-Life-Web-release.zip > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
 
       - name: Upload Web artifact
         uses: actions/upload-artifact@v4
