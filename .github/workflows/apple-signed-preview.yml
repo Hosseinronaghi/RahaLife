@@ -1,0 +1,67 @@
+name: Sign Raha Life for Apple devices
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        required: true
+        type: choice
+        options: [ios, macos]
+
+permissions:
+  contents: read
+
+jobs:
+  sign:
+    # Secrets are only available in the protected environment on main.
+    if: github.ref == 'refs/heads/main'
+    environment: apple-release
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      CI: 'true'
+      DASH__SUPPRESS_ANALYTICS: 'true'
+      RAHA_ICLOUD_CONTAINER: ${{ vars.RAHA_ICLOUD_CONTAINER }}
+      RAHA_DROPBOX_CLIENT_ID: ${{ vars.RAHA_DROPBOX_CLIENT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - run: python3 tool/check_source_integrity.py
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+      - name: Generate the existing Apple targets
+        env:
+          RAHA_PLATFORM: ${{ inputs.platform }}
+        run: |
+          flutter create --platforms="$RAHA_PLATFORM" --org com.raha --project-name raha_life .
+          python3 tool/configure_branding.py
+          python3 tool/configure_apple_platforms.py
+          flutter pub get
+          flutter gen-l10n
+          dart run build_runner build --delete-conflicting-outputs
+          python3 tool/write_oauth_build_config.py "$RAHA_PLATFORM"
+      - name: Build unsigned macOS bundle before importing release credentials
+        if: inputs.platform == 'macos'
+        run: flutter build macos --release --dart-define-from-file=build/oauth-macos.json
+      - name: Sign and verify Apple output
+        env:
+          RAHA_PLATFORM: ${{ inputs.platform }}
+          RAHA_APPLE_TEAM_ID: ${{ vars.RAHA_APPLE_TEAM_ID }}
+          RAHA_IOS_P12: ${{ secrets.RAHA_IOS_P12 }}
+          RAHA_IOS_P12_PASSWORD: ${{ secrets.RAHA_IOS_P12_PASSWORD }}
+          RAHA_IOS_PROFILE: ${{ secrets.RAHA_IOS_PROFILE }}
+          RAHA_MAC_P12: ${{ secrets.RAHA_MAC_P12 }}
+          RAHA_MAC_P12_PASSWORD: ${{ secrets.RAHA_MAC_P12_PASSWORD }}
+          RAHA_MAC_PROFILE: ${{ secrets.RAHA_MAC_PROFILE }}
+          RAHA_NOTARY_API_KEY: ${{ secrets.RAHA_NOTARY_API_KEY }}
+          RAHA_NOTARY_KEY_ID: ${{ vars.RAHA_NOTARY_KEY_ID }}
+          RAHA_NOTARY_ISSUER: ${{ vars.RAHA_NOTARY_ISSUER }}
+        run: bash tool/sign_apple_release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Raha-Life-${{ inputs.platform }}-signed
+          path: release/signed/
+          if-no-files-found: error

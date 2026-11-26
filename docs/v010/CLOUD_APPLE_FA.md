@@ -6,3 +6,15 @@
 - هر دو مقصد فقط فایل پشتیبان رمزگذاری‌شدهٔ رها را منتقل می‌کنند. کلید بازیابی را جدا نگه دارید. این اتصال‌ها همگام‌سازی سرتاسری رکوردها یا رمزنگاری پیام را فعال نمی‌کنند.
 
 مراجع رسمی: [Google Desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app)، [Google Drive appDataFolder](https://developers.google.com/workspace/drive/api/guides/appdata)، [iCloud Documents](https://developer.apple.com/documentation/uikit/synchronizing-documents-in-the-icloud-environment).
+
+## ساخت دارای امضای رسمی
+
+گردش **Sign Raha Life for Apple devices** فقط دستی، روی `main` و داخل GitHub Environment با نام `apple-release` اجرا می‌شود. محیط را محدود به `main` و با بازبینی اجرای دستی بسازید. فایل کلید یا گواهی را در گفت‌وگو یا مخزن قرار ندهید.
+
+| هدف | متغیرهای ناشر | اسرار داخل محیط |
+|---|---|---|
+| مشترک | `RAHA_APPLE_TEAM_ID`؛ در صورت نیاز `RAHA_ICLOUD_CONTAINER` | — |
+| IPA برای دستگاه‌های ثبت‌شده | — | `RAHA_IOS_P12` (Base64)، `RAHA_IOS_P12_PASSWORD`، `RAHA_IOS_PROFILE` (Base64 از پروفایل Ad Hoc) |
+| DMG مک و notarization | `RAHA_NOTARY_KEY_ID`، `RAHA_NOTARY_ISSUER` | `RAHA_MAC_P12` (Base64 Developer ID Application)، `RAHA_MAC_P12_PASSWORD`، `RAHA_NOTARY_API_KEY` (Base64 فایل p8)؛ اگر iCloud فعال است `RAHA_MAC_PROFILE` (Base64 پروفایل Developer ID) |
+
+ساخت IPA برای TestFlight یا App Store مرحلهٔ جداست. این گردش هیچ خروجی‌ای را خودکار منتشر نمی‌کند؛ بستهٔ امضاشده و هش آن فقط پس از موفقیت در Artifacts قرار می‌گیرند. برای بررسی اعلان‌ها، روی دستگاه فیزیکی از [چک‌لیست دستگاه](DEVICE_VALIDATION_FA.md) با یک حساب آزمایشی استفاده کنید.
