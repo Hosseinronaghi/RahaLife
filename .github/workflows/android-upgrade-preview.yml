@@ -45,6 +45,22 @@ jobs:
           "$sdkmanager" --sdk_root="$sdk" 'emulator' 'platform-tools' 'system-images;android-35;google_apis;x86_64' </dev/null
           printf '%s\n' "$(dirname "$sdkmanager")" "$sdk/platform-tools" "$sdk/emulator" >> "$GITHUB_PATH"
           printf 'ANDROID_HOME=%s\n' "$sdk" >> "$GITHUB_ENV"
+          sdk_bin="$(dirname "$sdkmanager")"
+          export ANDROID_USER_HOME="$RUNNER_TEMP/raha-android"
+          export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          unset ANDROID_SDK_HOME
+          mkdir -p "$ANDROID_AVD_HOME"
+          "$sdk_bin/avdmanager" create avd --force --name raha-upgrade \
+            --package 'system-images;android-35;google_apis;x86_64' \
+            --device pixel_6 --path "$ANDROID_AVD_HOME/raha-upgrade.avd" <<< no
+          if ! "$sdk/emulator/emulator" -list-avds | grep -Fxq raha-upgrade; then
+            echo "::error::Android emulator cannot find the AVD created by avdmanager"
+            ls -la "$ANDROID_AVD_HOME"
+            exit 1
+          fi
+          printf 'ANDROID_USER_HOME=%s\nANDROID_EMULATOR_HOME=%s\nANDROID_AVD_HOME=%s\n' \
+            "$ANDROID_USER_HOME" "$ANDROID_EMULATOR_HOME" "$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
       - name: Verify source and build both versions with one test signing identity
         run: |
           python3 candidate/tool/check_source_integrity.py
@@ -66,9 +82,18 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           test -r /dev/kvm && test -w /dev/kvm
-          echo no | avdmanager create avd --force --name raha-upgrade --package 'system-images;android-35;google_apis;x86_64'
           nohup emulator -avd raha-upgrade -no-window -no-boot-anim -no-audio -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/raha-emulator.log" 2>&1 < /dev/null &
-          timeout 300 bash -c 'adb wait-for-device; until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
+          emulator_pid=$!
+          ready=false
+          for ((attempt=0; attempt<100; attempt++)); do
+            kill -0 "$emulator_pid" || { echo "::error::Android emulator exited during startup"; exit 1; }
+            if [[ "$(timeout 5 adb -e shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; then
+              ready=true
+              break
+            fi
+            sleep 3
+          done
+          [[ "$ready" == true ]] || { echo "::error::Android emulator boot did not complete"; exit 1; }
           adb shell input keyevent 82
       - name: Install in place and verify the saved record survives
         run: |
