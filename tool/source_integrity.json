@@ -3,7 +3,7 @@
   ".github/workflows/apple-signed-preview.yml": "3ff7f3e0d63b4dcfb0ecb78957e77b7516085014faa31e3c0551d0fbce0c2af4",
   ".github/workflows/build-apple.yml": "3d71011285da10611d24de8609e526e758928228ad79b328b3cdd4e9fd27d524",
   ".github/workflows/build-extended-platforms.yml": "3d6b0043663726d282096d26ca9a8af7b67df2c3ba4f8c839d95f2b6f6095d1e",
-  ".github/workflows/build-release.yml": "548760d9dd3544a6c10dc80d9e0fed9d85bd38cd8c1861f5c36c9df715ea5ce2",
+  ".github/workflows/build-release.yml": "8e6cf2abf4199243df8259203e0c82aa37c52bca9b59288ebc8a6c47a40a4c10",
   ".github/workflows/flutter-ci.yml": "3cea768ad81936e7b62dbf7af6bbf9e87741b1d09c9326456675f914a55d8760",
   ".github/workflows/server-ci.yml": "9f80996c6d3b8bec027cbbe9f0f0697b258108ce4e690788af187437048f935e",
   "assets/branding/app_icon.ico": "5da556b09ed30d04ede2d50386467d00941c32d22f33de19f0af6480cc496cb7",

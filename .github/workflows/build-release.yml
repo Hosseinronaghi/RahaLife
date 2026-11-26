@@ -106,6 +106,19 @@ jobs:
             echo "configured=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Refuse to produce a release tag with temporary Android signing
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          SIGNING_CONFIGURED: ${{ steps.raha_signing.outputs.configured }}
+          RELEASE_CERT_SHA256: ${{ vars.RAHA_ANDROID_RELEASE_CERT_SHA256 }}
+        run: |
+          cert="${RELEASE_CERT_SHA256//:/}"
+          if [[ "$SIGNING_CONFIGURED" != 'true' || ! "$cert" =~ ^[0-9A-Fa-f]{64}$ ]]; then
+            echo "::error::A release tag requires the established Android keystore and its pinned certificate fingerprint."
+            exit 1
+          fi
+
       - name: Configure persistent Android release signing
         if: ${{ steps.raha_signing.outputs.configured == 'true' }}
         shell: bash
@@ -190,6 +203,24 @@ jobs:
             [[ "$manifest" == *"versionName='$expected_version'"* ]]
             if [[ "$apk" == *universal* ]]; then
               [[ "$manifest" == *"versionCode='$expected_code'"* ]]
+            fi
+          done
+
+      - name: Compare tagged APKs with the established release certificate
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          RELEASE_CERT_SHA256: ${{ vars.RAHA_ANDROID_RELEASE_CERT_SHA256 }}
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          apksigner="$(find "$sdk/build-tools" -name apksigner -type f -executable | sort -V | tail -1)"
+          test -n "$apksigner"
+          expected="${RELEASE_CERT_SHA256//:/}"
+          for apk in release/android/*.apk; do
+            actual="$("$apksigner" verify --print-certs "$apk" | sed -nE 's/^Signer #[0-9]+ certificate SHA-256 digest: ([0-9A-Fa-f]+)$/\1/p')"
+            if [[ "${actual,,}" != "${expected,,}" ]]; then
+              echo "::error::APK signing certificate does not match the established release certificate."
+              exit 1
             fi
           done
 
