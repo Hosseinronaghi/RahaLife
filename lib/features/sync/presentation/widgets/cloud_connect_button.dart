@@ -22,10 +22,22 @@ class _CloudConnectState extends ConsumerState<CloudConnectButton> {
   bool busy = false;
   String status = '';
   static bool _authInProgress = false;
-  bool get _oneDrive => widget.kind == SyncProviderKind.oneDrive;
-  String get _name => _oneDrive ? 'OneDrive' : 'Dropbox';
+  String get _name => switch (widget.kind) {
+    SyncProviderKind.googleDrive => 'Google Drive',
+    SyncProviderKind.oneDrive => 'OneDrive',
+    _ => 'Dropbox',
+  };
+  ({String id, String redirect}) get _registration => switch (widget.kind) {
+    SyncProviderKind.googleDrive => (
+      id: GoogleDriveOAuth.clientId, redirect: GoogleDriveOAuth.redirect,
+    ),
+    SyncProviderKind.oneDrive => (
+      id: OneDriveOAuth.clientId, redirect: OneDriveOAuth.redirect,
+    ),
+    _ => (id: DropboxOAuth.clientId, redirect: DropboxOAuth.redirect),
+  };
   bool get _configured =>
-      _oneDrive ? OneDriveOAuth.configured : DropboxOAuth.configured;
+      _registration.id.trim().isNotEmpty && _registration.redirect.isNotEmpty;
   String t(String fa, String en) =>
       Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
 
@@ -37,7 +49,7 @@ class _CloudConnectState extends ConsumerState<CloudConnectButton> {
     });
     _authInProgress = true;
     try {
-      final redirect = Uri.parse(_oneDrive ? OneDriveOAuth.redirect : DropboxOAuth.redirect);
+      final redirect = Uri.parse(_registration.redirect);
       final desktop =
           !kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.windows ||
@@ -62,21 +74,21 @@ class _CloudConnectState extends ConsumerState<CloudConnectButton> {
         throw StateError('native_callback_scheme_mismatch');
       }
       final attempt = OAuthPkceAttempt(redirectUri: redirect);
-      final oneDrive = OneDriveOAuth();
-      final dropbox = DropboxOAuth();
-      final appId = _oneDrive ? OneDriveOAuth.clientId : DropboxOAuth.clientId;
-      final authorization = _oneDrive
-          ? oneDrive.authorize(attempt, appId)
-          : dropbox.authorize(attempt, appId);
+      final OAuthCodeClient oauth = switch (widget.kind) {
+        SyncProviderKind.googleDrive => GoogleDriveOAuth(),
+        SyncProviderKind.oneDrive => OneDriveOAuth(),
+        _ => DropboxOAuth(),
+      };
+      final appId = _registration.id;
+      final authorization = oauth.authorize(attempt, appId);
       final callback = await FlutterWebAuth2.authenticate(
         url: authorization.toString(),
         callbackUrlScheme: desktop ? redirect.toString() : redirect.scheme,
         options: const FlutterWebAuth2Options(useWebview: false, timeout: 300),
       );
-      final parsed = Uri.parse(callback);
-      final credentials = _oneDrive
-          ? await oneDrive.exchange(attempt: attempt, callback: parsed, appId: appId)
-          : await dropbox.exchange(attempt: attempt, callback: parsed, appId: appId);
+      final credentials = await oauth.exchange(
+        attempt: attempt, callback: Uri.parse(callback), appId: appId,
+      );
       if (!mounted) return;
       final controller = ref.read(syncSettingsProvider.notifier);
       final validation = await createBackupTarget(

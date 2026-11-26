@@ -2,6 +2,8 @@ import 'backup_target.dart';
 import 'custom_http_backup_target.dart';
 import 'dropbox_backup_target.dart';
 import 'onedrive_backup_target.dart';
+import 'google_drive_backup_target.dart';
+import 'icloud_backup_target.dart';
 import 's3_backup_target.dart';
 import 'sftp_backup_target.dart';
 import 'transport_security.dart';
@@ -14,6 +16,11 @@ BackupTarget createBackupTarget({
   validateTransportSecurity(profile);
   return switch (profile.kind) {
     SyncProviderKind.dropbox => DropboxBackupTarget(
+      profile: profile,
+      credentials: credentials,
+    ),
+    SyncProviderKind.iCloud when ICloudBackupTarget.supported => ICloudBackupTarget(),
+    SyncProviderKind.googleDrive => GoogleDriveBackupTarget(
       profile: profile,
       credentials: credentials,
     ),
@@ -42,7 +49,9 @@ BackupTarget createBackupTarget({
 }
 
 bool supportsAutomaticBackup(SyncProviderKind kind) => switch (kind) {
+  SyncProviderKind.iCloud => ICloudBackupTarget.supported,
   SyncProviderKind.dropbox ||
+  SyncProviderKind.googleDrive ||
   SyncProviderKind.oneDrive ||
   SyncProviderKind.webDav ||
   SyncProviderKind.nextcloud ||

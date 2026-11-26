@@ -54,8 +54,8 @@ class OAuthPkceAttempt {
 }
 
 /// Fixed provider endpoints; neither a callback nor a profile can redirect tokens.
-abstract class _OAuthCodeClient {
-  _OAuthCodeClient(this.endpoint, {Dio? dio})
+abstract class OAuthCodeClient {
+  OAuthCodeClient(this.endpoint, {Dio? dio})
     : _dio =
           dio ??
           Dio(
@@ -67,6 +67,8 @@ abstract class _OAuthCodeClient {
           );
   final Dio _dio;
   final String endpoint;
+
+  Uri authorize(OAuthPkceAttempt attempt, String appId);
 
   Future<Map<String, String>> exchange({
     required OAuthPkceAttempt attempt,
@@ -131,7 +133,7 @@ abstract class _OAuthCodeClient {
   }
 }
 
-class DropboxOAuth extends _OAuthCodeClient {
+class DropboxOAuth extends OAuthCodeClient {
   DropboxOAuth({super.dio})
     : super('https://api.dropboxapi.com/oauth2/token');
 
@@ -140,6 +142,7 @@ class DropboxOAuth extends _OAuthCodeClient {
   static bool get configured =>
       clientId.trim().isNotEmpty && redirect.isNotEmpty;
 
+  @override
   Uri authorize(
     OAuthPkceAttempt attempt,
     String appId,
@@ -157,7 +160,7 @@ class DropboxOAuth extends _OAuthCodeClient {
 
 }
 
-class OneDriveOAuth extends _OAuthCodeClient {
+class OneDriveOAuth extends OAuthCodeClient {
   OneDriveOAuth({super.dio})
     : super('https://login.microsoftonline.com/common/oauth2/v2.0/token');
 
@@ -166,6 +169,7 @@ class OneDriveOAuth extends _OAuthCodeClient {
   static bool get configured =>
       clientId.trim().isNotEmpty && redirect.isNotEmpty;
 
+  @override
   Uri authorize(OAuthPkceAttempt attempt, String appId) => Uri.https(
     'login.microsoftonline.com',
     '/common/oauth2/v2.0/authorize',
@@ -178,6 +182,32 @@ class OneDriveOAuth extends _OAuthCodeClient {
       'code_challenge': attempt.challenge,
       'code_challenge_method': 'S256',
       'scope': 'offline_access https://graph.microsoft.com/Files.ReadWrite.AppFolder',
+    },
+  );
+}
+
+
+class GoogleDriveOAuth extends OAuthCodeClient {
+  GoogleDriveOAuth({super.dio})
+    : super('https://oauth2.googleapis.com/token');
+
+  static const clientId = String.fromEnvironment('RAHA_GOOGLE_DRIVE_CLIENT_ID');
+  static const redirect = String.fromEnvironment('RAHA_GOOGLE_DRIVE_REDIRECT_URI');
+
+  @override
+  Uri authorize(OAuthPkceAttempt attempt, String appId) => Uri.https(
+    'accounts.google.com',
+    '/o/oauth2/v2/auth',
+    {
+      'client_id': appId,
+      'redirect_uri': attempt.redirectUri.toString(),
+      'response_type': 'code',
+      'state': attempt.state,
+      'code_challenge': attempt.challenge,
+      'code_challenge_method': 'S256',
+      'scope': 'https://www.googleapis.com/auth/drive.appdata',
+      'access_type': 'offline',
+      'prompt': 'consent',
     },
   );
 }

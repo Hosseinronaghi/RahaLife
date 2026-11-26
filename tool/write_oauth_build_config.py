@@ -22,6 +22,10 @@ onedrive_client = (
     os.environ.get('RAHA_ONEDRIVE_CLIENT_ID', '').strip()
     if platform in ('linux', 'windows') else ''
 )
+google_drive_client = (
+    os.environ.get('RAHA_GOOGLE_DRIVE_CLIENT_ID', '').strip()
+    if platform in ('linux', 'windows') else ''
+)
 destination = Path('build') / f'oauth-{platform}.json'
 destination.parent.mkdir(parents=True, exist_ok=True)
 destination.write_text(json.dumps({
@@ -30,5 +34,8 @@ destination.write_text(json.dumps({
     'RAHA_ONEDRIVE_CLIENT_ID': onedrive_client,
     'RAHA_ONEDRIVE_REDIRECT_URI': 'http://127.0.0.1:43829/callback'
     if onedrive_client else '',
+    'RAHA_GOOGLE_DRIVE_CLIENT_ID': google_drive_client,
+    'RAHA_GOOGLE_DRIVE_REDIRECT_URI': 'http://127.0.0.1:43829/callback'
+    if google_drive_client else '',
 }), encoding='utf-8')
 print(f'OAuth build configuration written for {platform}; no client secret is embedded.')

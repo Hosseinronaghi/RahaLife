@@ -13,6 +13,7 @@ import 'sync_controller.dart';
 import 'widgets/sync_connection_sheet.dart';
 import 'widgets/cloud_connect_button.dart';
 import '../../../core/sync/providers/backup_target_factory.dart';
+import '../../../core/sync/providers/icloud_backup_target.dart';
 
 class SyncCenterScreen extends ConsumerWidget {
   const SyncCenterScreen({this.advanced = false, super.key});
@@ -39,6 +40,45 @@ class SyncCenterScreen extends ConsumerWidget {
       (connection.purpose == SyncTargetPurpose.backup ||
           connection.purpose == SyncTargetPurpose.both) &&
       supportsAutomaticBackup(connection.kind);
+
+  Future<void> _connectICloud(BuildContext context, WidgetRef ref) async {
+    final controller = ref.read(syncSettingsProvider.notifier);
+    final result = await ICloudBackupTarget().testConnection();
+    if (!context.mounted) return;
+    if (!result.success) {
+      await _showResult(
+        context,
+        success: false,
+        successFa: '',
+        successEn: '',
+        failureDetails: _t(
+          context,
+          'حساب iCloud و فعال بودن دسترسی پشتیبان در نسخهٔ امضاشده را بررسی کنید.',
+          result.message,
+        ),
+      );
+      return;
+    }
+    try {
+      await controller.addConnection(
+        name: 'iCloud',
+        kind: SyncProviderKind.iCloud,
+        purpose: SyncTargetPurpose.backup,
+        config: const {},
+        credentials: const {},
+      );
+      if (!context.mounted) return;
+      await _showResult(
+        context,
+        success: true,
+        successFa: 'پوشهٔ پشتیبان iCloud در دسترس است.',
+        successEn: 'The iCloud backup folder is available.',
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      await _showResult(context, success: false, successFa: '', successEn: '');
+    }
+  }
 
   Future<void> _showResult(
     BuildContext context, {
@@ -690,25 +730,42 @@ class SyncCenterScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _CloudChip(
-                      icon: Icons.cloud_rounded,
-                      label: 'Google Drive',
-                    ),
-                    _CloudChip(icon: Icons.window_rounded, label: 'OneDrive'),
-                    _CloudChip(
-                      icon: Icons.inventory_2_outlined,
-                      label: 'Dropbox',
-                    ),
-                    _CloudChip(icon: Icons.apple_rounded, label: 'iCloud'),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final twoColumns = constraints.maxWidth >= 560;
+                    final width = twoColumns
+                        ? (constraints.maxWidth - 12) / 2
+                        : constraints.maxWidth;
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 10,
+                      children: [
+                        for (final kind in const [
+                          SyncProviderKind.dropbox,
+                          SyncProviderKind.oneDrive,
+                          SyncProviderKind.googleDrive,
+                        ])
+                          SizedBox(
+                            width: width,
+                            child: CloudConnectButton(key: ValueKey(kind), kind: kind),
+                          ),
+                        if (ICloudBackupTarget.supported)
+                          SizedBox(
+                            width: width,
+                            child: OutlinedButton.icon(
+                              onPressed: busy ||
+                                      state.connections.any((item) => item.kind == SyncProviderKind.iCloud)
+                                  ? null
+                                  : () => _connectICloud(context, ref),
+                              icon: const Icon(Icons.apple_rounded),
+                              label: Text(_t(context, 'اتصال iCloud', 'Connect iCloud')),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 14),
-                const CloudConnectButton(),
-                const CloudConnectButton(kind: SyncProviderKind.oneDrive),
                 OutlinedButton.icon(
                   onPressed: busy ? null : () => _exportBackup(context, ref),
                   icon: const Icon(Icons.folder_open_rounded),
@@ -720,8 +777,8 @@ class SyncCenterScreen extends ConsumerWidget {
                 Text(
                   _t(
                     context,
-                    'ورود مستقیم Dropbox و OneDrive به ثبت اپ توسط ناشر نیاز دارد. ذخیره فایل پشتیبان با انتخاب‌گر سیستم مستقل از این تنظیمات است.',
-                    'Direct Dropbox and OneDrive sign-in require publisher app registration. Saving a backup through the system picker is independent.',
+                    'ورود مستقیم Dropbox، OneDrive و Google Drive به ثبت اپ توسط ناشر نیاز دارد. ذخیره فایل پشتیبان با انتخاب‌گر سیستم مستقل از این تنظیمات است.',
+                    'Direct Dropbox, OneDrive and Google Drive sign-in require publisher app registration. Saving a backup through the system picker is independent.',
                   ),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -1293,17 +1350,6 @@ class _SectionCard extends StatelessWidget {
   );
 }
 
-class _CloudChip extends StatelessWidget {
-  const _CloudChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) =>
-      Chip(avatar: Icon(icon, size: 18), label: Text(label));
-}
-
 class _ProviderAddTile extends StatelessWidget {
   const _ProviderAddTile({
     required this.icon,
@@ -1463,6 +1509,9 @@ class _ConnectionTile extends StatelessWidget {
 
   String _providerLabel(SyncProviderKind kind) => switch (kind) {
     SyncProviderKind.dropbox => 'Dropbox',
+    SyncProviderKind.iCloud => 'iCloud',
+    SyncProviderKind.googleDrive => 'Google Drive',
+    SyncProviderKind.oneDrive => 'OneDrive',
     SyncProviderKind.webDav => 'WebDAV',
     SyncProviderKind.nextcloud => 'Nextcloud',
     SyncProviderKind.s3 => 'S3',

@@ -1,4 +1,5 @@
 """Verify an in-place update on a disposable emulator using only synthetic data."""
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -37,10 +38,12 @@ def database_path(app_id):
     raise RuntimeError('Raha Life did not open its SQLite database')
 
 
-def snapshot(app_id, database, path):
-    adb('shell', 'am', 'force-stop', app_id)
+def snapshot(app_id, database, path, *, stop=True):
+    if stop:
+        adb('shell', 'am', 'force-stop', app_id)
     for suffix in ('', '-wal'):
         name = database + suffix
+        Path(str(path) + suffix).unlink(missing_ok=True)
         try:
             data = adb('exec-out', 'run-as', app_id, 'cat', name,
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -49,6 +52,27 @@ def snapshot(app_id, database, path):
                 raise
         else:
             Path(str(path) + suffix).write_bytes(data)
+
+
+def wait_for_schema(app_id, database, temporary):
+    # SQLite creates the file before Drift finishes the schema transaction.
+    # Read disposable copies while the app is still running; never stop the
+    # baseline while its first schema transaction may still be in flight.
+    probe = Path(temporary) / 'schema-probe.sqlite'
+    for _ in range(45):
+        snapshot(app_id, database, probe, stop=False)
+        try:
+            with closing(sqlite3.connect(f'{probe.as_uri()}?mode=ro', uri=True)) as db:
+                ready = db.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' "
+                    "AND name='entity_documents'"
+                ).fetchone()
+                if ready:
+                    return
+        except sqlite3.DatabaseError:
+            pass  # A live copy may race a checkpoint; retry the probe only.
+        time.sleep(1)
+    raise RuntimeError('Baseline app did not finish initializing the note schema')
 
 
 def main():
@@ -87,6 +111,7 @@ def main():
         adb('install', old_apk)
         launch(old_app)
         db_path = database_path(old_app)
+        wait_for_schema(old_app, db_path, temporary)
         snapshot(old_app, db_path, old_db)
         with sqlite3.connect(old_db) as db:
             db.execute('PRAGMA journal_mode=DELETE')
