@@ -132,8 +132,8 @@ abstract class _OAuthCodeClient {
 }
 
 class DropboxOAuth extends _OAuthCodeClient {
-  DropboxOAuth({Dio? dio})
-    : super('https://api.dropboxapi.com/oauth2/token', dio: dio);
+  DropboxOAuth({super.dio})
+    : super('https://api.dropboxapi.com/oauth2/token');
 
   static const clientId = String.fromEnvironment('RAHA_DROPBOX_CLIENT_ID');
   static const redirect = String.fromEnvironment('RAHA_DROPBOX_REDIRECT_URI');
@@ -158,11 +158,8 @@ class DropboxOAuth extends _OAuthCodeClient {
 }
 
 class OneDriveOAuth extends _OAuthCodeClient {
-  OneDriveOAuth({Dio? dio})
-    : super(
-        'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-        dio: dio,
-      );
+  OneDriveOAuth({super.dio})
+    : super('https://login.microsoftonline.com/common/oauth2/v2.0/token');
 
   static const clientId = String.fromEnvironment('RAHA_ONEDRIVE_CLIENT_ID');
   static const redirect = String.fromEnvironment('RAHA_ONEDRIVE_REDIRECT_URI');
