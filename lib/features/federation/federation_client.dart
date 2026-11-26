@@ -88,7 +88,7 @@ class FederationClient {
     final response = await request(
       'GET',
       '/_matrix/client/v3/rooms/${Uri.encodeComponent(room)}/messages',
-      query: {'dir': 'b', 'limit': 50, if (from != null) 'from': from},
+      query: {'dir': 'b', 'limit': 50, 'from': ?from},
     );
     if (response is! Map || response['chunk'] is! List) {
       throw const FormatException('Invalid Matrix history page');

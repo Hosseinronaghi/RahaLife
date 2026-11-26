@@ -116,7 +116,7 @@
   "lib/features/cycle/presentation/cycle_screen.dart": "80d8815c0e430f613decc5af3c88dd293fc246b03fddc22ca2cf937252f35096",
   "lib/features/dashboard/presentation/today_screen.dart": "18ce986f36952266d40836dcb9c57065e63fadbc2d8c6e91ecf707acc497edf4",
   "lib/features/entertainment/entertainment_screen.dart": "af833d0f6d194070c4128547be79688d04378decc110c334723004acbe797b7d",
-  "lib/features/federation/federation_client.dart": "e39b6c79a00c6d3f74e210208ac778dbc7db61fb2df8c2f6ecde1c75ec689024",
+  "lib/features/federation/federation_client.dart": "872528b41c4f8456185f3339ca22e43085482f484b7ce8a8f919446d7a47f4cd",
   "lib/features/federation/federation_screen.dart": "a6534b866fc456d38ea5884159de5bc15ad43ff0933e3cc14ab1dadb681f996e",
   "lib/features/federation/federation_store.dart": "7aa2071a7ab1d0950f9f03ee327e744e4ad40dc18e26775fefc7c7b670f6357a",
   "lib/features/files/attachment_preview.dart": "41f28b325f16e484f5141f7a89d8e6bdc8d6235ca5966214536f4121478bad88",
