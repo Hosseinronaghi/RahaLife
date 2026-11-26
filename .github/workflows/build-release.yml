@@ -167,10 +167,17 @@ jobs:
           mkdir -p release/android
           cp build/app/outputs/flutter-apk/app-release.apk release/android/Raha-Life-universal-release.apk
 
-      - name: Build split APKs
+      - name: Build ABI-specific APKs with the same version code as universal
+        shell: bash
         run: |
-          python tool/write_oauth_build_config.py android
-          flutter build apk --release --build-name="$(python3 tool/check_app_version.py)" --split-per-abi --dart-define-from-file=build/oauth-android.json
+          # Flutter --split-per-abi adds ABI-dependent offsets to versionCode.
+          # Separate targets keep Android upgrades valid across our APK variants.
+          version="$(python3 tool/check_app_version.py)"
+          for pair in android-arm:armeabi-v7a android-arm64:arm64-v8a android-x64:x86_64; do
+            flutter build apk --release --build-name="$version" \
+              --target-platform="${pair%%:*}" --dart-define-from-file=build/oauth-android.json
+            cp build/app/outputs/flutter-apk/app-release.apk "release/android/Raha-Life-${pair##*:}-release.apk"
+          done
 
       - name: Build Android App Bundle
         run: |
@@ -181,9 +188,6 @@ jobs:
         shell: bash
         run: |
           mkdir -p release/android
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release/android/Raha-Life-arm64-v8a-release.apk
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release/android/Raha-Life-armeabi-v7a-release.apk
-          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release/android/Raha-Life-x86_64-release.apk
           cp build/app/outputs/bundle/release/app-release.aab release/android/Raha-Life-release.aab
           cd release/android
           sha256sum *.apk *.aab SIGNING_STATUS.txt > SHA256SUMS.txt
@@ -197,13 +201,12 @@ jobs:
           test -n "$aapt"
           expected_version="$(python3 tool/check_app_version.py)"
           expected_code="$(sed -nE 's/^version: .*\+([0-9]+)$/\1/p' pubspec.yaml)"
+          [[ "$expected_code" -gt 4021 ]]
           for apk in release/android/*.apk; do
             manifest="$("$aapt" dump badging "$apk" | sed -n '/^package:/p')"
             [[ "$manifest" == *"name='com.raha.raha_life'"* ]]
             [[ "$manifest" == *"versionName='$expected_version'"* ]]
-            if [[ "$apk" == *universal* ]]; then
-              [[ "$manifest" == *"versionCode='$expected_code'"* ]]
-            fi
+            [[ "$manifest" == *"versionCode='$expected_code'"* ]]
           done
 
       - name: Compare tagged APKs with the established release certificate

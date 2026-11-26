@@ -73,7 +73,10 @@ jobs:
               flutter pub get
               flutter gen-l10n
               dart run build_runner build --delete-conflicting-outputs
-              flutter build apk --debug --target-platform android-x64
+              build_code=()
+              # The previously distributed x86_64 APK had the highest ABI code.
+              if [[ "$project" == baseline ]]; then build_code=(--build-number=4021); fi
+              flutter build apk --debug --target-platform android-x64 "${build_code[@]}"
             )
           done
       - name: Verify package ID, increasing version code and matching test signer
