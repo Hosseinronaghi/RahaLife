@@ -32,6 +32,19 @@ jobs:
           flutter-version: '3.47.0'
           channel: stable
           cache: true
+      - name: Resolve Android SDK and install emulator tools
+        shell: bash
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$sdk" && test -d "$sdk" || { echo "::error::Android SDK not available"; exit 1; }
+          sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$sdkmanager" ]]; then
+            sdkmanager="$(find "$sdk/cmdline-tools" -path '*/bin/sdkmanager' -type f -executable | sort -V | tail -1)"
+          fi
+          test -x "$sdkmanager" || { echo "::error::Android SDK Command-line Tools not available"; exit 1; }
+          "$sdkmanager" --sdk_root="$sdk" 'emulator' 'platform-tools' 'system-images;android-35;google_apis;x86_64' </dev/null
+          printf '%s\n' "$(dirname "$sdkmanager")" "$sdk/platform-tools" "$sdk/emulator" >> "$GITHUB_PATH"
+          printf 'ANDROID_HOME=%s\n' "$sdk" >> "$GITHUB_ENV"
       - name: Verify source and build both versions with one test signing identity
         run: |
           python3 candidate/tool/check_source_integrity.py
@@ -53,10 +66,9 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           test -r /dev/kvm && test -w /dev/kvm
-          sdkmanager 'emulator' 'platform-tools' 'system-images;android-35;google_apis;x86_64'
           echo no | avdmanager create avd --force --name raha-upgrade --package 'system-images;android-35;google_apis;x86_64'
           nohup emulator -avd raha-upgrade -no-window -no-boot-anim -no-audio -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/raha-emulator.log" 2>&1 < /dev/null &
-          timeout 180 bash -c 'adb wait-for-device; until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
+          timeout 300 bash -c 'adb wait-for-device; until [[ "$(adb shell getprop sys.boot_completed | tr -d "\r")" == 1 ]]; do sleep 2; done'
           adb shell input keyevent 82
       - name: Install in place and verify the saved record survives
         run: |
@@ -67,4 +79,4 @@ jobs:
         if: failure()
         run: |
           tail -100 "$RUNNER_TEMP/raha-emulator.log" || true
-          adb logcat -d -b crash -t 100 || true
+          if command -v adb >/dev/null; then timeout 20 adb logcat -d -b crash -t 100 || true; fi
