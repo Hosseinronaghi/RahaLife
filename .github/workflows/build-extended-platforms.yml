@@ -2,6 +2,8 @@ name: Build Raha Life Extended Platforms
 
 on:
   workflow_dispatch:
+  push:
+    branches: ['review/v0.10.0-dev.5']
 
 permissions:
   contents: read
@@ -9,6 +11,10 @@ permissions:
 env:
   CI: 'true'
   DASH__SUPPRESS_ANALYTICS: 'true'
+  RAHA_DROPBOX_CLIENT_ID: ${{ vars.RAHA_DROPBOX_CLIENT_ID }}
+  RAHA_ONEDRIVE_CLIENT_ID: ${{ vars.RAHA_ONEDRIVE_CLIENT_ID }}
+  RAHA_GOOGLE_DRIVE_CLIENT_ID: ${{ vars.RAHA_GOOGLE_DRIVE_CLIENT_ID }}
+  RAHA_DROPBOX_WEB_REDIRECT_URI: ${{ vars.RAHA_DROPBOX_WEB_REDIRECT_URI }}
 
 jobs:
   linux:
@@ -22,7 +28,8 @@ jobs:
       - name: Install Linux desktop requirements
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev pulseaudio-utils ffmpeg
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev pulseaudio-utils ffmpeg libwebkit2gtk-4.1-dev libsoup-3.0-dev libmpv-dev
+          pkg-config --modversion mpv
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.0'
@@ -45,12 +52,21 @@ jobs:
           flutter analyze --fatal-infos
           flutter test
       - name: Build Linux release
-        run: flutter build linux --release
+        run: |
+          python tool/write_oauth_build_config.py linux
+          flutter build linux --release --dart-define-from-file=build/oauth-linux.json
       - name: Package Linux
         run: |
           mkdir -p release/linux
           tar -C build/linux/x64/release/bundle -czf release/linux/Raha-Life-Linux-x64-portable.tar.gz .
-          sha256sum release/linux/Raha-Life-Linux-x64-portable.tar.gz > release/linux/SHA256SUMS.txt
+          printf '%s\n' \
+            'Raha Life for Linux x86-64. System libraries are not bundled.' \
+            'On Ubuntu 24.04 install: libgtk-3-0t64 libsecret-1-0 libwebkit2gtk-4.1-0 libmpv2 ffmpeg.' \
+            'Extract the archive and start raha_life from the extracted directory.' \
+            > release/linux/READ_ME.txt
+          cd release/linux
+          sha256sum Raha-Life-Linux-x64-portable.tar.gz > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: Raha-Life-Linux
@@ -58,50 +74,3 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  apple:
-    name: macOS and iOS simulator
-    runs-on: macos-15
-    timeout-minutes: 75
-    steps:
-      - uses: actions/checkout@v5
-      - name: Check complete release source
-        run: python tool/check_source_integrity.py
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.47.0'
-          channel: stable
-          cache: true
-      - name: Generate Apple platforms
-        run: |
-          flutter config --enable-macos-desktop
-          flutter create --platforms=ios,macos --org com.raha --project-name raha_life .
-          python tool/configure_branding.py
-          rm -f test/widget_test.dart
-      - name: Set iOS deployment target for current plugins
-        run: python3 tool/configure_apple_platforms.py
-      - run: flutter clean
-      - run: flutter pub get
-      - name: Generate code
-        run: |
-          flutter gen-l10n
-          dart run build_runner build --delete-conflicting-outputs
-      - name: Analyze and test
-        run: |
-          flutter analyze --fatal-infos
-          flutter test
-      - name: Build macOS release
-        run: flutter build macos --release
-      - name: Build iOS simulator
-        run: flutter build ios --simulator --debug --no-codesign
-      - name: Package Apple artifacts
-        run: |
-          mkdir -p release/apple
-          ditto -c -k --sequesterRsrc --keepParent build/macos/Build/Products/Release/raha_life.app release/apple/Raha-Life-macOS.zip
-          ditto -c -k --sequesterRsrc --keepParent build/ios/iphonesimulator/Runner.app release/apple/Raha-Life-iOS-Simulator.zip
-          shasum -a 256 release/apple/* > release/apple/SHA256SUMS.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Raha-Life-Apple
-          path: release/apple/
-          if-no-files-found: error
-          retention-days: 30

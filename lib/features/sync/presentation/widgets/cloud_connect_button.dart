@@ -1,0 +1,160 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import '../../../../core/sync/providers/backup_target.dart';
+import '../../../../core/sync/providers/backup_target_factory.dart';
+import '../../../../core/sync/providers/oauth_pkce.dart';
+import '../sync_controller.dart';
+
+class CloudConnectButton extends ConsumerStatefulWidget {
+  const CloudConnectButton({
+    super.key,
+    this.kind = SyncProviderKind.dropbox,
+  });
+
+  final SyncProviderKind kind;
+  @override
+  ConsumerState<CloudConnectButton> createState() => _CloudConnectState();
+}
+
+class _CloudConnectState extends ConsumerState<CloudConnectButton> {
+  bool busy = false;
+  String status = '';
+  static bool _authInProgress = false;
+  String get _name => switch (widget.kind) {
+    SyncProviderKind.googleDrive => 'Google Drive',
+    SyncProviderKind.oneDrive => 'OneDrive',
+    _ => 'Dropbox',
+  };
+  ({String id, String redirect}) get _registration => switch (widget.kind) {
+    SyncProviderKind.googleDrive => (
+      id: GoogleDriveOAuth.clientId, redirect: GoogleDriveOAuth.redirect,
+    ),
+    SyncProviderKind.oneDrive => (
+      id: OneDriveOAuth.clientId, redirect: OneDriveOAuth.redirect,
+    ),
+    _ => (id: DropboxOAuth.clientId, redirect: DropboxOAuth.redirect),
+  };
+  bool get _configured =>
+      _registration.id.trim().isNotEmpty && _registration.redirect.isNotEmpty;
+  String t(String fa, String en) =>
+      Localizations.localeOf(context).languageCode == 'fa' ? fa : en;
+
+  Future<void> connect() async {
+    if (busy || _authInProgress) return;
+    setState(() {
+      busy = true;
+      status = '';
+    });
+    _authInProgress = true;
+    try {
+      final redirect = Uri.parse(_registration.redirect);
+      final desktop =
+          !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.windows ||
+              defaultTargetPlatform == TargetPlatform.linux);
+      if (redirect.hasQuery ||
+          redirect.hasFragment ||
+          redirect.userInfo.isNotEmpty) {
+        throw StateError('invalid_redirect_configuration');
+      }
+      if (kIsWeb) {
+        if (redirect.origin != Uri.base.origin || redirect.scheme != 'https') {
+          throw StateError('web_requires_same_origin_https_callback');
+        }
+      } else if (desktop) {
+        if (redirect.scheme != 'http' ||
+            redirect.host != '127.0.0.1' ||
+            !redirect.hasPort ||
+            redirect.port == 0) {
+          throw StateError('desktop_requires_loopback_callback');
+        }
+      } else if (redirect.scheme != 'com.raha.life.oauth') {
+        throw StateError('native_callback_scheme_mismatch');
+      }
+      final attempt = OAuthPkceAttempt(redirectUri: redirect);
+      final OAuthCodeClient oauth = switch (widget.kind) {
+        SyncProviderKind.googleDrive => GoogleDriveOAuth(),
+        SyncProviderKind.oneDrive => OneDriveOAuth(),
+        _ => DropboxOAuth(),
+      };
+      final appId = _registration.id;
+      final authorization = oauth.authorize(attempt, appId);
+      final callback = await FlutterWebAuth2.authenticate(
+        url: authorization.toString(),
+        callbackUrlScheme: desktop ? redirect.toString() : redirect.scheme,
+        options: const FlutterWebAuth2Options(useWebview: false, timeout: 300),
+      );
+      final credentials = await oauth.exchange(
+        attempt: attempt, callback: Uri.parse(callback), appId: appId,
+      );
+      if (!mounted) return;
+      final controller = ref.read(syncSettingsProvider.notifier);
+      final validation = await createBackupTarget(
+        profile: SyncConnectionProfile(
+          id: 'oauth-validation',
+          name: _name,
+          kind: widget.kind,
+          purpose: SyncTargetPurpose.backup,
+        ),
+        credentials: credentials,
+      ).testConnection();
+      if (!validation.success) throw StateError('cloud_validation_failed');
+      if (!mounted) return;
+      await controller.addConnection(
+        name: _name,
+        kind: widget.kind,
+        purpose: SyncTargetPurpose.backup,
+        config: const {},
+        credentials: credentials,
+      );
+      if (mounted) {
+        setState(
+          () => status = t(
+            'متصل شد؛ اکنون می‌توانید پشتیبان بگیرید یا بازیابی کنید. همگام‌سازی رکوردها از این مسیر هنوز فعال نیست.',
+            'Connected. Backup and restore are available. This connection does not sync individual records.',
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => status = t(
+            'اتصال کامل نشد؛ ممکن است ورود لغو شده باشد یا تنظیمات انتشار و شبکه نیاز به بررسی داشته باشد.',
+            'Connection did not complete. Sign-in may have been cancelled; check release configuration and network.',
+          ),
+        );
+      }
+    } finally {
+      _authInProgress = false;
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      OutlinedButton.icon(
+        onPressed: !_configured || busy ? null : connect,
+        icon: busy
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.cloud_outlined),
+        label: Text(t('اتصال به $_name', 'Connect to $_name')),
+      ),
+      if (!_configured)
+        Text(
+          t(
+            'ورود مستقیم $_name در این بسته فعال نیست.',
+            'Direct $_name sign-in is not enabled in this build.',
+          ),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      if (status.isNotEmpty) Text(status),
+    ],
+  );
+}

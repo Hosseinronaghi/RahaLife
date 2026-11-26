@@ -87,7 +87,7 @@ class WidgetSettingsScreen extends ConsumerWidget {
           : '${localizeDigits(affairs.length, locale)} ${l10n.items} • ${affairs.first.title}';
       final medicationSummary = activeMedication.isEmpty
           ? l10n.noMedications
-          : '${activeMedication.first.name} • ${localizeDigits(activeMedication.first.time, locale)}';
+          : l10n.medication;
       final appointmentSummary = appointments.isEmpty
           ? l10n.noItems
           : '${localizedTime(appointments.first.dateTime, locale)} • ${appointments.first.title}';

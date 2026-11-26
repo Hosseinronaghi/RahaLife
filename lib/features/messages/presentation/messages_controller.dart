@@ -75,7 +75,7 @@ class MessagesNotifier extends StateNotifier<List<LocalMessage>> {
         attachmentPath: attachmentPath,
       ),
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 }
 

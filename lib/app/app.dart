@@ -29,11 +29,16 @@ class RahaLifeApp extends ConsumerStatefulWidget {
 class _RahaLifeAppState extends ConsumerState<RahaLifeApp>
     with WidgetsBindingObserver {
   final _reminders = ReminderCoordinator();
+  Timer? _timezoneTimer;
   StreamSubscription<Uri?>? _widgetClickSubscription;
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _timezoneTimer = Timer.periodic(const Duration(minutes: 2), (_) async {
+      final changed = await ReminderService.instance.refreshTimezone();
+      if (changed && mounted) ref.invalidate(agendaProvider);
+    });
     ReminderService.instance.selectedPayload.addListener(_handleReminderTap);
     WidgetsBinding.instance.addPostFrameCallback((_) => _handleReminderTap());
     unawaited(_initializeWidgetLaunchHandling());
@@ -57,6 +62,7 @@ class _RahaLifeAppState extends ConsumerState<RahaLifeApp>
     WidgetsBinding.instance.removeObserver(this);
     ReminderService.instance.selectedPayload.removeListener(_handleReminderTap);
     _widgetClickSubscription?.cancel();
+    _timezoneTimer?.cancel();
     _reminders.dispose();
     super.dispose();
   }
@@ -200,8 +206,17 @@ class _RahaLifeAppState extends ConsumerState<RahaLifeApp>
                               children: [
                                 Text(error),
                                 TextButton(
+                                  onPressed: () =>
+                                      unawaited(WriteStatus.retryFailed()),
+                                  child: Text(
+                                    locale.languageCode == 'fa'
+                                        ? 'تلاش دوباره برای ذخیره'
+                                        : 'Retry saving',
+                                  ),
+                                ),
+                                TextButton(
                                   onPressed: () {
-                                    WriteStatus.error.value = null;
+                                    WriteStatus.resetForReload();
                                     invalidateSyncedFeatureProviders(ref);
                                   },
                                   child: Text(

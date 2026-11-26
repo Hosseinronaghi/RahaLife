@@ -1,3 +1,4 @@
+import '../../../core/domain/money.dart';
 import 'dart:collection';
 
 import '../../../core/persistence/write_status.dart';
@@ -70,7 +71,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
   Future<void> _persist() async {
     if (!persistenceEnabled) return;
     await _ready;
-    await _repository.db.transaction(() async {
+    await _repository.atomic(() async {
       await _repository.replaceAll(
         _accountEntityType,
         state.accounts.map((item) => item.toJson()),
@@ -85,6 +86,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
   void addAccount(
     String name, {
     double openingBalance = 0,
+    int? openingBalanceMinor,
     String? id,
     String currencyCode = 'IRT',
     String kind = 'cash',
@@ -94,6 +96,12 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
   }) {
     if (name.trim().isEmpty || !openingBalance.isFinite) {
       throw ArgumentError('Invalid account');
+    }
+    final minor =
+        openingBalanceMinor ??
+        Money.parse(openingBalance.toString()).minorUnits;
+    if (minor.abs() > Money.maxMinorUnits) {
+      throw ArgumentError('Invalid account amount');
     }
     final existing = state.accounts.where((a) => a.id == id).firstOrNull;
     if (existing != null &&
@@ -114,18 +122,19 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
           accountNumber: accountNumber,
           archived: archived,
           name: name.trim(),
-          openingBalance: openingBalance,
+          openingBalanceMinor: minor,
         ),
       ],
       transactions: state.transactions,
     );
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   FinanceTransaction addTransaction({
     String? id,
     required FinanceTransactionType type,
-    required double amount,
+    double amount = 0,
+    int? amountMinor,
     required DateTime dateTime,
     required String accountId,
     String? toAccountId,
@@ -139,7 +148,8 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     ReminderPlan reminder = const ReminderPlan(),
     String? projectId,
   }) {
-    if (!amount.isFinite || amount <= 0 || amount > 90071992547409) {
+    final minor = amountMinor ?? Money.parse(amount.toString()).minorUnits;
+    if (minor <= 0 || minor > Money.maxMinorUnits) {
       throw ArgumentError('Amount must be positive.');
     }
     final previous = state.transactions.where((t) => t.id == id).firstOrNull;
@@ -163,7 +173,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
     final transaction = FinanceTransaction(
       id: id ?? _uuid.v4(),
       type: type,
-      amount: amount,
+      amountMinor: minor,
       dateTime: dateTime,
       accountId: accountId,
       toAccountId: toAccountId,
@@ -184,7 +194,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
         transaction,
       ]..sort((a, b) => b.dateTime.compareTo(a.dateTime)),
     );
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
     return transaction;
   }
 
@@ -197,7 +207,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
       ],
     );
     unawaited(ReminderService.instance.cancel('bill:$id'));
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void deleteTransaction(String id) {
@@ -206,7 +216,7 @@ class FinanceNotifier extends StateNotifier<FinanceState> {
       transactions: state.transactions.where((item) => item.id != id).toList(),
     );
     unawaited(ReminderService.instance.cancel('bill:$id'));
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 }
 

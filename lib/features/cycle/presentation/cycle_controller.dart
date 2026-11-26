@@ -87,14 +87,14 @@ class CycleNotifier extends StateNotifier<List<CycleLog>> {
     );
     state = [...state.where((e) => e.id != log.id), log]
       ..sort((a, b) => b.startDate.compareTo(a.startDate));
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
     return log;
   }
 
   void delete(String id) {
     state = state.where((item) => item.id != id).toList();
     unawaited(ReminderService.instance.cancel('cycle:$id'));
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   DateTime? get predictedNextStart => CycleForecast.fromLogs(state)?.start;

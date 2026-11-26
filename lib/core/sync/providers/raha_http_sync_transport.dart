@@ -1,4 +1,9 @@
+// Public parameter names remain stable for callers and stored-model compatibility.
+// ignore_for_file: prefer_initializing_formals
 import 'package:dio/dio.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
+import '../../app_version.dart';
 
 import '../sync_contract.dart';
 
@@ -50,10 +55,21 @@ class RahaHttpSyncTransport implements SyncTransport {
   Map<String, String> get _headers => <String, String>{
     if (_token.isNotEmpty) 'Authorization': 'Bearer $_token',
     'Content-Type': 'application/json',
-    'X-Raha-Client': 'Raha-Life/0.9.0',
+    'X-Raha-Client': 'Raha-Life/$rahaAppVersion',
   };
 
   bool _verified = false;
+  String? _account;
+  Future<String> destinationIdentity() async {
+    await _verify();
+    // Older deployments cannot attest the account. Bind to the credential
+    // rather than allowing a token replacement to inherit anyone's cursor.
+    final account = _account ?? sha256.convert(utf8.encode(_token)).toString();
+    return sha256
+        .convert(utf8.encode(jsonEncode([_baseUrl, account])))
+        .toString();
+  }
+
   Future<void> _verify() async {
     if (_verified) {
       return;
@@ -67,6 +83,8 @@ class RahaHttpSyncTransport implements SyncTransport {
         'Upgrade Raha Sync Server to protocol 3 before synchronizing.',
       );
     }
+    final account = result.data?['syncAccountId'];
+    if (account is String && account.isNotEmpty) _account = account;
     _verified = true;
   }
 

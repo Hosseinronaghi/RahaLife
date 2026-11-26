@@ -14,17 +14,12 @@ class ReminderService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
+  bool _timezoneDataReady = false;
   final ValueNotifier<String?> selectedPayload = ValueNotifier<String?>(null);
 
   Future<void> initialize() async {
     if (_initialized || kIsWeb) return;
-    tz.initializeTimeZones();
-    try {
-      final deviceTimezone = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(deviceTimezone.identifier));
-    } catch (_) {
-      // The timezone package keeps UTC as a safe fallback if the OS lookup fails.
-    }
+    await refreshTimezone();
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const darwin = DarwinInitializationSettings(
       requestAlertPermission: false,
@@ -67,6 +62,26 @@ class ReminderService {
     }
   }
 
+  Future<bool> refreshTimezone({Future<String> Function()? lookup}) async {
+    if (kIsWeb) return false;
+    if (!_timezoneDataReady) {
+      tz.initializeTimeZones();
+      _timezoneDataReady = true;
+    }
+    try {
+      final identifier = lookup == null
+          ? (await FlutterTimezone.getLocalTimezone()).identifier
+          : await lookup();
+      final previous = tz.local.name;
+      tz.setLocalLocation(tz.getLocation(identifier));
+      return previous != identifier;
+    } catch (error) {
+      // Keep the last known zone and expose lookup failure instead of silently resetting it.
+      lastError.value = 'Timezone lookup failed: $error';
+      return false;
+    }
+  }
+
   Future<bool> requestPermissions() async {
     if (kIsWeb) return false;
     await initialize();
@@ -105,7 +120,7 @@ class ReminderService {
     return granted;
   }
 
-  Future<void> schedule({
+  Future<bool> schedule({
     required String key,
     required String title,
     required String body,
@@ -113,12 +128,13 @@ class ReminderService {
     required ReminderPlan plan,
     String? payload,
   }) async {
-    if (!plan.enabled || kIsWeb) return;
+    if (!plan.enabled || kIsWeb) return false;
     await initialize();
+    if (!_initialized) return false;
     final scheduledAt = eventDateTime.subtract(
       Duration(minutes: plan.minutesBefore),
     );
-    if (!scheduledAt.isAfter(DateTime.now())) return;
+    if (!scheduledAt.isAfter(DateTime.now())) return false;
 
     final isAlarm = plan.kind == ReminderKind.alarm;
     final details = NotificationDetails(
@@ -166,17 +182,25 @@ class ReminderService {
         payload: payload,
         matchDateTimeComponents: _components(plan.repeat),
       );
+      return true;
     } catch (error, stackTrace) {
       lastError.value = 'Reminder scheduling failed: $error';
       debugPrintStack(stackTrace: stackTrace);
+      return false;
     }
   }
 
-  Future<void> cancelAllManaged() async {
-    if (kIsWeb) return;
+  String get schedulingTimezone => tz.local.name;
+
+  Future<Set<int>> pendingIds() async {
     await initialize();
-    await _plugin.cancelAll();
+    if (!_initialized) throw StateError('Reminder service unavailable.');
+    return (await _plugin.pendingNotificationRequests())
+        .map((item) => item.id)
+        .toSet();
   }
+
+  Future<void> cancelManaged(String key) => _plugin.cancel(notificationId(key));
 
   Future<void> cancel(String key) async {
     if (kIsWeb) return;
@@ -233,7 +257,6 @@ class ReminderService {
     return payload;
   }
 
-  @visibleForTesting
   int notificationId(String key) {
     var hash = 0x811c9dc5;
     for (final unit in key.codeUnits) {

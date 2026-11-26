@@ -56,6 +56,7 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
   final _secretKey = TextEditingController();
   final _sessionToken = TextEditingController();
   final _host = TextEditingController();
+  final _hostFingerprint = TextEditingController();
   final _port = TextEditingController(text: '22');
   final _modules = defaultSyncModules.toSet();
   var _purpose = SyncTargetPurpose.backup;
@@ -94,6 +95,7 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
       _secretKey,
       _sessionToken,
       _host,
+      _hostFingerprint,
       _port,
     ]) {
       controller.dispose();
@@ -237,6 +239,19 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
         ],
       ),
       const SizedBox(height: 12),
+      _field(
+        _hostFingerprint,
+        t('اثر انگشت تأییدشدهٔ سرور SSH', 'Trusted SSH host fingerprint'),
+        hint: 'SHA256:…',
+        validator: (value) =>
+            RegExp(r'^SHA256:[A-Za-z0-9+/]{43}$').hasMatch(value?.trim() ?? '')
+            ? null
+            : t(
+                'اثر انگشت معتبر را از مدیر سرور بگیرید.',
+                'Enter a valid SHA256 fingerprint from the server administrator.',
+              ),
+      ),
+      const SizedBox(height: 12),
       _field(_username, t('نام کاربری', 'Username'), validator: _required),
       const SizedBox(height: 12),
       _field(
@@ -275,6 +290,9 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final config = <String, String>{
       if (_supportsRecordSync) 'modules': (_modules.toList()..sort()).join(','),
+      if (_supportsRecordSync)
+        sensitiveSyncConsentKey:
+            _modules.any(sensitiveSyncModules.contains).toString(),
     };
     final credentials = <String, String>{};
     switch (widget.kind) {
@@ -308,6 +326,7 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
       case SyncProviderKind.sftp:
         config.addAll(<String, String>{
           'host': _host.text.trim(),
+          'hostFingerprint': _hostFingerprint.text.trim(),
           'port': _port.text.trim(),
           'username': _username.text.trim(),
           'remotePath': _remotePath.text.trim(),
@@ -389,8 +408,8 @@ class _SyncConnectionSheetState extends State<_SyncConnectionSheet> {
               Text(t('بخش‌های مجاز برای همگام‌سازی', 'Modules to synchronize')),
               Text(
                 t(
-                  'انتخاب‌ها فقط مربوط به سینک است؛ بکاپ همچنان کامل است. اطلاعات سلامت و مالی پیش‌فرض انتخاب نشده‌اند.',
-                  'These choices affect sync, not full backups. Health and finance are off by default.',
+                  'سرور می‌تواند محتوای سینک را بخواند. انتخاب سلامت یا مالی و ذخیرهٔ اتصال، اجازهٔ ارسال این بخش‌هاست. بکاپ مستقل است.',
+                  'The server can read sync content. Selecting Health or Finance and saving the connection allows those records to be sent. Backups are separate.',
                 ),
               ),
               for (final module in syncModuleTypes.keys)

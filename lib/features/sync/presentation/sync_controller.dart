@@ -1,3 +1,5 @@
+// Public parameter names remain stable for callers and stored-model compatibility.
+// ignore_for_file: prefer_initializing_formals
 import '../../../core/sync/sync_scope.dart';
 import 'dart:async';
 
@@ -67,7 +69,7 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
     return next;
   }
 
-  Future<SyncResult?>? _syncFlight;
+  final _syncFlights = <String, Future<SyncResult?>>{};
   bool _disposed = false;
   String? _activeRecordProviderId;
 
@@ -131,6 +133,7 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
       _connectionsKey,
       jsonEncode(state.connections.map((item) => item.toJson()).toList()),
     );
+    await _refreshSyncMetrics();
   }
 
   Future<void> setStrategy(PersonalSyncStrategy strategy) async {
@@ -352,10 +355,18 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
       profile.purpose == SyncTargetPurpose.both;
 
   Future<void> _refreshSyncMetrics({String? providerId}) async {
-    final store = DriftSyncStore(providerId: providerId ?? '__metrics__');
+    final profile = state.primaryConnection;
+    final store = DriftSyncStore(
+      providerId: providerId ?? '__metrics__',
+      entityTypes: profile == null ? null : syncTypes(profile.config),
+    );
     final pending = await store.pendingCount();
     final conflicts = await store.unresolvedConflictCount();
-    state = state.copyWith(pendingChanges: pending, conflicts: conflicts);
+    state = state.copyWith(
+      pendingChanges: pending,
+      conflicts: conflicts,
+      quarantinedChanges: await store.quarantinedCount(),
+    );
   }
 
   void _startMetricWatch() {
@@ -364,7 +375,7 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
     unawaited(_conflictMetricSubscription?.cancel());
     _pendingMetricSubscription = store.watchPendingCount().listen((pending) {
       if (_disposed) return;
-      state = state.copyWith(pendingChanges: pending);
+      unawaited(_refreshSyncMetrics());
       if (pending > 0) _scheduleAutoSync();
     });
     _conflictMetricSubscription = store.watchUnresolvedConflictCount().listen((
@@ -388,26 +399,32 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
     });
   }
 
-  Future<SyncResult?> syncConnection(String id) {
-    if (_syncFlight != null) return _syncFlight!;
-    final future = _exclusive(() => _syncConnection(id)).catchError((
-      Object error,
-    ) {
-      if (!_disposed) {
-        state = state.copyWith(
-          lastActionSucceeded: false,
-          lastActionMessage: error.toString(),
-        );
-      }
-      return null;
-    });
-    _syncFlight = future;
+  Future<SyncResult?> syncConnection(
+    String id, {
+    Future<bool> Function(SyncConnectionProfile)? confirmDestination,
+  }) {
+    final existing = _syncFlights[id];
+    if (existing != null && confirmDestination == null) return existing;
+    final future = _exclusive(() => _syncConnection(id, confirmDestination))
+        .catchError((Object error) {
+          if (!_disposed) {
+            state = state.copyWith(
+              lastActionSucceeded: false,
+              lastActionMessage: error.toString(),
+            );
+          }
+          return null;
+        });
+    _syncFlights[id] = future;
     return future.whenComplete(() {
-      _syncFlight = null;
+      if (identical(_syncFlights[id], future)) _syncFlights.remove(id);
     });
   }
 
-  Future<SyncResult?> _syncConnection(String id) async {
+  Future<SyncResult?> _syncConnection(
+    String id,
+    Future<bool> Function(SyncConnectionProfile)? confirmDestination,
+  ) async {
     await WriteStatus.flush();
     final profile = state.connectionById(id);
     if (profile == null ||
@@ -417,20 +434,6 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
       return null;
     }
 
-    // Only one record-sync destination is active at a time. Backup targets can
-    // still be unlimited. When the user deliberately switches the live sync
-    // server, replay the durable change log; repeated changeIds are idempotent
-    // on protocol-v2 servers, while changes the new provider has never seen are
-    // seeded without replacing any remote database snapshot.
-    final scopeId = '$id:${profile.config['modules'] ?? '*'}';
-    if (_activeRecordProviderId != scopeId) {
-      final switchStore = DriftSyncStore(providerId: scopeId);
-      await switchStore.requeueAllChanges();
-      _activeRecordProviderId = scopeId;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_activeRecordProviderKey, scopeId);
-    }
-
     state = state.copyWith(busyConnectionId: id, clearActionMessage: true);
     try {
       final credentials = await _credentialsStore.read(id);
@@ -438,15 +441,46 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
       final token = credentials['token'] ?? '';
       final allowInsecureHttp =
           profile.config['allowInsecureHttp']?.toLowerCase() == 'true';
-      final store = DriftSyncStore(
-        providerId: scopeId,
-        entityTypes: syncTypes(profile.config),
-      );
       final transport = RahaHttpSyncTransport(
         baseUrl: baseUrl,
         entityTypes: syncTypes(profile.config),
         token: token,
         allowInsecureHttp: allowInsecureHttp,
+      );
+      final identity = await transport.destinationIdentity();
+      final scopeId = '$id:$identity:${syncScopeIdentity(profile.config)}';
+      if (_activeRecordProviderId != scopeId) {
+        if (confirmDestination == null || !await confirmDestination(profile)) {
+          state = state.copyWith(
+            clearBusyConnection: true,
+            lastActionSucceeded: false,
+            lastActionMessage: 'sync_destination_confirmation_required',
+          );
+          return null;
+        }
+        if (_disposed || !identical(state.connectionById(id), profile)) {
+          if (!_disposed) state = state.copyWith(clearBusyConnection: true);
+          return null;
+        }
+        final currentCredentials = await _credentialsStore.read(id);
+        if (currentCredentials['token'] != credentials['token']) {
+          state = state.copyWith(
+            clearBusyConnection: true,
+            lastActionSucceeded: false,
+            lastActionMessage: 'sync_destination_confirmation_required',
+          );
+          return null;
+        }
+        final prefs = await SharedPreferences.getInstance();
+        await DriftSyncStore(providerId: scopeId).requeueAllChanges();
+        if (!await prefs.setString(_activeRecordProviderKey, scopeId)) {
+          throw StateError('Could not save sync destination confirmation.');
+        }
+        _activeRecordProviderId = scopeId;
+      }
+      final store = DriftSyncStore(
+        providerId: scopeId,
+        entityTypes: syncTypes(profile.config),
       );
       final engine = RecordSyncEngine(
         deviceId: state.deviceId,
@@ -494,7 +528,9 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
     }
   }
 
-  Future<bool> syncAllEnabled() async {
+  Future<bool> syncAllEnabled({
+    Future<bool> Function(SyncConnectionProfile)? confirmDestination,
+  }) async {
     final targets = state.connections
         .where(
           (item) =>
@@ -509,13 +545,23 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
     }
     SyncConnectionProfile target = targets.first;
     for (final item in targets) {
-      if (item.id == _activeRecordProviderId) {
+      if (item.isPrimary) {
         target = item;
         break;
       }
-      if (item.isPrimary) target = item;
     }
-    final result = await syncConnection(target.id);
+    if (!target.isPrimary) {
+      for (final item in targets) {
+        if (_activeRecordProviderId?.startsWith('${item.id}:') ?? false) {
+          target = item;
+          break;
+        }
+      }
+    }
+    final result = await syncConnection(
+      target.id,
+      confirmDestination: confirmDestination,
+    );
     return result != null;
   }
 
@@ -708,6 +754,9 @@ class SyncSettingsNotifier extends StateNotifier<SyncSettingsState> {
       if (file == null) {
         state = state.copyWith(clearBusyConnection: true);
         return false;
+      }
+      if (await file.length() > LocalBackupService.maxBackupBytes) {
+        throw const FormatException('Backup exceeds the supported size.');
       }
       final bytes = await file.readAsBytes();
       await _backupService.restoreEncryptedBackup(bytes);

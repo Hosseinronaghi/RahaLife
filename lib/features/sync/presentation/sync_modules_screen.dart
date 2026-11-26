@@ -30,8 +30,8 @@ class SyncModulesScreen extends ConsumerWidget {
           Text(
             tr(
               context,
-              'تغییر انتخاب، دادهٔ قبلاً ارسال‌شده را از سرور حذف نمی‌کند. بکاپ کامل مستقل از این انتخاب است.',
-              'Changing selection does not delete data already sent to the server. Full backups are separate.',
+              'سرور می‌تواند محتوای سینک فعلی را بخواند. تغییر انتخاب، دادهٔ قبلاً ارسال‌شده را حذف نمی‌کند. بکاپ مستقل است.',
+              'The server can read current sync content. Changing selection does not erase its earlier copies. Backups are separate.',
             ),
           ),
           if (profiles.isEmpty)
@@ -50,8 +50,8 @@ class SyncModulesScreen extends ConsumerWidget {
                   profile.config['modules'] == null
                       ? tr(
                           context,
-                          'همهٔ بخش‌ها؛ تنظیم قبلی',
-                          'All modules; previous setting',
+                          'اتصال قدیمی؛ فقط بخش‌های پیش‌فرض تا بازبینی',
+                          'Legacy connection; defaults until reviewed',
                         )
                       : tr(context, 'انتخاب سفارشی', 'Custom selection'),
                 ),
@@ -69,12 +69,7 @@ class SyncModulesScreen extends ConsumerWidget {
     WidgetRef ref,
     SyncConnectionProfile profile,
   ) async {
-    final selected =
-        profile.config['modules']
-            ?.split(',')
-            .where((e) => e.isNotEmpty)
-            .toSet() ??
-        syncModuleTypes.keys.toSet();
+    final selected = effectiveSyncModules(profile.config);
     final result = await showDialog<bool>(
       context: context,
       builder: (c) => StatefulBuilder(
@@ -86,6 +81,7 @@ class SyncModulesScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Text(tr(c, 'با انتخاب بخش سلامت یا مالی و زدن «ذخیره»، تأیید می‌کنید که سرور می‌تواند محتوای ارسال‌شده را بخواند.', 'Selecting Health or Finance and saving allows the server to read the records sent.')),
                   for (final module in syncModuleTypes.keys)
                     CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
@@ -141,6 +137,8 @@ class SyncModulesScreen extends ConsumerWidget {
               config: {
                 ...profile.config,
                 'modules': (selected.toList()..sort()).join(','),
+                sensitiveSyncConsentKey:
+                    selected.any(sensitiveSyncModules.contains).toString(),
               },
             ),
           );

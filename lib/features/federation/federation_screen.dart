@@ -1,11 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../workspace/record_editor.dart';
 import 'federation_client.dart';
+import 'federation_store.dart';
 
 class FederationScreen extends StatefulWidget {
   const FederationScreen({super.key});
@@ -18,9 +16,15 @@ class _FederationState extends State<FederationScreen> {
       token = TextEditingController(),
       text = TextEditingController(),
       target = TextEditingController();
-  final secure = const FlutterSecureStorage();
+  final store = FederationStore();
+  List<FederationAccount> accounts = [];
+  FederationAccount? activeAccount;
+  FederationAccount? selectedAccount;
+  int loadGeneration = 0;
   String mode = 'matrix', identity = '', error = '', visibility = 'private';
   String? room;
+  String? olderCursor;
+  final seenHistoryCursors = <String>{};
   bool busy = false, encrypted = false;
   List<String> rooms = [];
   List<Map<String, dynamic>> events = [];
@@ -30,30 +34,42 @@ class _FederationState extends State<FederationScreen> {
   @override
   void initState() {
     super.initState();
-    load();
+    run(load);
   }
 
   Future<void> load() async {
+    final generation = ++loadGeneration;
     final loadingMode = mode;
-    final prefs = await SharedPreferences.getInstance();
-    final saved = await secure.read(key: 'federation.$loadingMode');
-    final config = saved == null
-        ? <String, dynamic>{}
-        : Map<String, dynamic>.from(jsonDecode(saved) as Map);
-    if (!mounted || loadingMode != mode) return;
-    setState(() {
-      server.text = config['server'] as String? ?? '';
-      token.text = config['token'] as String? ?? '';
-      identity = '';
-      encrypted = false;
-      room = null;
-      rooms = [];
-      events = [];
-      pending =
-          (jsonDecode(prefs.getString('federation.outbox') ?? '[]') as List)
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList();
-    });
+    final savedAccounts = await store.accounts();
+    final legacy = await store.legacyCredentials(loadingMode);
+    if (!mounted || generation != loadGeneration || loadingMode != mode) return;
+    accounts = savedAccounts;
+    resetSession();
+    server.text = legacy?['server'] as String? ?? '';
+    token.text = legacy?['token'] as String? ?? '';
+  }
+
+  void resetSession() {
+    identity = '';
+    activeAccount = null;
+    selectedAccount = null;
+    encrypted = false;
+    room = null;
+    olderCursor = null;
+    seenHistoryCursors.clear();
+    rooms = [];
+    events = [];
+    pending = [];
+    text.clear();
+    target.clear();
+  }
+
+  Future<void> selectAccount(FederationAccount account) async {
+    resetSession();
+    selectedAccount = account;
+    server.text = account.server;
+    token.text = account.token;
+    await connect(expectedIdentity: account.identity);
   }
 
   Future<void> run(Future<void> Function() action) async {
@@ -76,15 +92,30 @@ class _FederationState extends State<FederationScreen> {
     }
   }
 
-  Future<void> connect() async {
+  Future<void> connect({String? expectedIdentity}) async {
     final c = client;
-    identity = mode == 'matrix'
+    final authenticatedIdentity = mode == 'matrix'
         ? await c.matrixIdentity()
         : (await c.mastodonIdentity())['acct'].toString();
-    await secure.write(
-      key: 'federation.$mode',
-      value: jsonEncode({'server': c.base, 'token': token.text}),
+    if (authenticatedIdentity.isEmpty ||
+        (expectedIdentity != null &&
+            authenticatedIdentity != expectedIdentity)) {
+      throw StateError('account_identity_mismatch');
+    }
+    final account = FederationAccount(
+      network: mode,
+      server: c.base,
+      identity: authenticatedIdentity,
+      token: token.text,
     );
+    // Read/decrypt before exposing a connected session; corrupted queues fail closed.
+    final queue = await store.queueFor(account);
+    await store.saveAccount(account);
+    accounts = await store.accounts();
+    identity = authenticatedIdentity;
+    activeAccount = account;
+    selectedAccount = account;
+    pending = queue;
     if (mode == 'matrix') {
       rooms = await c.matrixRooms();
     } else {
@@ -95,19 +126,36 @@ class _FederationState extends State<FederationScreen> {
   Future<void> openRoom(String id) async {
     final c = client;
     final isEncrypted = await c.matrixEncrypted(id);
-    final messages = await c.matrixMessages(id);
+    final page = await c.matrixHistory(id);
     room = id;
     encrypted = isEncrypted;
-    events = messages;
+    events = page.events;
+    olderCursor = page.olderCursor;
+    seenHistoryCursors.clear();
   }
 
-  Future<void> saveQueue() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('federation.outbox', jsonEncode(pending));
+  Future<void> loadOlderMessages() async {
+    final id = room;
+    final cursor = olderCursor;
+    if (id == null || cursor == null) return;
+    final page = await client.matrixHistory(id, from: cursor);
+    seenHistoryCursors.add(cursor);
+    final ids = events.map((event) => event['event_id']).toSet();
+    final older = [
+      for (final event in page.events.reversed)
+        if (ids.add(event['event_id'])) event,
+    ];
+    events = [...older.reversed, ...events];
+    olderCursor = seenHistoryCursors.contains(page.olderCursor)
+        ? null
+        : page.olderCursor;
   }
 
   Future<void> sendPending(Map<String, dynamic> item) async {
-    if (item['server'] != client.base ||
+    final account = activeAccount;
+    if (account == null ||
+        !account.owns(item) ||
+        item['server'] != client.base ||
         item['identity'] != identity ||
         item['mode'] != mode) {
       throw StateError('account mismatch');
@@ -125,8 +173,8 @@ class _FederationState extends State<FederationScreen> {
         item['id'] as String,
       );
     }
-    pending.removeWhere((e) => e['id'] == item['id']);
-    await saveQueue();
+    await store.removeMessage(account, item['id'] as String);
+    pending = await store.queueFor(account);
     if (mode == 'matrix' && room != null) {
       await openRoom(room!);
     } else {
@@ -169,8 +217,10 @@ class _FederationState extends State<FederationScreen> {
       'visibility': visibility,
       'text': text.text.trim(),
     };
-    pending.add(item);
-    await saveQueue();
+    final account = activeAccount;
+    if (account == null) return;
+    await store.enqueue(account, item);
+    pending = await store.queueFor(account);
     text.clear();
     await sendPending(item);
   }
@@ -199,10 +249,54 @@ class _FederationState extends State<FederationScreen> {
               ? null
               : (v) {
                   setState(() => mode = v.first);
-                  load();
+                  run(load);
                 },
         ),
         const SizedBox(height: 16),
+        if (accounts.any((a) => a.network == mode)) ...[
+          DropdownButtonFormField<String>(
+            key: ValueKey('$mode:${selectedAccount?.id}'),
+            initialValue: selectedAccount?.id,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: t('حساب‌های من', 'My accounts'),
+            ),
+            items: accounts
+                .where((a) => a.network == mode)
+                .map(
+                  (a) => DropdownMenuItem(
+                    value: a.id,
+                    child: Text(
+                      '${a.identity} · ${Uri.parse(a.server).host}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: busy
+                ? null
+                : (id) {
+                    if (id != null) {
+                      run(
+                        () => selectAccount(
+                          accounts.firstWhere((a) => a.id == id),
+                        ),
+                      );
+                    }
+                  },
+          ),
+          TextButton.icon(
+            onPressed: busy
+                ? null
+                : () => setState(() {
+                    resetSession();
+                    server.clear();
+                    token.clear();
+                  }),
+            icon: const Icon(Icons.person_add_outlined),
+            label: Text(t('افزودن حساب دیگر', 'Add another account')),
+          ),
+        ],
         Text(
           t(
             'این اتصال اختیاری است و اطلاعات شخصی برنامه را خودکار ارسال نمی‌کند. توکن دسترسی سرور خود را وارد کنید.',
@@ -253,12 +347,47 @@ class _FederationState extends State<FederationScreen> {
               onPressed: busy
                   ? null
                   : () => run(() async {
-                      await secure.delete(key: 'federation.$mode');
+                      final account = selectedAccount;
+                      if (account == null) {
+                        await store.clearLegacyCredentials(mode);
+                        token.clear();
+                        server.clear();
+                        resetSession();
+                        return;
+                      }
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          title: Text(
+                            t(
+                              'حذف حساب از این دستگاه؟',
+                              'Remove account from this device?',
+                            ),
+                          ),
+                          content: Text(
+                            t(
+                              'پیام‌های ارسال‌نشدهٔ این حساب هم حذف می‌شوند. برای لغو نشست سرور، از مدیریت نشست‌های همان سرویس استفاده کنید.',
+                              'Unsent messages for this account will also be deleted. Revoke the remote session in your service’s session settings.',
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, false),
+                              child: Text(t('لغو', 'Cancel')),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(c, true),
+                              child: Text(t('حذف محلی', 'Remove locally')),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+                      await store.removeAccount(account);
+                      accounts = await store.accounts();
                       token.clear();
-                      identity = '';
-                      room = null;
-                      events = [];
-                      rooms = [];
+                      server.clear();
+                      resetSession();
                     }),
               child: Text(t('قطع اتصال محلی', 'Disconnect locally')),
             ),
@@ -360,6 +489,12 @@ class _FederationState extends State<FederationScreen> {
             ],
             onChanged: (v) => setState(() => visibility = v!),
           ),
+        if (mode == 'matrix' && room != null && olderCursor != null)
+          OutlinedButton.icon(
+            onPressed: busy ? null : () => run(loadOlderMessages),
+            icon: const Icon(Icons.history),
+            label: Text(t('پیام‌های قدیمی‌تر', 'Older messages')),
+          ),
         for (final event in events)
           Card(
             child: ListTile(
@@ -424,8 +559,13 @@ class _FederationState extends State<FederationScreen> {
                 onPressed: busy
                     ? null
                     : () => run(() async {
-                        pending.remove(item);
-                        await saveQueue();
+                        final account = activeAccount;
+                        if (account == null) return;
+                        await store.removeMessage(
+                          account,
+                          item['id'] as String,
+                        );
+                        pending = await store.queueFor(account);
                       }),
               ),
             ),

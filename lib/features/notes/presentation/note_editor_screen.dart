@@ -26,11 +26,12 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late final TextEditingController _titleController;
   late QuillController _controller;
-  final _tagsController = TextEditingController();
+  String _tags = '';
   String? _savedId;
-  bool _metadataOpen = false;
   bool _invalidDocument = false;
   bool _saving = false;
+  bool _waitingForNote = false;
+  String? _loadedSnapshot;
   String? _projectId;
   String? _personId;
 
@@ -41,55 +42,93 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final note = widget.noteId == null
         ? null
         : _noteById(ref.read(notesProvider), widget.noteId!);
-    _titleController = TextEditingController(text: note?.title ?? '');
-    _tagsController.text = (note?.tags ?? const <String>[]).join(', ');
+    _titleController = TextEditingController();
+    _controller = QuillController.basic();
+    _waitingForNote = widget.noteId != null && note == null;
+    _loadEditor(note);
+    ref.listenManual(notesProvider, (_, notes) {
+      if (!_waitingForNote) return;
+      final loaded = _noteById(notes, widget.noteId!);
+      if (loaded == null) return;
+      setState(() {
+        _loadEditor(loaded);
+        _waitingForNote = false;
+      });
+    });
+  }
+
+  void _loadEditor(RichNote? note) {
+    _titleController.text = note?.title ?? '';
+    _tags = (note?.tags ?? const <String>[]).join(', ');
     _projectId = note?.projectId ?? widget.initialProjectId;
     _personId = note?.personId;
+    _invalidDocument = false;
+    if (note == null) return;
+    _loadedSnapshot = jsonEncode(note.toJson());
     try {
-      final delta = note == null
-          ? null
-          : jsonDecode(note.deltaJson) as List<dynamic>;
-      _controller = delta == null
-          ? QuillController.basic()
-          : QuillController(
-              document: Document.fromJson(delta),
-              selection: const TextSelection.collapsed(offset: 0),
-            );
+      final delta = jsonDecode(note.deltaJson) as List<dynamic>;
+      final controller = QuillController(
+        document: Document.fromJson(delta),
+        selection: const TextSelection.collapsed(offset: 0),
+      );
+      _controller.dispose();
+      _controller = controller;
     } catch (_) {
       _invalidDocument = true;
-      _controller = QuillController.basic();
     }
   }
 
   @override
   void dispose() {
     _titleController.dispose();
-    _tagsController.dispose();
     _controller.dispose();
     super.dispose();
   }
 
   Future<bool> _save() async {
-    if (_invalidDocument || _saving) return false;
+    if (_waitingForNote || _invalidDocument || _saving) return false;
+    final id = _savedId;
+    if (id != null) {
+      final current = _noteById(ref.read(notesProvider), id);
+      if (current == null) {
+        _showMissingNote();
+        return false;
+      }
+      if (jsonEncode(current.toJson()) != _loadedSnapshot) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Localizations.localeOf(context).languageCode == 'fa'
+                  ? 'یادداشت جای دیگری تغییر کرده است. متن این پنجره را کپی کنید و یادداشت را دوباره باز کنید.'
+                  : 'The note changed elsewhere. Copy your draft and reopen the note before saving.',
+            ),
+          ),
+        );
+        return false;
+      }
+    }
     setState(() => _saving = true);
     final l10n = AppLocalizations.of(context);
-    final saved = ref
-        .read(notesProvider.notifier)
-        .save(
-          id: _savedId,
-          title: _titleController.text,
-          deltaJson: jsonEncode(_controller.document.toDelta().toJson()),
-          plainText: _controller.document.toPlainText(),
-          tags: _tagsController.text
-              .split(RegExp('[,،]'))
-              .map((item) => item.trim())
-              .where((item) => item.isNotEmpty)
-              .toList(growable: false),
-          projectId: _projectId,
-          personId: _personId,
-        );
-    setState(() => _savedId = saved.id);
     try {
+      final saved = ref
+          .read(notesProvider.notifier)
+          .save(
+            id: _savedId,
+            title: _titleController.text,
+            deltaJson: jsonEncode(_controller.document.toDelta().toJson()),
+            plainText: _controller.document.toPlainText(),
+            tags: _tags
+                .split(RegExp('[,،]'))
+                .map((item) => item.trim())
+                .where((item) => item.isNotEmpty)
+                .toList(growable: false),
+            projectId: _projectId,
+            personId: _personId,
+          );
+      setState(() {
+        _savedId = saved.id;
+        _loadedSnapshot = jsonEncode(saved.toJson());
+      });
       await WriteStatus.flush();
       if (mounted) {
         ScaffoldMessenger.of(
@@ -115,11 +154,118 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     }
   }
 
+  String get _missingNoteMessage =>
+      Localizations.localeOf(context).languageCode == 'fa'
+      ? 'یادداشت هنوز بارگذاری نشده یا دیگر در دسترس نیست.'
+      : 'The note is still loading or is no longer available.';
+
+  void _showMissingNote() => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(_missingNoteMessage)));
+
+  Future<void> _editDetails() async {
+    final l10n = AppLocalizations.of(context);
+    final projects = ref.read(projectsProvider);
+    final people = ref.read(peopleProvider);
+    final details = await showDialog<
+      ({String? project, String? person, String tags})
+    >(
+      context: context,
+      builder: (context) {
+        var project = _projectId;
+        var person = _personId;
+        var tags = _tags;
+        return AlertDialog(
+          scrollable: true,
+          title: Text(l10n.details),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 300),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: projects.any((p) => p.id == project)
+                      ? project
+                      : null,
+                  isExpanded: true,
+                  decoration: InputDecoration(labelText: l10n.noteProject),
+                  items: [
+                    DropdownMenuItem(value: null, child: Text(l10n.none)),
+                    for (final item in projects)
+                      DropdownMenuItem(
+                        value: item.id,
+                        child: Text(item.title, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  onChanged: (value) => project = value,
+                ),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  initialValue: people.any((p) => p.id == person)
+                      ? person
+                      : null,
+                  isExpanded: true,
+                  decoration: InputDecoration(labelText: l10n.people),
+                  items: [
+                    DropdownMenuItem(value: null, child: Text(l10n.none)),
+                    for (final item in people)
+                      DropdownMenuItem(
+                        value: item.id,
+                        child: Text(item.name, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  onChanged: (value) => person = value,
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  initialValue: tags,
+                  onChanged: (value) => tags = value,
+                  decoration: InputDecoration(
+                    labelText: l10n.noteTags,
+                    prefixIcon: const Icon(Icons.sell_outlined),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(
+                (project: project, person: person, tags: tags),
+              ),
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted || details == null) return;
+    setState(() {
+      _projectId = details.project;
+      _personId = details.person;
+      _tags = details.tags;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final projects = ref.watch(projectsProvider);
-    final people = ref.watch(peopleProvider);
+    if (_waitingForNote) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.editNote)),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(_missingNoteMessage, textAlign: TextAlign.center),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(_savedId == null ? l10n.newNote : l10n.editNote),
@@ -190,88 +336,27 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                   ),
                 ],
               ),
-            Flexible(
-              flex: _metadataOpen ? 2 : 1,
-              fit: FlexFit.loose,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 8, 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: TextField(
                       controller: _titleController,
                       style: Theme.of(context).textTheme.titleLarge,
-                      maxLines: 2,
                       minLines: 1,
+                      maxLines: 2,
                       decoration: InputDecoration(hintText: l10n.noteTitle),
                     ),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: () =>
-                          setState(() => _metadataOpen = !_metadataOpen),
-                      icon: Icon(
-                        _metadataOpen ? Icons.expand_less : Icons.expand_more,
-                      ),
-                      label: Text(
-                        '${l10n.noteProject} · ${l10n.people} · ${l10n.noteTags}',
-                      ),
-                    ),
-                    if (_metadataOpen) ...[
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: projects.any((p) => p.id == _projectId)
-                            ? _projectId
-                            : null,
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          labelText: l10n.noteProject,
-                        ),
-                        items: [
-                          DropdownMenuItem(value: null, child: Text(l10n.none)),
-                          ...projects.map(
-                            (p) => DropdownMenuItem(
-                              value: p.id,
-                              child: Text(
-                                p.title,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                        ],
-                        onChanged: (v) => setState(() => _projectId = v),
-                      ),
-                      const SizedBox(height: 20),
-                      DropdownButtonFormField<String>(
-                        initialValue: people.any((p) => p.id == _personId)
-                            ? _personId
-                            : null,
-                        isExpanded: true,
-                        decoration: InputDecoration(labelText: l10n.people),
-                        items: [
-                          DropdownMenuItem(value: null, child: Text(l10n.none)),
-                          ...people.map(
-                            (p) => DropdownMenuItem(
-                              value: p.id,
-                              child: Text(
-                                p.name,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                        ],
-                        onChanged: (v) => setState(() => _personId = v),
-                      ),
-                      const SizedBox(height: 20),
-                      TextField(
-                        controller: _tagsController,
-                        decoration: InputDecoration(
-                          labelText: l10n.noteTags,
-                          prefixIcon: const Icon(Icons.sell_outlined),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: l10n.details,
+                    onPressed: _editDetails,
+                    icon: const Icon(Icons.tune_rounded),
+                  ),
+                ],
               ),
             ),
             const Divider(height: 1),

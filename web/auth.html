@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
+<title>بازگشت به رها</title>
+<p>در حال بازگشت به رها؛ اگر این پنجره بسته نشد، به برنامه برگردید.</p>
+<script>
+  // Never persist authorization codes in localStorage or send to another origin.
+  const callback = window.location.href;
+  window.history.replaceState(null, '', window.location.pathname);
+  if (window.opener) {
+    window.opener.postMessage({'flutter-web-auth-2': callback}, window.location.origin);
+    window.close();
+  }
+</script>
+</html>

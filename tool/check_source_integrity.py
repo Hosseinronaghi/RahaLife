@@ -13,7 +13,7 @@ def digest(path):
     return hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
 
 def tracked():
-    for folder in ('lib', 'test', 'assets', 'server', '.github/workflows', 'tool'):
+    for folder in ('lib', 'test', 'assets', 'server', 'web', '.github/workflows', 'tool'):
         yield from (p for p in (ROOT / folder).rglob('*') if p.is_file() and p != MANIFEST and '__pycache__' not in p.parts and p.suffix != '.pyc')
     yield ROOT / 'pubspec.yaml'
     yield ROOT / 'pubspec.lock'

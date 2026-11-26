@@ -1,4 +1,4 @@
-> **۰٫۱۰٫۰-dev.2+۱۸ — نسخه بررسی.** تحلیل Flutter بدون ایراد، ۹۶ تست موفق و بیلد وب ساخته شده‌اند. تمام درخواست‌ها هنوز تکمیل نشده‌اند؛ وضعیت معتبر در [گزارش ۰٫۱۰](docs/v010/STATUS_FA.md) است. مطالب نسخه‌های قبلی پایین این صفحه تاریخی‌اند.
+> **۰٫۱۰٫۰-dev.5+۲۱ — نسخهٔ تثبیت.** وضعیت و محدودیت‌های معتبر در [گزارش نسخه](docs/v010/STATUS_FA.md) آمده‌اند؛ مطالب نسخه‌های قبلی پایین این صفحه تاریخی‌اند.
 
 # Raha Life 0.9.0 — review build
 
@@ -27,6 +27,8 @@ flutter run -d chrome
 ```
 
 For missing platform scaffolds, `bash tool/bootstrap.sh` generates supported platforms and runs setup and checks. Review generated platform settings before release. Android production upgrades require your original signing key; see `docs/ANDROID_RELEASE_SIGNING.md`. Apple platform setup is in `tool/configure_apple_platforms.py`.
+
+[Upgrade contract and preview acceptance checks (فارسی)](docs/v010/AUDIT_DEV6_FA.md): preserve the application ID, original signing channel and user data, and increase the build number for every Android upgrade. A signed release tag requires the existing release certificate fingerprint.
 
 ```bash
 flutter build web --no-web-resources-cdn

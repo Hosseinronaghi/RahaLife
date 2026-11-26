@@ -92,7 +92,7 @@ class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
       reminder: reminder,
     );
     state = [...state, plan];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
     return plan;
   }
 
@@ -105,7 +105,7 @@ class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
         else
           item,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
     if (updated != null && !updated.active) {
       unawaited(ReminderService.instance.cancel('medication:$id'));
     }
@@ -115,7 +115,7 @@ class MedicationNotifier extends StateNotifier<List<MedicationPlan>> {
   void delete(String id) {
     state = state.where((item) => item.id != id).toList();
     unawaited(ReminderService.instance.cancel('medication:$id'));
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 }
 

@@ -27,7 +27,7 @@ services:
       RAHA_REGISTRATION_CODE: ${RAHA_REGISTRATION_CODE:-}
       RAHA_API_TOKEN: ${RAHA_API_TOKEN}
       RAHA_STORAGE_DIR: /var/lib/raha-sync
-      RAHA_CORS_ORIGIN: ${RAHA_CORS_ORIGIN:-*}
+      RAHA_CORS_ORIGIN: "${RAHA_CORS_ORIGIN:-}"
       RAHA_KEEP_BACKUP_VERSIONS: ${RAHA_KEEP_BACKUP_VERSIONS:-7}
     volumes:
       - raha_storage:/var/lib/raha-sync

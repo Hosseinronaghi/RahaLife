@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS sync_changes (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (cursor_id),
     UNIQUE KEY uq_sync_changes_change_id (owner_id, change_id),
+    KEY idx_sync_owner_cursor (owner_id, cursor_id),
     KEY idx_sync_changes_device_cursor (device_id, cursor_id),
     KEY idx_sync_changes_entity (entity_type, entity_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

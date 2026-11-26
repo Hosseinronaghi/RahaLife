@@ -68,7 +68,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
       createdAt: DateTime.now().toUtc(),
     );
     state = [...state, project];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
     return project;
   }
 
@@ -77,12 +77,12 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
       for (final item in state)
         if (item.id == updated.id) updated else item,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void delete(String id) {
     state = state.where((item) => item.id != id).toList(growable: false);
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void addChecklist(String projectId, String title) {
@@ -100,7 +100,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
         else
           item,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void toggleChecklist(String projectId, String checklistId) {
@@ -119,7 +119,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
         else
           item,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void addAttachment(String projectId, ProjectAttachment attachment) {
@@ -130,7 +130,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
         else
           item,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void removeAttachment(String projectId, String attachmentId) {
@@ -145,7 +145,7 @@ class ProjectsNotifier extends StateNotifier<List<ProjectData>> {
         else
           item,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 }
 

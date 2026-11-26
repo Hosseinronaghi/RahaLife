@@ -11,10 +11,21 @@ const syncModuleTypes = <String, List<String>>{
   'files': ['attachment_blob', 'attachment_chunk', 'attachment_link'],
 };
 const defaultSyncModules = ['notes', 'shopping', 'projects', 'bookmarks'];
-Set<String>? syncTypes(Map<String, String> config) {
-  final raw = config['modules'];
-  if (raw == null) {
-    return null; // Preserve existing explicit all-data connections.
+const sensitiveSyncModules = {'finance', 'health'};
+const sensitiveSyncConsentKey = 'readableSensitiveSyncAccepted';
+
+Set<String> effectiveSyncModules(Map<String, String> config) {
+  final selected = (config['modules']?.split(',') ?? defaultSyncModules)
+      .where(syncModuleTypes.containsKey)
+      .toSet();
+  if (config[sensitiveSyncConsentKey] != 'true') {
+    selected.removeAll(sensitiveSyncModules);
   }
-  return {for (final module in raw.split(',')) ...?syncModuleTypes[module]};
+  return selected;
 }
+
+String syncScopeIdentity(Map<String, String> config) =>
+    (effectiveSyncModules(config).toList()..sort()).join(',');
+
+Set<String> syncTypes(Map<String, String> config) =>
+    {for (final module in effectiveSyncModules(config)) ...syncModuleTypes[module]!};

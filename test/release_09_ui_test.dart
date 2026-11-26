@@ -107,9 +107,21 @@ void main() {
           await tester.tap(find.byIcon(Icons.check_rounded));
           await tester.pumpAndSettle();
           expect(notes.state, hasLength(1));
-          await tester.tap(find.byIcon(Icons.expand_more));
+          await tester.tap(find.byTooltip('جزئیات'));
           await tester.pumpAndSettle();
+          final details = find.byType(AlertDialog);
+          expect(details, findsOneWidget);
+          expect(
+            find.descendant(
+              of: details,
+              matching: find.byType(DropdownButtonFormField<String>),
+            ),
+            findsNWidgets(2),
+          );
           expect(tester.takeException(), isNull);
+          await tester.tap(find.text('لغو'));
+          await tester.pumpAndSettle();
+          expect(details, findsNothing);
         }
         tester.testTextInput.hide();
         await tester.pump(const Duration(seconds: 5));

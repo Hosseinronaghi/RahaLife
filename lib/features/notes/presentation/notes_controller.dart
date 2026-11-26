@@ -88,7 +88,7 @@ class NotesNotifier extends StateNotifier<List<RichNote>> {
         if (item.id != note.id) item,
       note,
     ]..sort(_sortNotes);
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
     return note;
   }
 
@@ -100,7 +100,7 @@ class NotesNotifier extends StateNotifier<List<RichNote>> {
         else
           item,
     ]..sort(_sortNotes);
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void archive(String id) {
@@ -111,12 +111,12 @@ class NotesNotifier extends StateNotifier<List<RichNote>> {
         else
           item,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void delete(String id) {
     state = state.where((item) => item.id != id).toList(growable: false);
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 }
 

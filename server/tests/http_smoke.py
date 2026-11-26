@@ -2,6 +2,7 @@
 RAHA_TEST_URL defaults to http://127.0.0.1:8090; RAHA_REGISTRATION_CODE required.
 """
 import json, os, uuid, urllib.request, urllib.error
+from concurrent.futures import ThreadPoolExecutor
 BASE=os.environ.get('RAHA_TEST_URL','http://127.0.0.1:8090')
 CODE=os.environ['RAHA_REGISTRATION_CODE']
 def request(path, body=None, token=None, status=200):
@@ -16,13 +17,15 @@ def request(path, body=None, token=None, status=200):
 
 def account():
     name='test_'+uuid.uuid4().hex[:12]
-    result=request('/v1/account/register',{'username':name,'password':'Test-only-'+uuid.uuid4().hex,'registrationCode':CODE})
+    result=request('/v1/account/register',{'username':name,'password':'disposable-test-password','registrationCode':CODE})
     return name,result['accountId'],result['token']
 
 def main():
     a,aid,at=account();b,bid,bt=account();_,_,ct=account()
     request('/health',status=401)
-    assert request('/health',token=at)['protocolVersion']==3
+    health_a=request('/health',token=at)
+    assert health_a['protocolVersion']==3
+    assert health_a['syncAccountId']!=request('/health',token=bt)['syncAccountId']
     def change(device,clock,title): return dict(changeId=str(uuid.uuid4()),entityType='home_entry',entityId='same-id',operation='upsert',version=sum(clock.values()),deviceId=device,clock=clock,updatedAtUtc='2026-09-15T10:00:00Z',payload={'id':'same-id','title':title})
     first=change('A',{'A':9},'A title')
     for _ in range(2): assert request('/v1/sync/push',{'deviceId':'A','changes':[first]},at)['accepted']==[first['changeId']]
@@ -51,6 +54,26 @@ def main():
     request('/v1/collab/friends',{'username':b,'action':'block'},at)
     assert request('/v1/collab/shared',token=bt)['records']==[]
     request('/v1/collab/messages',{'id':str(uuid.uuid4()),'to':aid,'text':'blocked'},bt,status=403)
-    request('/v1/account/logout',{},at);request('/health',token=at,status=401)
-    print('PASS selective pull, account isolation, exact retry ACK, causal conflict, friendship, message deduplication, share permissions, CAS, revocation, logout')
+    def push_large(device):
+        item=change(device,{device:1},'large')
+        item['entityId']='large-'+device
+        item['payload']={'id':item['entityId'], 'data':'x'*(4*1024*1024)}
+        assert request('/v1/sync/push',{'deviceId':device,'changes':[item]},ct)['accepted']==[item['changeId']]
+        return item['changeId']
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        expected=set(pool.map(push_large,['d1','d2']))
+    page1=request('/v1/sync/pull?cursor=0&deviceId=reader',token=ct)
+    assert page1['hasMore'] and len(page1['changes'])==1
+    page2=request('/v1/sync/pull?cursor='+page1['nextCursor']+'&deviceId=reader',token=ct)
+    assert len(page2['changes'])==1 and not page2['hasMore']
+    assert {x['changeId'] for x in page1['changes']+page2['changes']}==expected
+    rotated=request('/v1/account/rotate',{},at)['token']
+    request('/health',token=at,status=401)
+    assert request('/health',token=rotated)['syncAccountId']==health_a['syncAccountId']
+    other_session=request('/v1/account/login',{'username':a,'password':'disposable-test-password'},None)['token']
+    request('/v1/account/logout-all',{},rotated)
+    request('/health',token=rotated,status=401)
+    request('/health',token=other_session,status=401)
+    assert request('/health',token=bt)['protocolVersion']==3
+    print('PASS parallel pushes, byte-bounded pull, stable account identity, selective pull, account isolation, exact retry ACK, causal conflict, friendship, message deduplication, share permissions, CAS, revocation, session rotation, logout-all')
 if __name__=='__main__':main()

@@ -3,7 +3,7 @@ name: Build Raha Life
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches: [main, master, 'review/v0.10.0-dev.5']
     tags: ['v*']
 
 permissions:
@@ -12,6 +12,10 @@ permissions:
 env:
   CI: 'true'
   DASH__SUPPRESS_ANALYTICS: 'true'
+  RAHA_DROPBOX_CLIENT_ID: ${{ vars.RAHA_DROPBOX_CLIENT_ID }}
+  RAHA_ONEDRIVE_CLIENT_ID: ${{ vars.RAHA_ONEDRIVE_CLIENT_ID }}
+  RAHA_GOOGLE_DRIVE_CLIENT_ID: ${{ vars.RAHA_GOOGLE_DRIVE_CLIENT_ID }}
+  RAHA_DROPBOX_WEB_REDIRECT_URI: ${{ vars.RAHA_DROPBOX_WEB_REDIRECT_URI }}
 
 jobs:
   android:
@@ -91,6 +95,7 @@ jobs:
 
       - name: Detect persistent Android release signing
         id: raha_signing
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         shell: bash
         env:
           RAHA_ANDROID_KEYSTORE_BASE64: ${{ secrets.RAHA_ANDROID_KEYSTORE_BASE64 }}
@@ -99,6 +104,19 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Refuse to produce a release tag with temporary Android signing
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          SIGNING_CONFIGURED: ${{ steps.raha_signing.outputs.configured }}
+          RELEASE_CERT_SHA256: ${{ vars.RAHA_ANDROID_RELEASE_CERT_SHA256 }}
+        run: |
+          cert="${RELEASE_CERT_SHA256//:/}"
+          if [[ "$SIGNING_CONFIGURED" != 'true' || ! "$cert" =~ ^[0-9A-Fa-f]{64}$ ]]; then
+            echo "::error::A release tag requires the established Android keystore and its pinned certificate fingerprint."
+            exit 1
           fi
 
       - name: Configure persistent Android release signing
@@ -124,62 +142,7 @@ jobs:
           fi
 
       - name: Enable Android core library desugaring
-        shell: bash
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-
-          gradle = Path("android/app/build.gradle.kts")
-          if not gradle.exists():
-              raise SystemExit("android/app/build.gradle.kts was not generated")
-
-          text = gradle.read_text(encoding="utf-8")
-
-          if "isCoreLibraryDesugaringEnabled = true" not in text:
-              compile_marker = "    compileOptions {"
-              start = text.find(compile_marker)
-              if start == -1:
-                  android_marker = "android {"
-                  block = '''android {
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_17
-                  targetCompatibility = JavaVersion.VERSION_17
-                  isCoreLibraryDesugaringEnabled = true
-              }
-          '''
-                  text = text.replace(android_marker, block, 1)
-              else:
-                  end = text.find("    }", start)
-                  if end == -1:
-                      raise SystemExit("Could not locate compileOptions block end")
-                  block = text[start:end + 5]
-                  if "sourceCompatibility" in block:
-                      block = block.replace(
-                          "sourceCompatibility = JavaVersion.VERSION_11",
-                          "sourceCompatibility = JavaVersion.VERSION_17",
-                      ).replace(
-                          "targetCompatibility = JavaVersion.VERSION_11",
-                          "targetCompatibility = JavaVersion.VERSION_17",
-                      )
-                      block = block.replace(
-                          "sourceCompatibility = JavaVersion.VERSION_17\n",
-                          "sourceCompatibility = JavaVersion.VERSION_17\n        isCoreLibraryDesugaringEnabled = true\n",
-                          1,
-                      )
-                  else:
-                      block = block[:-5] + '''        sourceCompatibility = JavaVersion.VERSION_17
-                  targetCompatibility = JavaVersion.VERSION_17
-                  isCoreLibraryDesugaringEnabled = true
-              }'''
-                  text = text[:start] + block + text[end + 5:]
-
-          dependency = 'coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")'
-          if dependency not in text:
-              text += f'''\n\ndependencies {{\n    {dependency}\n}}\n'''
-
-          gradle.write_text(text, encoding="utf-8")
-          print(gradle.read_text(encoding="utf-8"))
-          PY
+        run: python3 tool/configure_android_desugaring.py
 
       - name: Clean generated build state
         run: flutter clean
@@ -199,25 +162,70 @@ jobs:
 
       - name: Build universal APK
         run: |
-          flutter build apk --release
+          python tool/write_oauth_build_config.py android
+          flutter build apk --release --build-name="$(python3 tool/check_app_version.py)" --dart-define-from-file=build/oauth-android.json
           mkdir -p release/android
           cp build/app/outputs/flutter-apk/app-release.apk release/android/Raha-Life-universal-release.apk
 
-      - name: Build split APKs
-        run: flutter build apk --release --split-per-abi
+      - name: Build ABI-specific APKs with the same version code as universal
+        shell: bash
+        run: |
+          # Flutter --split-per-abi adds ABI-dependent offsets to versionCode.
+          # Separate targets keep Android upgrades valid across our APK variants.
+          version="$(python3 tool/check_app_version.py)"
+          for pair in android-arm:armeabi-v7a android-arm64:arm64-v8a android-x64:x86_64; do
+            flutter build apk --release --build-name="$version" \
+              --target-platform="${pair%%:*}" --dart-define-from-file=build/oauth-android.json
+            cp build/app/outputs/flutter-apk/app-release.apk "release/android/Raha-Life-${pair##*:}-release.apk"
+          done
 
       - name: Build Android App Bundle
-        run: flutter build appbundle --release
+        run: |
+          python tool/write_oauth_build_config.py android
+          flutter build appbundle --release --build-name="$(python3 tool/check_app_version.py)" --dart-define-from-file=build/oauth-android.json
 
       - name: Rename Android artifacts
         shell: bash
         run: |
           mkdir -p release/android
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release/android/Raha-Life-arm64-v8a-release.apk
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release/android/Raha-Life-armeabi-v7a-release.apk
-          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release/android/Raha-Life-x86_64-release.apk
           cp build/app/outputs/bundle/release/app-release.aab release/android/Raha-Life-release.aab
-          sha256sum release/android/* > release/android/SHA256SUMS.txt
+          cd release/android
+          sha256sum *.apk *.aab SIGNING_STATUS.txt > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+
+      - name: Verify the generated Android version and package ID
+        shell: bash
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          aapt="$(find "$sdk/build-tools" -name aapt -type f -executable | sort -V | tail -1)"
+          test -n "$aapt"
+          expected_version="$(python3 tool/check_app_version.py)"
+          expected_code="$(sed -nE 's/^version: .*\+([0-9]+)$/\1/p' pubspec.yaml)"
+          [[ "$expected_code" -gt 4021 ]]
+          for apk in release/android/*.apk; do
+            manifest="$("$aapt" dump badging "$apk" | sed -n '/^package:/p')"
+            [[ "$manifest" == *"name='com.raha.raha_life'"* ]]
+            [[ "$manifest" == *"versionName='$expected_version'"* ]]
+            [[ "$manifest" == *"versionCode='$expected_code'"* ]]
+          done
+
+      - name: Compare tagged APKs with the established release certificate
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          RELEASE_CERT_SHA256: ${{ vars.RAHA_ANDROID_RELEASE_CERT_SHA256 }}
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          apksigner="$(find "$sdk/build-tools" -name apksigner -type f -executable | sort -V | tail -1)"
+          test -n "$apksigner"
+          expected="${RELEASE_CERT_SHA256//:/}"
+          for apk in release/android/*.apk; do
+            actual="$("$apksigner" verify --print-certs "$apk" | sed -nE 's/^Signer #[0-9]+ certificate SHA-256 digest: ([0-9A-Fa-f]+)$/\1/p')"
+            if [[ "${actual,,}" != "${expected,,}" ]]; then
+              echo "::error::APK signing certificate does not match the established release certificate."
+              exit 1
+            fi
+          done
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
@@ -279,7 +287,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build Windows release
-        run: flutter build windows --release
+        run: |
+          python tool/write_oauth_build_config.py windows
+          flutter build windows --release --dart-define-from-file=build/oauth-windows.json
 
       - name: Package Windows release
         shell: pwsh
@@ -342,7 +352,9 @@ jobs:
         run: bash tool/prepare_drift_web.sh
 
       - name: Build Web release
-        run: flutter build web --release
+        run: |
+          python tool/write_oauth_build_config.py web
+          flutter build web --release --dart-define-from-file=build/oauth-web.json
 
       - name: Package Web release
         run: |
@@ -350,7 +362,9 @@ jobs:
           cd build/web
           zip -r ../../release/web/Raha-Life-Web-release.zip .
           cd ../..
-          sha256sum release/web/Raha-Life-Web-release.zip > release/web/SHA256SUMS.txt
+          cd release/web
+          sha256sum Raha-Life-Web-release.zip > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
 
       - name: Upload Web artifact
         uses: actions/upload-artifact@v4

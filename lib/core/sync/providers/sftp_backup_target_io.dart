@@ -1,4 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:uuid/uuid.dart';
+import '../backup/local_backup_service.dart';
 
 import 'package:dartssh2/dartssh2.dart';
 
@@ -35,17 +40,41 @@ class _SftpBackupTarget implements BackupTarget {
       };
 
   Future<SSHClient> _connect() async {
+    if (_remotePath.split('/').any((part) => part == '..') ||
+        _remotePath.contains('\x00')) {
+      throw const FormatException('Invalid backup directory.');
+    }
     if (_host.isEmpty || _username.isEmpty) {
       throw const FormatException('SFTP host and username are required.');
     }
+    final fingerprint = profile.config['hostFingerprint']?.trim();
+    if (fingerprint == null ||
+        !RegExp(r'^SHA256:[A-Za-z0-9+/]{43}$').hasMatch(fingerprint)) {
+      throw const FormatException(
+        'Set the trusted SSH server SHA256 fingerprint before connecting.',
+      );
+    }
     final socket = await SSHSocket.connect(_host, _port);
-    return SSHClient(
+    final client = SSHClient(
       socket,
       username: _username,
+      onVerifyHostKey: (_, received) => utf8.decode(received) == fingerprint,
       onPasswordRequest: () => _password,
       handshakeTimeout: const Duration(seconds: 15),
       authTimeout: const Duration(seconds: 15),
     );
+    // Authentication is awaited by each operation. Register a handler on the
+    // independent transport-completion future before a handshake can fail.
+    unawaited(_transportFinished(client));
+    return client;
+  }
+
+  Future<void> _transportFinished(SSHClient client) async {
+    try {
+      await client.done;
+    } catch (_) {
+      // The awaiting SFTP/authentication operation reports the transport error.
+    }
   }
 
   Future<void> _ensureDirectory(SftpClient sftp) async {
@@ -58,7 +87,8 @@ class _SftpBackupTarget implements BackupTarget {
           : '$current/$part';
       try {
         await sftp.stat(current);
-      } catch (_) {
+      } on SftpStatusError catch (error) {
+        if (error.code != 2) rethrow;
         await sftp.mkdir(current);
       }
     }
@@ -86,7 +116,7 @@ class _SftpBackupTarget implements BackupTarget {
       return BackupTargetTestResult(success: false, message: error.toString());
     } finally {
       client?.close();
-      if (client != null) await client.done;
+      if (client != null) await _transportFinished(client);
     }
   }
 
@@ -111,15 +141,48 @@ class _SftpBackupTarget implements BackupTarget {
 
   @override
   Future<void> upload(BackupObject object) async {
+    if (object.bytes.isEmpty ||
+        object.bytes.length > LocalBackupService.maxBackupBytes) {
+      throw const FormatException('Backup exceeds the supported size.');
+    }
     final client = await _connect();
     try {
       await client.authenticated;
       final sftp = await client.sftp();
       await _ensureDirectory(sftp);
-      await _writeObject(sftp, _pathFor('latest.rahabackup'), object.bytes);
+      final timestamp = DateTime.now()
+          .toUtc()
+          .microsecondsSinceEpoch
+          .toString()
+          .padLeft(20, '0');
+      final name = 'backup-$timestamp-${const Uuid().v4()}.rahabackup';
+      final temporary = _pathFor('.$name.part');
+      try {
+        await _writeObject(sftp, temporary, object.bytes);
+        final uploaded = await sftp.open(temporary);
+        try {
+          if ((await uploaded.stat()).size != object.bytes.length ||
+              await sha256
+                      .bind(uploaded.read(length: object.bytes.length))
+                      .first !=
+                  sha256.convert(object.bytes)) {
+            throw StateError('Uploaded backup did not pass verification.');
+          }
+        } finally {
+          await uploaded.close();
+        }
+        await sftp.rename(temporary, _pathFor(name));
+      } catch (_) {
+        try {
+          await sftp.remove(temporary);
+        } catch (_) {
+          /* A partial file is never selected. */
+        }
+        rethrow;
+      }
     } finally {
       client.close();
-      await client.done;
+      await _transportFinished(client);
     }
   }
 
@@ -129,25 +192,51 @@ class _SftpBackupTarget implements BackupTarget {
     try {
       await client.authenticated;
       final sftp = await client.sftp();
-      final path = _pathFor('latest.rahabackup');
+      List<String> versions;
       try {
-        final file = await sftp.open(path);
+        versions =
+            (await sftp.listdir(_remotePath))
+                .map((item) => item.filename)
+                .where(
+                  RegExp(
+                    r'^backup-[0-9]{20}-[0-9a-f-]{36}\.rahabackup$',
+                  ).hasMatch,
+                )
+                .toList()
+              ..sort();
+      } on SftpStatusError catch (error) {
+        if (error.code == 2) return null;
+        rethrow;
+      }
+      final name = versions.isEmpty ? 'latest.rahabackup' : versions.last;
+      try {
+        final file = await sftp.open(_pathFor(name));
         try {
-          final bytes = await file.readBytes();
+          final size = (await file.stat()).size;
+          if (size == null ||
+              size < 1 ||
+              size > LocalBackupService.maxBackupBytes) {
+            throw const FormatException('Invalid or oversized remote backup.');
+          }
+          final bytes = await file.readBytes(length: size);
+          if (bytes.length != size) {
+            throw StateError('Incomplete remote backup.');
+          }
           return BackupObject(
             bytes: bytes,
-            fileName: 'latest.rahabackup',
+            fileName: name,
             createdAtUtc: DateTime.now().toUtc(),
           );
         } finally {
           await file.close();
         }
-      } catch (_) {
-        return null;
+      } on SftpStatusError catch (error) {
+        if (error.code == 2 && versions.isEmpty) return null;
+        rethrow;
       }
     } finally {
       client.close();
-      await client.done;
+      await _transportFinished(client);
     }
   }
 }

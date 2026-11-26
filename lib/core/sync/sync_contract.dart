@@ -215,19 +215,35 @@ class RecordSyncEngine implements SyncService {
       }
     }
     // Bounded uploads. Changes created during this run remain in the durable queue.
+    Set<String>? previousBatch;
     for (var batch = 0; batch < 100; batch++) {
       final pending = await store.pendingChanges();
       if (pending.isEmpty) break;
-      final pushed = await transport.push(deviceId: deviceId, changes: pending);
       final sent = pending.map((e) => e.changeId).whereType<String>().toSet();
+      if (previousBatch case final previous?) {
+        if (previous.length == sent.length && previous.containsAll(sent)) break;
+      }
+      previousBatch = sent;
+      final pushed = await transport.push(deviceId: deviceId, changes: pending);
+      final conflicts = pushed.conflicts.where((conflict) {
+        final local = conflict.local;
+        return pending.any(
+          (entry) =>
+              entry.changeId == local.changeId &&
+              entry.entityType == local.entityType &&
+              entry.entityId == local.entityId &&
+              local.entityType == conflict.remote.entityType &&
+              local.entityId == conflict.remote.entityId,
+        );
+      }).toList();
       final accepted = pushed.accepted.where(sent.contains).toSet();
       await store.atomic(() async {
-        await store.saveConflicts(pushed.conflicts);
+        await store.saveConflicts(conflicts);
         await store.markUploaded(accepted);
       });
-      conflictCount += pushed.conflicts.length;
+      conflictCount += conflicts.length;
       uploaded += accepted.length;
-      if (pushed.conflicts.isNotEmpty || accepted.isEmpty) break;
+      if (conflicts.isEmpty && accepted.isEmpty) break;
     }
     return SyncResult(
       uploaded: uploaded,

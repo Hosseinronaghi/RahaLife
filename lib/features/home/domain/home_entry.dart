@@ -202,10 +202,19 @@ class HomeEntry {
     if (repeat == ReminderRepeat.monthly || repeat == ReminderRepeat.yearly) {
       if (calendar == 'jalali') {
         final a = Jalali.fromDateTime(dateTime), b = Jalali.fromDateTime(date);
-        return a.day == b.day &&
+        final day = type == HomeEntryType.birthday
+            ? a.day.clamp(1, Jalali(b.year, a.month, 1).monthLength)
+            : a.day;
+        return day == b.day &&
             (repeat == ReminderRepeat.monthly || a.month == b.month);
       }
-      return dateTime.day == date.day &&
+      final day = type == HomeEntryType.birthday
+          ? dateTime.day.clamp(
+              1,
+              DateTime(date.year, dateTime.month + 1, 0).day,
+            )
+          : dateTime.day;
+      return day == date.day &&
           (repeat == ReminderRepeat.monthly || dateTime.month == date.month);
     }
     return target == start;

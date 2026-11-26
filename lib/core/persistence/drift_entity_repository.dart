@@ -16,12 +16,33 @@ class ConcurrentRecordEdit extends StateError {
 
 /// All record changes and outbox entries commit in the same Drift transaction.
 class DriftEntityRepository {
-  DriftEntityRepository({AppDatabase? database}) : db = database ?? appDatabase;
+  DriftEntityRepository({
+    AppDatabase? database,
+    Future<String> Function()? deviceIdentity,
+  }) : db = database ?? appDatabase,
+       _deviceIdentity = deviceIdentity ?? DeviceIdentityService.getOrCreate;
+
   final AppDatabase db;
+  final Future<String> Function() _deviceIdentity;
   static const _uuid = Uuid();
   final Map<String, Map<String, Map<String, Object?>>> _observed = {};
   Map<String, Object?> _copy(Map<String, Object?> value) =>
       Map<String, Object?>.from(jsonDecode(jsonEncode(value)) as Map);
+
+  /// Roll back observation baselines along with a multi-entity transaction.
+  Future<T> atomic<T>(Future<T> Function() action) => db.transaction(() async {
+    final before = Map<String, Map<String, Map<String, Object?>>>.from(
+      _observed,
+    );
+    try {
+      return await action();
+    } catch (_) {
+      _observed.clear();
+      _observed.addAll(before);
+      rethrow;
+    }
+  });
+
   Future<List<Map<String, Object?>>> loadAll(
     String type, {
     bool includeArchived = false,
@@ -113,7 +134,7 @@ class DriftEntityRepository {
                         : SyncOperation.upsert,
                     version: remote.version,
                     updatedAtUtc: DateTime.now().toUtc(),
-                    deviceId: await DeviceIdentityService.getOrCreate(),
+                    deviceId: await _deviceIdentity(),
                     payload: edit.value ?? previous[edit.key] ?? {},
                     clock: remote.effectiveClock,
                     deletedAtUtc: edit.value == null
@@ -229,7 +250,7 @@ class DriftEntityRepository {
         current.payloadJson == encoded) {
       return;
     }
-    final device = await DeviceIdentityService.getOrCreate();
+    final device = await _deviceIdentity();
     final clock = current == null
         ? <String, int>{}
         : decodeClock(current.clockJson, current.deviceId, current.version);

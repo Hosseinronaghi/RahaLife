@@ -1,0 +1,2 @@
+Flutter suite run with SQLite available; scheduler plugin warnings on Linux are not real-device notification results.
+00:13 +130: All tests passed!

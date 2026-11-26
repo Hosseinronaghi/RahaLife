@@ -20,6 +20,18 @@ if manifest.exists():
     text = re.sub(r'(<application\b[^>]*?android:label=")[^"]*', r'\g<1>Raha Life', text, count=1, flags=re.S)
     if 'android.permission.RECORD_AUDIO' not in text:
         text=text.replace('<application', '<uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <application',1)
+    if 'com.linusu.flutter_web_auth_2.CallbackActivity' not in text:
+        text=text.replace('</application>', '''<activity
+            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+            android:exported="true" android:taskAffinity="">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.raha.life.oauth" />
+            </intent-filter>
+        </activity>
+    </application>''')
     manifest.write_text(text, encoding='utf-8')
     for density, size in [('mdpi',48),('hdpi',72),('xhdpi',96),('xxhdpi',144),('xxxhdpi',192)]:
         copy_icon(size, manifest.parent/f'res/mipmap-{density}/ic_launcher.png')

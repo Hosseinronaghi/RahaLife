@@ -245,8 +245,8 @@ final agendaProvider = StreamProvider<List<AgendaItem>>(
               }
             }
             cycles.sort((a, b) => a.startDate.compareTo(b.startDate));
-            if (cycles.isNotEmpty) {
-              final forecast = CycleForecast.fromLogs(cycles)!;
+            final forecast = CycleForecast.fromLogs(cycles);
+            if (forecast != null && forecast.hasEnoughHistory) {
               final last = cycles.last, predicted = forecast.start;
               if (last.conflictReminders) {
                 final conflicts = result

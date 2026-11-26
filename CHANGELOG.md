@@ -1,3 +1,9 @@
+## 0.10.0-dev.5+21 — stabilization
+- Protect rich note drafts while their records load or change elsewhere.
+- Keep pending conflicts off the upload queue, bind authorization to the destination, and order server commits per account.
+- Resume interrupted preference restore, retain recovery keys, and publish verified SFTP versions without replacing the previous backup.
+- Reconcile reminder schedules incrementally and align Docker CORS defaults.
+
 ## 0.10.0-dev.2+18 (review)
 
 Managed media and recording; entertainment; grouped daily agenda; dose history and snooze; simpler sync/backup UI; localized catalog; credential hashing and error hardening. See docs/v010/STATUS_FA.md for validation and unfinished work.

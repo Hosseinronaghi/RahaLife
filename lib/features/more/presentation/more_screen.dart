@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/app_version.dart';
 import '../../../core/localization/locale_formatters.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -82,12 +83,12 @@ class MoreScreen extends ConsumerWidget {
                 icon: Icons.info_outline_rounded,
                 title: l10n.about,
                 subtitle:
-                    '${l10n.version} ${localizeDigits('0.5.0', Localizations.localeOf(context))}',
+                    '${l10n.version} ${localizeDigits(rahaAppVersion, Localizations.localeOf(context))}',
                 onTap: () => showAboutDialog(
                   context: context,
                   applicationName: l10n.appName,
                   applicationVersion: localizeDigits(
-                    '0.5.0',
+                    rahaAppVersion,
                     Localizations.localeOf(context),
                   ),
                   applicationIcon: Icon(

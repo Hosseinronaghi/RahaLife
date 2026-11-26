@@ -1,0 +1,121 @@
+name: Verify Android upgrade on emulator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['review/v0.10.0-dev.5']
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: 'true'
+      DASH__SUPPRESS_ANALYTICS: 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: candidate
+      - uses: actions/checkout@v5
+        with:
+          ref: d6c7838ee395651608f662087fddb7f4452678fc
+          path: baseline
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+      - name: Resolve Android SDK and install emulator tools
+        shell: bash
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          test -n "$sdk" && test -d "$sdk" || { echo "::error::Android SDK not available"; exit 1; }
+          sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$sdkmanager" ]]; then
+            sdkmanager="$(find "$sdk/cmdline-tools" -path '*/bin/sdkmanager' -type f -executable | sort -V | tail -1)"
+          fi
+          test -x "$sdkmanager" || { echo "::error::Android SDK Command-line Tools not available"; exit 1; }
+          "$sdkmanager" --sdk_root="$sdk" 'emulator' 'platform-tools' 'system-images;android-35;google_apis;x86_64' </dev/null
+          printf '%s\n' "$(dirname "$sdkmanager")" "$sdk/platform-tools" "$sdk/emulator" >> "$GITHUB_PATH"
+          printf 'ANDROID_HOME=%s\n' "$sdk" >> "$GITHUB_ENV"
+          sdk_bin="$(dirname "$sdkmanager")"
+          export ANDROID_USER_HOME="$RUNNER_TEMP/raha-android"
+          export ANDROID_EMULATOR_HOME="$ANDROID_USER_HOME"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          unset ANDROID_SDK_HOME
+          mkdir -p "$ANDROID_AVD_HOME"
+          "$sdk_bin/avdmanager" create avd --force --name raha-upgrade \
+            --package 'system-images;android-35;google_apis;x86_64' \
+            --device pixel_6 --path "$ANDROID_AVD_HOME/raha-upgrade.avd" <<< no
+          if ! "$sdk/emulator/emulator" -list-avds | grep -Fxq raha-upgrade; then
+            echo "::error::Android emulator cannot find the AVD created by avdmanager"
+            ls -la "$ANDROID_AVD_HOME"
+            exit 1
+          fi
+          printf 'ANDROID_USER_HOME=%s\nANDROID_EMULATOR_HOME=%s\nANDROID_AVD_HOME=%s\n' \
+            "$ANDROID_USER_HOME" "$ANDROID_EMULATOR_HOME" "$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+      - name: Verify source and build both versions with one test signing identity
+        run: |
+          python3 candidate/tool/check_source_integrity.py
+          for project in baseline candidate; do
+            (
+              cd "$project"
+              flutter create --no-pub --platforms=android --org com.raha --project-name raha_life .
+              python3 tool/configure_branding.py
+              python3 ../candidate/tool/configure_android_desugaring.py
+              flutter pub get
+              flutter gen-l10n
+              dart run build_runner build --delete-conflicting-outputs
+              build_code=()
+              # The previously distributed x86_64 APK had the highest ABI code.
+              if [[ "$project" == baseline ]]; then build_code=(--build-number=4021); fi
+              flutter build apk --debug --target-platform android-x64 "${build_code[@]}"
+            )
+          done
+      - name: Verify package ID, increasing version code and matching test signer
+        run: |
+          sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          for executable in apkanalyzer apksigner; do
+            bin="$(find "$sdk" -name "$executable" -type f -executable | sort -V | tail -1)"
+            test -n "$bin"
+            export PATH="$(dirname "$bin"):$PATH"
+          done
+          python3 candidate/tool/verify_android_upgrade.py \
+            baseline/build/app/outputs/flutter-apk/app-debug.apk \
+            candidate/build/app/outputs/flutter-apk/app-debug.apk
+      - name: Boot a fresh Android 35 emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-raha-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          test -r /dev/kvm && test -w /dev/kvm
+          nohup emulator -avd raha-upgrade -no-window -no-boot-anim -no-audio -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/raha-emulator.log" 2>&1 < /dev/null &
+          emulator_pid=$!
+          ready=false
+          for ((attempt=0; attempt<100; attempt++)); do
+            kill -0 "$emulator_pid" || { echo "::error::Android emulator exited during startup"; exit 1; }
+            if [[ "$(timeout 5 adb -e shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; then
+              ready=true
+              break
+            fi
+            sleep 3
+          done
+          [[ "$ready" == true ]] || { echo "::error::Android emulator boot did not complete"; exit 1; }
+          adb shell input keyevent 82
+      - name: Install in place and verify the saved record survives
+        run: |
+          python3 candidate/tool/test_android_upgrade.py \
+            baseline/build/app/outputs/flutter-apk/app-debug.apk \
+            candidate/build/app/outputs/flutter-apk/app-debug.apk
+      - name: Show test device diagnostics
+        if: failure()
+        run: |
+          tail -100 "$RUNNER_TEMP/raha-emulator.log" || true
+          if command -v adb >/dev/null; then timeout 20 adb logcat -d -b crash -t 100 || true; fi

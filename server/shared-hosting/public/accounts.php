@@ -16,14 +16,12 @@ function accountRoute(array $config, string $path, string $method): ?string {
         $limits=[hash('sha256','pair:'.$address.':'.$username)=>10,
                  hash('sha256','account:'.$username)=>30,
                  hash('sha256','address:'.$address)=>60];
+        $directory = rtrim((string)$config['storage_dir'], DIRECTORY_SEPARATOR) . '/rate_limits';
         foreach($limits as $key=>$limit) {
-            $q=$db->prepare('SELECT COUNT(*) FROM auth_attempts WHERE attempt_key=? AND created_at>DATE_SUB(NOW(),INTERVAL 15 MINUTE)');$q->execute([$key]);
-            if((int)$q->fetchColumn()>=$limit)respond(429,['error'=>'try_later']);
+            if (!rahaRateAllowed($directory, 'auth:'.$key, $limit, 900)) {
+                header('Retry-After: 900'); respond(429,['error'=>'try_later']);
+            }
         }
-        foreach($limits as $key=>$limit) {
-            $db->prepare('INSERT INTO auth_attempts(attempt_key) VALUES(?)')->execute([$key]);
-        }
-        $db->exec('DELETE FROM auth_attempts WHERE created_at<DATE_SUB(NOW(),INTERVAL 1 DAY) LIMIT 500');
         if(routeEndsWith($path,'/v1/account/register')){
             $code=(string)(getenv('RAHA_REGISTRATION_CODE')?:($config['registration_code']??''));
             if($code==='' || !hash_equals($code,(string)($body['registrationCode']??'')))respond(403,['error'=>'registration_invitation_required']);
@@ -38,12 +36,30 @@ function accountRoute(array $config, string $path, string $method): ?string {
             }
         }
         $token=bin2hex(random_bytes(32));
-        $db->prepare('INSERT INTO raha_sessions(token_hash,account_id,expires_at) VALUES(?,?,DATE_ADD(NOW(),INTERVAL 30 DAY))')->execute([hash('sha256',$token),$id]);
+        $days=max(1,min(30,(int)($config['session_days']??7)));
+        $db->prepare('INSERT INTO raha_sessions(token_hash,account_id,expires_at) VALUES(?,?,DATE_ADD(NOW(),INTERVAL ? DAY))')->execute([hash('sha256',$token),$id,$days]);
+        $db->exec('DELETE FROM raha_sessions WHERE expires_at<NOW()');
         respond(200,['ok'=>true,'accountId'=>$id,'username'=>$username,'token'=>$token]);
     }
     if($method==='POST' && routeEndsWith($path,'/v1/account/logout')) {
         $db->prepare('DELETE FROM raha_sessions WHERE token_hash=?')->execute([hash('sha256',bearerToken())]);
         respond(200,['ok'=>true]);
+    }
+    if ($method==='POST' && (routeEndsWith($path,'/v1/account/logout-all') || routeEndsWith($path,'/v1/account/rotate'))) {
+        $db->beginTransaction();
+        $oldHash=hash('sha256',bearerToken());
+        $q=$db->prepare('SELECT account_id FROM raha_sessions WHERE token_hash=? AND expires_at>NOW() FOR UPDATE');
+        $q->execute([$oldHash]); $id=$q->fetchColumn();
+        if (!$id) { $db->rollBack(); respond(401,['error'=>'unauthorized']); }
+        if (routeEndsWith($path,'/v1/account/logout-all')) {
+            $db->prepare('DELETE FROM raha_sessions WHERE account_id=?')->execute([$id]);
+            $db->commit(); respond(200,['ok'=>true]);
+        }
+        $token=bin2hex(random_bytes(32));
+        $days=max(1,min(30,(int)($config['session_days']??7)));
+        $db->prepare('INSERT INTO raha_sessions(token_hash,account_id,expires_at) VALUES(?,?,DATE_ADD(NOW(),INTERVAL ? DAY))')->execute([hash('sha256',$token),$id,$days]);
+        $db->prepare('DELETE FROM raha_sessions WHERE token_hash=?')->execute([$oldHash]);
+        $db->commit(); respond(200,['ok'=>true,'token'=>$token]);
     }
     $q=$db->prepare('SELECT account_id FROM raha_sessions WHERE token_hash=? AND expires_at>NOW()');
     $q->execute([hash('sha256',bearerToken())]);return $q->fetchColumn()?:null;

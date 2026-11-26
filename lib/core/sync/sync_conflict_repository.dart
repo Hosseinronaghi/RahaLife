@@ -35,10 +35,14 @@ enum SyncConflictResolution { keepLocal, useRemote }
 /// obsolete queued deltas are marked as superseded and a local choice is
 /// emitted as a fresh higher revision so every other device converges.
 class SyncConflictRepository {
-  SyncConflictRepository({AppDatabase? database})
-    : db = database ?? appDatabase;
+  SyncConflictRepository({
+    AppDatabase? database,
+    Future<String> Function()? deviceIdentity,
+  }) : db = database ?? appDatabase,
+       _deviceIdentity = deviceIdentity ?? DeviceIdentityService.getOrCreate;
 
   final AppDatabase db;
+  final Future<String> Function() _deviceIdentity;
   static const _uuid = Uuid();
 
   Future<List<SyncConflictRecord>> unresolved() async {
@@ -112,7 +116,7 @@ class SyncConflictRepository {
       final chosen = resolution == SyncConflictResolution.useRemote
           ? remote
           : local;
-      final deviceId = await DeviceIdentityService.getOrCreate();
+      final deviceId = await _deviceIdentity();
       final clock = joinClocks(local.effectiveClock, remote.effectiveClock);
       clock[deviceId] = (clock[deviceId] ?? 0) + 1;
       final resolved = SyncEnvelope(

@@ -31,13 +31,35 @@ jobs:
         with:
           php-version: '8.3'
           extensions: pdo_mysql
+      - run: php server/tests/security_test.php
       - run: php server/tests/password_test.php
       - run: php server/tests/protocol_test.php
       - run: php server/tests/backup_store_test.php
       - name: Fresh database
         run: mysql -h 127.0.0.1 -uroot -ptest-only-password raha_test < server/shared-hosting/install.sql
-      - name: Start disposable server
-        run: php -S 127.0.0.1:8090 -t server/shared-hosting/public server/shared-hosting/public/index.php > /tmp/raha-server.log 2>&1 &
-      - run: python3 server/tests/http_smoke.py
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+      - name: Generate Flutter and Drift sources
+        run: |
+          flutter pub get
+          flutter gen-l10n
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Run API and Flutter clients against the disposable server
+        env:
+          RAHA_SYNC_INTEGRATION_CODE: ci-disposable-invitation
+        run: |
+          php -S 127.0.0.1:8090 -t server/shared-hosting/public server/shared-hosting/public/index.php > /tmp/raha-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl -s -o /dev/null http://127.0.0.1:8090/health; then break; fi
+            sleep 1
+          done
+          kill -0 "$server_pid"
+          python3 server/tests/http_smoke.py
+          flutter test --no-pub test/raha_sync_http_integration_test.dart
       - if: failure()
         run: cat /tmp/raha-server.log

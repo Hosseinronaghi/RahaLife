@@ -1,0 +1,5 @@
+2026-09-20
+python3 -m unittest discover -s tool -p test_*.py
+3 tests: OK
+All .github/workflows/*.yml parsed successfully using PyYAML.
+Native builds and live OAuth not executed.

@@ -58,12 +58,12 @@ class InboxNotifier extends StateNotifier<List<InboxItem>> {
       InboxItem(id: _uuid.v4(), text: value, createdAt: DateTime.now().toUtc()),
       ...state,
     ];
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 
   void remove(String id) {
     state = state.where((item) => item.id != id).toList(growable: false);
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 }
 

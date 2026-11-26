@@ -74,13 +74,13 @@ class PeopleNotifier extends StateNotifier<List<Person>> {
         notes: notes?.trim(),
       ),
     ]..sort((a, b) => a.name.compareTo(b.name));
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
     return personId;
   }
 
   void delete(String id) {
     state = state.where((person) => person.id != id).toList();
-    WriteStatus.track(_persist());
+    WriteStatus.track(_persist(), retry: _persist);
   }
 }
 

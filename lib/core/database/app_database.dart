@@ -584,11 +584,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
+
+  Future<void> _createSyncQuarantine() => customStatement(
+    'CREATE TABLE IF NOT EXISTS sync_quarantine ('
+    'change_id TEXT PRIMARY KEY REFERENCES sync_changes(change_id) ON DELETE CASCADE, '
+    'reason TEXT NOT NULL, bytes INTEGER NOT NULL)',
+  );
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) => m.createAll(),
+    onCreate: (m) async {
+      await m.createAll();
+      await _createSyncQuarantine();
+    },
     onUpgrade: (m, from, to) async {
       if (from < 4) {
         await m.addColumn(affairs, affairs.projectId);
@@ -686,6 +695,25 @@ class AppDatabase extends _$AppDatabase {
       if (from == 6) {
         await m.addColumn(entityDocuments, entityDocuments.clockJson);
         await m.addColumn(syncChanges, syncChanges.clockJson);
+      }
+      if (from < 8) {
+        // Repair legacy schema drift without dropping tables or their records.
+        for (final table in allTables) {
+          final existing = await customSelect(
+            'PRAGMA table_info("${table.actualTableName}")',
+          ).get();
+          if (existing.isEmpty) {
+            await m.createTable(table);
+          } else {
+            final names = existing.map((r) => r.read<String>('name')).toSet();
+            for (final column in table.$columns) {
+              if (!names.contains(column.name)) {
+                await m.addColumn(table, column);
+              }
+            }
+          }
+        }
+        await _createSyncQuarantine();
       }
     },
     beforeOpen: (details) async {
