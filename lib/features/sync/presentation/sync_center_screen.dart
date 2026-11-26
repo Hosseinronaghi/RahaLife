@@ -11,7 +11,8 @@ import '../domain/sync_settings.dart';
 import 'sync_conflicts_sheet.dart';
 import 'sync_controller.dart';
 import 'widgets/sync_connection_sheet.dart';
-import 'widgets/dropbox_connect_button.dart';
+import 'widgets/cloud_connect_button.dart';
+import '../../../core/sync/providers/backup_target_factory.dart';
 
 class SyncCenterScreen extends ConsumerWidget {
   const SyncCenterScreen({this.advanced = false, super.key});
@@ -37,16 +38,7 @@ class SyncCenterScreen extends ConsumerWidget {
       connection.enabled &&
       (connection.purpose == SyncTargetPurpose.backup ||
           connection.purpose == SyncTargetPurpose.both) &&
-      switch (connection.kind) {
-        SyncProviderKind.dropbox ||
-        SyncProviderKind.webDav ||
-        SyncProviderKind.nextcloud ||
-        SyncProviderKind.s3 ||
-        SyncProviderKind.sftp ||
-        SyncProviderKind.rahaServer ||
-        SyncProviderKind.customHttp => true,
-        _ => false,
-      };
+      supportsAutomaticBackup(connection.kind);
 
   Future<void> _showResult(
     BuildContext context, {
@@ -715,7 +707,8 @@ class SyncCenterScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 14),
-                const DropboxConnectButton(),
+                const CloudConnectButton(),
+                const CloudConnectButton(kind: SyncProviderKind.oneDrive),
                 OutlinedButton.icon(
                   onPressed: busy ? null : () => _exportBackup(context, ref),
                   icon: const Icon(Icons.folder_open_rounded),
@@ -727,8 +720,8 @@ class SyncCenterScreen extends ConsumerWidget {
                 Text(
                   _t(
                     context,
-                    'ورود مستقیم Dropbox به ثبت اپ توسط ناشر نیاز دارد. اتصال مستقیم سایر سرویس‌ها هنوز تکمیل نشده؛ ذخیره فایل پشتیبان با انتخاب‌گر سیستم مستقل از آن است.',
-                    'Direct Dropbox sign-in requires publisher app registration. Other direct cloud connections are unfinished; saving a backup through the system picker is independent.',
+                    'ورود مستقیم Dropbox و OneDrive به ثبت اپ توسط ناشر نیاز دارد. ذخیره فایل پشتیبان با انتخاب‌گر سیستم مستقل از این تنظیمات است.',
+                    'Direct Dropbox and OneDrive sign-in require publisher app registration. Saving a backup through the system picker is independent.',
                   ),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),

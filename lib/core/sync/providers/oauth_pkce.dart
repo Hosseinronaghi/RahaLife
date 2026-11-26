@@ -54,8 +54,8 @@ class OAuthPkceAttempt {
 }
 
 /// Fixed provider endpoints; neither a callback nor a profile can redirect tokens.
-class DropboxOAuth {
-  DropboxOAuth({Dio? dio})
+abstract class _OAuthCodeClient {
+  _OAuthCodeClient(this.endpoint, {Dio? dio})
     : _dio =
           dio ??
           Dio(
@@ -66,25 +66,7 @@ class DropboxOAuth {
             ),
           );
   final Dio _dio;
-  static const clientId = String.fromEnvironment('RAHA_DROPBOX_CLIENT_ID');
-  static const redirect = String.fromEnvironment('RAHA_DROPBOX_REDIRECT_URI');
-  static bool get configured =>
-      clientId.trim().isNotEmpty && redirect.isNotEmpty;
-
-  Uri authorize(
-    OAuthPkceAttempt attempt,
-    String appId,
-  ) => Uri.https('www.dropbox.com', '/oauth2/authorize', {
-    'client_id': appId,
-    'redirect_uri': attempt.redirectUri.toString(),
-    'response_type': 'code',
-    'state': attempt.state,
-    'code_challenge': attempt.challenge,
-    'code_challenge_method': 'S256',
-    'token_access_type': 'offline',
-    'scope':
-        'account_info.read files.metadata.read files.content.read files.content.write',
-  });
+  final String endpoint;
 
   Future<Map<String, String>> exchange({
     required OAuthPkceAttempt attempt,
@@ -110,7 +92,7 @@ class DropboxOAuth {
   Future<Map<String, String>> _token(Map<String, String> form) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
-        'https://api.dropboxapi.com/oauth2/token',
+        endpoint,
         data: form,
         options: Options(
           contentType: Headers.formUrlEncodedContentType,
@@ -147,4 +129,58 @@ class DropboxOAuth {
       throw StateError('oauth_token_exchange_failed');
     }
   }
+}
+
+class DropboxOAuth extends _OAuthCodeClient {
+  DropboxOAuth({Dio? dio})
+    : super('https://api.dropboxapi.com/oauth2/token', dio: dio);
+
+  static const clientId = String.fromEnvironment('RAHA_DROPBOX_CLIENT_ID');
+  static const redirect = String.fromEnvironment('RAHA_DROPBOX_REDIRECT_URI');
+  static bool get configured =>
+      clientId.trim().isNotEmpty && redirect.isNotEmpty;
+
+  Uri authorize(
+    OAuthPkceAttempt attempt,
+    String appId,
+  ) => Uri.https('www.dropbox.com', '/oauth2/authorize', {
+    'client_id': appId,
+    'redirect_uri': attempt.redirectUri.toString(),
+    'response_type': 'code',
+    'state': attempt.state,
+    'code_challenge': attempt.challenge,
+    'code_challenge_method': 'S256',
+    'token_access_type': 'offline',
+    'scope':
+        'account_info.read files.metadata.read files.content.read files.content.write',
+  });
+
+}
+
+class OneDriveOAuth extends _OAuthCodeClient {
+  OneDriveOAuth({Dio? dio})
+    : super(
+        'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+        dio: dio,
+      );
+
+  static const clientId = String.fromEnvironment('RAHA_ONEDRIVE_CLIENT_ID');
+  static const redirect = String.fromEnvironment('RAHA_ONEDRIVE_REDIRECT_URI');
+  static bool get configured =>
+      clientId.trim().isNotEmpty && redirect.isNotEmpty;
+
+  Uri authorize(OAuthPkceAttempt attempt, String appId) => Uri.https(
+    'login.microsoftonline.com',
+    '/common/oauth2/v2.0/authorize',
+    {
+      'client_id': appId,
+      'redirect_uri': attempt.redirectUri.toString(),
+      'response_type': 'code',
+      'response_mode': 'query',
+      'state': attempt.state,
+      'code_challenge': attempt.challenge,
+      'code_challenge_method': 'S256',
+      'scope': 'offline_access https://graph.microsoft.com/Files.ReadWrite.AppFolder',
+    },
+  );
 }

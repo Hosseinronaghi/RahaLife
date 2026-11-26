@@ -16,10 +16,19 @@ else:
     redirect = 'com.raha.life.oauth:/callback'
 if not client or not redirect:
     client = redirect = ''  # Unconfigured builds keep direct sign-in disabled.
+# Validate the native Windows/Linux loopback path first. Do not enable an
+# untested registration/callback type on other platforms.
+onedrive_client = (
+    os.environ.get('RAHA_ONEDRIVE_CLIENT_ID', '').strip()
+    if platform in ('linux', 'windows') else ''
+)
 destination = Path('build') / f'oauth-{platform}.json'
 destination.parent.mkdir(parents=True, exist_ok=True)
 destination.write_text(json.dumps({
     'RAHA_DROPBOX_CLIENT_ID': client,
     'RAHA_DROPBOX_REDIRECT_URI': redirect,
+    'RAHA_ONEDRIVE_CLIENT_ID': onedrive_client,
+    'RAHA_ONEDRIVE_REDIRECT_URI': 'http://127.0.0.1:43829/callback'
+    if onedrive_client else '',
 }), encoding='utf-8')
 print(f'OAuth build configuration written for {platform}; no client secret is embedded.')
