@@ -290,7 +290,7 @@
   "tool/prepare_drift_web.sh": "ce560ec666084e3f3f71cf548cc9ecc11e66c0e053a84559d22d55ab2ec75b30",
   "tool/recover_legacy_backup.py": "db7d3a8220081645afb6115cf48b0c8cfd63ed5ee403864eae0eecd250e11072",
   "tool/repair_nested_app.py": "9a10d704c81fa7b48d6e318dc46dc45915a10c7b884b3e4c69856fdd838d40db",
-  "tool/sign_apple_release.sh": "f7886449aff925b0afcb49045d8722c70292c6a4600d5cd8c78c978a8acd0c46",
+  "tool/sign_apple_release.sh": "33b32eb665f5afdf08e5b4ed5e66209546ea6ed0d106a3c1b234f911427e7de9",
   "tool/test_android_upgrade.py": "29104e0c874fe88e1c008c7a76f295f2fc2698828e668101c7448733f41b2c77",
   "tool/test_branding.py": "bc1149c644c7b9a9b153ee61f24e9bf3e6feb11265b0c29a5e0387b86ae404c2",
   "tool/test_legacy_recovery.py": "0e788abaad11559e92b6a51c654b137f4cba8eacd4259468dc18ad226a6838da",

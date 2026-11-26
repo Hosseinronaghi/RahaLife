@@ -44,10 +44,13 @@ if [[ "$RAHA_PLATFORM" == ios ]]; then
   security cms -D -i "$sign_dir/ios.mobileprovision" > "$sign_dir/profile.plist"
   metadata="$(python3 tool/configure_ios_release_signing.py "$sign_dir/profile.plist" "$sign_dir/export.plist")"
   [[ "$metadata" =~ ^[A-Fa-f0-9-]{36}$ ]]
-  profile_parent="$HOME/Library/MobileDevice/Provisioning Profiles"
+  profile_parent="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
   mkdir -p "$profile_parent"
   installed_profile="$profile_parent/$metadata.mobileprovision"
   cp "$sign_dir/ios.mobileprovision" "$installed_profile"
+  # Do not expose imported credentials to Flutter/Xcode plugin build scripts.
+  unset certificate password RAHA_IOS_P12 RAHA_IOS_P12_PASSWORD RAHA_IOS_PROFILE
+  unset RAHA_MAC_P12 RAHA_MAC_P12_PASSWORD RAHA_MAC_PROFILE RAHA_NOTARY_API_KEY
   flutter build ipa --release --export-options-plist="$sign_dir/export.plist" --dart-define-from-file=build/oauth-ios.json
   products=(build/ios/ipa/*.ipa)
   [[ ${#products[@]} -eq 1 && -f "${products[0]}" ]]
